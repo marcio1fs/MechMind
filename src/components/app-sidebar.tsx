@@ -16,6 +16,7 @@ import {
   Settings,
   Wrench,
   LogOut,
+  Package,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -25,6 +26,7 @@ const menuItems = [
   { href: "/diagnostics", label: "Diagnósticos", icon: Wrench },
   { href: "/orders", label: "Pedidos", icon: ClipboardList },
   { href: "/vehicle-history", label: "Histórico do Veículo", icon: History },
+  { href: "/inventory", label: "Estoque", icon: Package },
   { href: "/pricing", label: "Preços", icon: CreditCard },
   { href: "/settings", label: "Configurações", icon: Settings },
 ];

@@ -23,6 +23,7 @@ const pathTitles: { [key: string]: string } = {
     "/diagnostics": "Diagnósticos",
     "/orders": "Pedidos",
     "/vehicle-history": "Histórico do Veículo",
+    "/inventory": "Estoque",
     "/pricing": "Preços",
     "/settings": "Configurações",
 };
@@ -68,7 +69,9 @@ export default function AppHeader() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Configurações</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/settings">Configurações</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>Suporte</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
