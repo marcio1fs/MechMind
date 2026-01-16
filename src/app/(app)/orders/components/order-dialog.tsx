@@ -64,7 +64,7 @@ const formSchema = z.object({
   status: z.enum(["Concluído", "Em Andamento", "Pendente"]),
   symptoms: z.string().optional(),
   diagnosis: z.string().optional(),
-  services: z.string().min(1, "Descreva os serviços."),
+  services: z.string().optional(),
   parts: z.string().optional(),
   total: z.coerce.number().min(0, "O total não pode ser negativo."),
 });
@@ -106,6 +106,8 @@ export function OrderDialog({
       total: 0,
     },
   });
+
+  const status = form.watch("status");
 
   useEffect(() => {
     if (isOpen) {
@@ -404,10 +406,10 @@ export function OrderDialog({
                 name="services"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Serviços Realizados</FormLabel>
+                    <FormLabel>{status === 'Pendente' ? "Serviços Planejados (Opcional)" : "Serviços Realizados"}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Descreva os serviços a serem realizados..."
+                        placeholder={status === 'Pendente' ? "Descreva os serviços a serem realizados..." : "Descreva os serviços realizados..."}
                         {...field}
                       />
                     </FormControl>
@@ -422,10 +424,10 @@ export function OrderDialog({
                 name="parts"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Peças Substituídas (Opcional)</FormLabel>
+                    <FormLabel>{status === 'Pendente' ? "Peças Estimadas (Opcional)" : "Peças Substituídas (Opcional)"}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Liste as peças utilizadas..."
+                        placeholder={status === 'Pendente' ? "Liste as peças estimadas para o serviço..." : "Liste as peças utilizadas..."}
                         {...field}
                       />
                     </FormControl>
@@ -439,7 +441,7 @@ export function OrderDialog({
               name="total"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Total</FormLabel>
+                  <FormLabel>{status === 'Pendente' ? "Orçamento Inicial (R$)" : "Total Final (R$)"}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
                   </FormControl>
