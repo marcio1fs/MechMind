@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-background",
+      "description": "A close-up of a modern car engine with blue ambient lighting.",
+      "imageUrl": "https://images.unsplash.com/photo-1429772011165-0c2e054367b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2FyJTIwZW5naW5lfGVufDB8fHx8MTc2ODUzNDgzN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "car engine"
+    },
+    {
+      "id": "avatar-user",
+      "description": "A placeholder avatar for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3Njg1NjA0NzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "vehicle-1",
+      "description": "A modern white SUV.",
+      "imageUrl": "https://images.unsplash.com/photo-1684849311607-ad25cec710a7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3aGl0ZSUyMHN1dnxlbnwwfHx8fDE3Njg1NTY1MjB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white suv"
+    },
+    {
+      "id": "vehicle-2",
+      "description": "A classic red sports car.",
+      "imageUrl": "https://images.unsplash.com/photo-1632726146281-a7239810ced1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxyZWQlMjBjYXJ8ZW58MHx8fHwxNzY4NTM0ODM3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "red car"
+    },
+    {
+      "id": "vehicle-3",
+      "description": "A blue sedan in a city.",
+      "imageUrl": "https://images.unsplash.com/photo-1621601628445-ff13122a9caf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Ymx1ZSUyMHNlZGFufGVufDB8fHx8MTc2ODU3MzM1MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blue sedan"
+    }
+  ]
 }

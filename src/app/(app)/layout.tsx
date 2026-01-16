@@ -1,0 +1,23 @@
+import AppHeader from "@/components/app-header";
+import AppSidebar from "@/components/app-sidebar";
+import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+
+export default function AppLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen">
+        <Sidebar>
+          <AppSidebar />
+        </Sidebar>
+        <SidebarInset>
+          <AppHeader />
+          <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+}
