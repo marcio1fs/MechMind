@@ -57,7 +57,7 @@ export default function VehicleHistoryPage() {
             <CardTitle>Vehicle Service History</CardTitle>
             <CardDescription>
               Provide the vehicle's service records and any current symptoms.
-            </Description>
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
