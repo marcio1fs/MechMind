@@ -1,6 +1,7 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
+import { useActionState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -15,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { getVehicleHistoryAnalysis } from "./actions";
 import { AlertTriangle, Lightbulb, History, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -30,7 +30,7 @@ function SubmitButton() {
 export default function VehicleHistoryPage() {
   const { toast } = useToast();
   const initialState = { message: null, data: null };
-  const [state, dispatch] = useFormState(getVehicleHistoryAnalysis, initialState);
+  const [state, dispatch] = useActionState(getVehicleHistoryAnalysis, initialState);
 
    useEffect(() => {
     if (state.message && state.message !== "Analysis complete.") {

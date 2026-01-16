@@ -1,6 +1,7 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
+import { useActionState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -16,7 +17,6 @@ import { getAIDiagnosis } from "./actions";
 import { Progress } from "@/components/ui/progress";
 import { Bot, AlertCircle, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -31,7 +31,7 @@ function SubmitButton() {
 export default function DiagnosticsPage() {
   const { toast } = useToast();
   const initialState = { message: null, data: null };
-  const [state, dispatch] = useFormState(getAIDiagnosis, initialState);
+  const [state, dispatch] = useActionState(getAIDiagnosis, initialState);
 
   useEffect(() => {
     if (state.message && state.message !== "Diagnosis complete.") {
