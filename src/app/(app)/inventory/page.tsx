@@ -19,8 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { StockItemDialog } from "./components/stock-item-dialog";
+import { StockMovementDialog } from "./components/stock-movement-dialog";
+import { DeleteItemDialog } from "./components/delete-item-dialog";
+import { useToast } from "@/hooks/use-toast";
 
-type StockItem = {
+export type StockItem = {
   id: string;
   code: string;
   name: string;
@@ -51,8 +55,52 @@ function getStatus(quantity: number, min_quantity: number): { text: string; vari
 
 export default function InventoryPage() {
   const [stockItems, setStockItems] = useState(mockStockItems);
+  const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
+  const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { toast } = useToast();
 
-  // TODO: Add dialogs for Add/Edit/Delete/Movement
+  const handleOpenDialog = (dialog: 'item' | 'movement' | 'delete', item: StockItem | null) => {
+    setSelectedItem(item);
+    if (dialog === 'item') setIsItemDialogOpen(true);
+    if (dialog === 'movement') setIsMovementDialogOpen(true);
+    if (dialog === 'delete') setIsDeleteDialogOpen(true);
+  };
+  
+  const handleSaveItem = (item: StockItem) => {
+    const existingItem = stockItems.find(i => i.id === item.id);
+    if (existingItem) {
+      setStockItems(stockItems.map(i => i.id === item.id ? item : i));
+      toast({ title: "Sucesso!", description: "Item atualizado com sucesso." });
+    } else {
+      setStockItems([...stockItems, item]);
+      toast({ title: "Sucesso!", description: "Item adicionado com sucesso." });
+    }
+    setSelectedItem(null);
+  };
+
+  const handleDeleteItem = (item: StockItem) => {
+    setStockItems(stockItems.filter(i => i.id !== item.id));
+    toast({ title: "Sucesso!", description: "Item excluído com sucesso." });
+    setSelectedItem(null);
+    setIsDeleteDialogOpen(false);
+  };
+
+  const handleMoveItem = (item: StockItem, type: "IN" | "OUT", quantity: number) => {
+    const newQuantity = type === 'IN' ? item.quantity + quantity : item.quantity - quantity;
+    if (newQuantity < 0) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Estoque",
+            description: "A saída não pode ser maior que a quantidade disponível.",
+        });
+        return;
+    }
+    setStockItems(stockItems.map(i => i.id === item.id ? { ...i, quantity: newQuantity } : i));
+    toast({ title: "Sucesso!", description: `Movimentação de ${quantity} unidade(s) (${type}) registrada para ${item.name}.` });
+    setSelectedItem(null);
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -64,7 +112,7 @@ export default function InventoryPage() {
                 </p>
             </div>
             <div>
-                <Button>
+                <Button onClick={() => handleOpenDialog('item', null)}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Adicionar Item
                 </Button>
@@ -117,9 +165,9 @@ export default function InventoryPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>Editar</DropdownMenuItem>
-                                    <DropdownMenuItem>Movimentar</DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Excluir</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenDialog('item', item)}>Editar</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenDialog('movement', item)}>Movimentar</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenDialog('delete', item)} className="text-destructive focus:text-destructive focus:bg-destructive/10">Excluir</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>
@@ -131,6 +179,27 @@ export default function InventoryPage() {
             </div>
         </CardContent>
       </Card>
+
+      <StockItemDialog
+        isOpen={isItemDialogOpen}
+        onOpenChange={setIsItemDialogOpen}
+        item={selectedItem}
+        onSave={handleSaveItem}
+      />
+
+      <StockMovementDialog
+        isOpen={isMovementDialogOpen}
+        onOpenChange={setIsMovementDialogOpen}
+        item={selectedItem}
+        onMove={handleMoveItem}
+      />
+
+      <DeleteItemDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        item={selectedItem}
+        onDelete={handleDeleteItem}
+      />
     </div>
   );
 }
