@@ -98,7 +98,6 @@ export function OrderDialog({
         plate: "",
         color: "",
       },
-      startDate: new Date(),
       status: "Pendente",
       symptoms: "",
       diagnosis: "",
