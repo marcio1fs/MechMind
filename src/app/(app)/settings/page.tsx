@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -7,52 +7,52 @@ export default function SettingsPage() {
   return (
     <div className="grid gap-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline tracking-tight">Settings</h1>
+        <h1 className="text-3xl font-bold font-headline tracking-tight">Configurações</h1>
         <p className="text-muted-foreground">
-          Manage your account and application settings.
+          Gerencie sua conta e as configurações do aplicativo.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>WhatsApp Integration</CardTitle>
+          <CardTitle>Integração com WhatsApp</CardTitle>
           <CardDescription>
-            Connect your WhatsApp Business account to send automated updates to your customers.
+            Conecte sua conta do WhatsApp Business para enviar atualizações automáticas para seus clientes.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="whatsapp-api-key">API Provider</Label>
-             <p className="text-sm text-muted-foreground">Currently supporting Twilio or Meta WhatsApp Cloud API.</p>
+            <Label htmlFor="whatsapp-api-key">Provedor de API</Label>
+             <p className="text-sm text-muted-foreground">Atualmente, oferecemos suporte à API do Twilio ou da Meta para WhatsApp Cloud.</p>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="whatsapp-api-key">API Key</Label>
-            <Input id="whatsapp-api-key" placeholder="Enter your API key" />
+            <Label htmlFor="whatsapp-api-key">Chave da API</Label>
+            <Input id="whatsapp-api-key" placeholder="Digite sua chave de API" />
           </div>
            <div className="grid gap-2">
-            <Label htmlFor="whatsapp-sender-number">Sender Phone Number</Label>
-            <Input id="whatsapp-sender-number" placeholder="e.g., +14155552671" />
+            <Label htmlFor="whatsapp-sender-number">Número de Telefone do Remetente</Label>
+            <Input id="whatsapp-sender-number" placeholder="ex: +5511999998888" />
           </div>
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
-            <Button>Save and Connect</Button>
+            <Button>Salvar e Conectar</Button>
         </CardFooter>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Subscription</CardTitle>
+          <CardTitle>Assinatura</CardTitle>
           <CardDescription>
-            Manage your current subscription plan.
+            Gerencie seu plano de assinatura atual.
           </CardDescription>
         </CardHeader>
         <CardContent>
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="font-semibold">Current Plan: PRO+</p>
-                    <p className="text-sm text-muted-foreground">Your plan renews on July 30, 2024.</p>
+                    <p className="font-semibold">Plano Atual: PRO+</p>
+                    <p className="text-sm text-muted-foreground">Seu plano será renovado em 30 de julho de 2024.</p>
                 </div>
-                <Button variant="outline">Manage Subscription</Button>
+                <Button variant="outline">Gerenciar Assinatura</Button>
             </div>
         </CardContent>
       </Card>

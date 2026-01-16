@@ -21,12 +21,12 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const menuItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/diagnostics", label: "Diagnostics", icon: Wrench },
-  { href: "/orders", label: "Orders", icon: ClipboardList },
-  { href: "/vehicle-history", label: "Vehicle History", icon: History },
-  { href: "/pricing", label: "Pricing", icon: CreditCard },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
+  { href: "/diagnostics", label: "Diagnósticos", icon: Wrench },
+  { href: "/orders", label: "Pedidos", icon: ClipboardList },
+  { href: "/vehicle-history", label: "Histórico do Veículo", icon: History },
+  { href: "/pricing", label: "Preços", icon: CreditCard },
+  { href: "/settings", label: "Configurações", icon: Settings },
 ];
 
 export default function AppSidebar() {
@@ -61,10 +61,10 @@ export default function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Logout">
+                <SidebarMenuButton asChild tooltip="Sair">
                     <Link href="/login">
                         <LogOut/>
-                        <span>Logout</span>
+                        <span>Sair</span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>

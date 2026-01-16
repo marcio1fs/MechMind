@@ -27,16 +27,16 @@ export async function getOrderSummary(
 
   if (!validatedFields.success) {
     return {
-      message: "Invalid order data provided.",
+      message: "Dados do pedido inválidos.",
     };
   }
 
   try {
     const result = await generateOrderSummary(validatedFields.data);
-    return { data: result, message: "Summary generated." };
+    return { data: result, message: "Resumo gerado." };
   } catch (error) {
     return {
-      message: "An error occurred while generating the summary.",
+      message: "Ocorreu um erro ao gerar o resumo.",
     };
   }
 }

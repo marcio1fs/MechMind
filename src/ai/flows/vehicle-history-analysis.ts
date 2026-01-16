@@ -14,24 +14,24 @@ import {z} from 'genkit';
 const VehicleHistoryInputSchema = z.object({
   vehicleHistory: z
     .string()
-    .describe('The service history of the vehicle.'),
+    .describe('O histórico de serviço do veículo.'),
   currentSymptoms: z
     .string()
     .optional()
-    .describe('Any current symptoms reported by the customer.'),
+    .describe('Quaisquer sintomas atuais relatados pelo cliente.'),
 });
 export type VehicleHistoryInput = z.infer<typeof VehicleHistoryInputSchema>;
 
 const VehicleHistoryOutputSchema = z.object({
   predictedIssues: z
     .string()
-    .describe('Potential future issues predicted based on the vehicle history.'),
+    .describe('Possíveis problemas futuros previstos com base no histórico do veículo.'),
   recommendedMaintenance: z
     .string()
-    .describe('Recommended proactive maintenance tasks.'),
+    .describe('Tarefas de manutenção proativa recomendadas.'),
   summary: z
     .string()
-    .describe('A summary of the vehicle history and recommendations.'),
+    .describe('Um resumo da análise e recomendações do histórico do veículo.'),
 });
 export type VehicleHistoryOutput = z.infer<typeof VehicleHistoryOutputSchema>;
 
@@ -45,20 +45,20 @@ const prompt = ai.definePrompt({
   name: 'vehicleHistoryAnalysisPrompt',
   input: {schema: VehicleHistoryInputSchema},
   output: {schema: VehicleHistoryOutputSchema},
-  prompt: `You are an expert mechanic and service advisor. Analyze the vehicle's service history and current symptoms to predict potential future issues and recommend proactive maintenance.
+  prompt: `Você é um mecânico especialista e consultor de serviços. Analise o histórico de serviço do veículo e os sintomas atuais para prever possíveis problemas futuros e recomendar manutenção proativa.
 
-Vehicle History:
+Histórico do Veículo:
 {{{vehicleHistory}}}
 
-Current Symptoms (if any):
+Sintomas Atuais (se houver):
 {{{currentSymptoms}}}
 
-Based on this information, provide:
-1.  Predicted Future Issues: A list of potential issues that may arise.
-2.  Recommended Maintenance: Proactive maintenance tasks to prevent these issues.
-3.  Summary: A brief summary of the analysis and recommendations.
+Com base nessas informações, forneça:
+1.  Problemas Futuros Previstos: Uma lista de possíveis problemas que podem surgir.
+2.  Manutenção Recomendada: Tarefas de manutenção proativa para prevenir esses problemas.
+3.  Resumo: Um breve resumo da análise e recomendações.
 
-Format your output clearly and concisely.
+Formate sua saída de forma clara e concisa.
 `,
 });
 

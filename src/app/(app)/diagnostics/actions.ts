@@ -7,7 +7,7 @@ import {
 import { z } from "zod";
 
 const schema = z.object({
-  symptoms: z.string().min(10, { message: "Please describe the symptoms in more detail." }),
+  symptoms: z.string().min(10, { message: "Por favor, descreva os sintomas com mais detalhes." }),
   vehicleHistory: z.string().optional(),
 });
 
@@ -34,12 +34,12 @@ export async function getAIDiagnosis(
   try {
     const result = await aiPoweredDiagnosticAssistance({
       symptoms: validatedFields.data.symptoms,
-      vehicleHistory: validatedFields.data.vehicleHistory || "No history provided.",
+      vehicleHistory: validatedFields.data.vehicleHistory || "Nenhum histórico fornecido.",
     });
-    return { data: result, message: "Diagnosis complete." };
+    return { data: result, message: "Diagnóstico completo." };
   } catch (error) {
     return {
-      message: "An error occurred while getting the diagnosis. Please try again.",
+      message: "Ocorreu um erro ao obter o diagnóstico. Por favor, tente novamente.",
     };
   }
 }

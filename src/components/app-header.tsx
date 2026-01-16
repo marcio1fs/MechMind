@@ -16,9 +16,17 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { usePathname } from "next/navigation";
 import { Wrench } from "lucide-react";
 
+const pathTitles: { [key: string]: string } = {
+    "/dashboard": "Painel",
+    "/diagnostics": "Diagnósticos",
+    "/orders": "Pedidos",
+    "/vehicle-history": "Histórico do Veículo",
+    "/pricing": "Preços",
+    "/settings": "Configurações",
+};
+
 function getTitleFromPathname(pathname: string) {
-    const segment = pathname.split("/").pop() || "dashboard";
-    return segment.charAt(0).toUpperCase() + segment.slice(1);
+    return pathTitles[pathname] || "Painel";
 }
 
 
@@ -50,13 +58,13 @@ export default function AppHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuItem>Configurações</DropdownMenuItem>
+          <DropdownMenuItem>Suporte</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/login">Logout</Link>
+            <Link href="/login">Sair</Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

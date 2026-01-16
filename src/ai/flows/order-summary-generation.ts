@@ -18,14 +18,14 @@ import {z} from 'genkit';
 const OrderSummaryInputSchema = z.object({
   servicesPerformed: z
     .string()
-    .describe('A detailed description of the services performed on the vehicle.'),
+    .describe('Uma descrição detalhada dos serviços realizados no veículo.'),
   partsReplaced: z
     .string()
-    .describe('A list of parts that were replaced during the service.'),
-  totalCost: z.number().describe('The total cost of the service order.'),
-  vehicleMake: z.string().describe('The make of the vehicle.'),
-  vehicleModel: z.string().describe('The model of the vehicle.'),
-  vehicleYear: z.number().describe('The year of the vehicle.'),
+    .describe('Uma lista de peças que foram substituídas durante o serviço.'),
+  totalCost: z.number().describe('O custo total da ordem de serviço.'),
+  vehicleMake: z.string().describe('A marca do veículo.'),
+  vehicleModel: z.string().describe('O modelo do veículo.'),
+  vehicleYear: z.number().describe('O ano do veículo.'),
 });
 export type OrderSummaryInput = z.infer<typeof OrderSummaryInputSchema>;
 
@@ -34,7 +34,7 @@ const OrderSummaryOutputSchema = z.object({
   summary: z
     .string()
     .describe(
-      'A concise summary of the service order, including services, parts, and cost.'
+      'Um resumo conciso da ordem de serviço, incluindo serviços, peças e custo.'
     ),
 });
 export type OrderSummaryOutput = z.infer<typeof OrderSummaryOutputSchema>;
@@ -49,16 +49,16 @@ const orderSummaryPrompt = ai.definePrompt({
   name: 'orderSummaryPrompt',
   input: {schema: OrderSummaryInputSchema},
   output: {schema: OrderSummaryOutputSchema},
-  prompt: `You are an AI assistant that generates summaries for service orders.
+  prompt: `Você é um assistente de IA que gera resumos para ordens de serviço.
 
-  Given the following details about a service order, create a concise summary that includes the services performed, parts replaced, and the total cost.
+  Com base nos detalhes a seguir sobre uma ordem de serviço, crie um resumo conciso que inclua os serviços realizados, as peças substituídas e o custo total.
 
-  Vehicle: {{vehicleYear}} {{vehicleMake}} {{vehicleModel}}
-  Services Performed: {{servicesPerformed}}
-  Parts Replaced: {{partsReplaced}}
-  Total Cost: {{totalCost}}
+  Veículo: {{vehicleYear}} {{vehicleMake}} {{vehicleModel}}
+  Serviços Realizados: {{servicesPerformed}}
+  Peças Substituídas: {{partsReplaced}}
+  Custo Total: {{totalCost}}
 
-  Summary:`,
+  Resumo:`,
 });
 
 // Define the Genkit flow for generating the order summary

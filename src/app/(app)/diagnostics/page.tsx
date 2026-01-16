@@ -22,7 +22,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-      {pending ? "Diagnosing..." : "Run Diagnosis"}
+      {pending ? "Diagnosticando..." : "Executar Diagnóstico"}
       <Sparkles className="ml-2 h-4 w-4" />
     </Button>
   );
@@ -34,10 +34,10 @@ export default function DiagnosticsPage() {
   const [state, dispatch] = useActionState(getAIDiagnosis, initialState);
 
   useEffect(() => {
-    if (state.message && state.message !== "Diagnosis complete.") {
+    if (state.message && state.message !== "Diagnóstico completo.") {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Erro",
         description: state.message,
       });
     }
@@ -46,37 +46,37 @@ export default function DiagnosticsPage() {
   return (
     <div className="grid gap-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline tracking-tight">AI Diagnostic Assistance</h1>
+        <h1 className="text-3xl font-bold font-headline tracking-tight">Assistência de Diagnóstico por IA</h1>
         <p className="text-muted-foreground">
-          Describe the vehicle's symptoms to get an AI-powered diagnosis.
+          Descreva os sintomas do veículo para obter um diagnóstico com tecnologia de IA.
         </p>
       </div>
 
       <form action={dispatch}>
         <Card>
           <CardHeader>
-            <CardTitle>Vehicle Symptoms</CardTitle>
+            <CardTitle>Sintomas do Veículo</CardTitle>
             <CardDescription>
-              Provide a detailed description of the issues and any relevant vehicle history.
+              Forneça uma descrição detalhada dos problemas e qualquer histórico relevante do veículo.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="symptoms">Symptoms</Label>
+              <Label htmlFor="symptoms">Sintomas</Label>
               <Textarea
                 id="symptoms"
                 name="symptoms"
-                placeholder="e.g., Engine makes a knocking sound on startup, loses power when accelerating..."
+                placeholder="ex: O motor faz um barulho de batida na partida, perde potência ao acelerar..."
                 className="min-h-32"
                 required
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="vehicleHistory">Vehicle History (Optional)</Label>
+              <Label htmlFor="vehicleHistory">Histórico do Veículo (Opcional)</Label>
               <Textarea
                 id="vehicleHistory"
                 name="vehicleHistory"
-                placeholder="e.g., Last oil change 3 months ago, new spark plugs at 50,000 miles..."
+                placeholder="ex: Última troca de óleo há 3 meses, velas de ignição novas com 80.000 km..."
               />
             </div>
           </CardContent>
@@ -91,16 +91,16 @@ export default function DiagnosticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-6 w-6 text-primary" />
-              AI Diagnosis Result
+              Resultado do Diagnóstico da IA
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-6">
             <div>
-              <h3 className="font-semibold mb-2">Diagnosis</h3>
+              <h3 className="font-semibold mb-2">Diagnóstico</h3>
               <p className="text-muted-foreground">{state.data.diagnosis}</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">Confidence Level</h3>
+              <h3 className="font-semibold mb-2">Nível de Confiança</h3>
               <div className="flex items-center gap-2">
                 <Progress value={state.data.confidenceLevel * 100} className="w-full" />
                 <span className="font-mono text-sm font-semibold">
@@ -109,19 +109,19 @@ export default function DiagnosticsPage() {
               </div>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">Recommended Actions</h3>
+              <h3 className="font-semibold mb-2">Ações Recomendadas</h3>
               <p className="text-muted-foreground">{state.data.recommendedActions}</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {state.message && state.message !== "Diagnosis complete." && !state.data &&(
+      {state.message && state.message !== "Diagnóstico completo." && !state.data &&(
           <Card className="border-destructive">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-destructive">
                     <AlertCircle />
-                    An Error Occurred
+                    Ocorreu um Erro
                 </CardTitle>
             </CardHeader>
             <CardContent>

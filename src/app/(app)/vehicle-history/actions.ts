@@ -7,7 +7,7 @@ import {
 import { z } from "zod";
 
 const schema = z.object({
-  vehicleHistory: z.string().min(10, { message: "Please provide more vehicle history details." }),
+  vehicleHistory: z.string().min(10, { message: "Por favor, forneça mais detalhes do histórico do veículo." }),
   currentSymptoms: z.string().optional(),
 });
 
@@ -33,10 +33,10 @@ export async function getVehicleHistoryAnalysis(
 
   try {
     const result = await analyzeVehicleHistory(validatedFields.data);
-    return { data: result, message: "Analysis complete." };
+    return { data: result, message: "Análise completa." };
   } catch (error) {
     return {
-      message: "An error occurred during analysis. Please try again.",
+      message: "Ocorreu um erro durante a análise. Por favor, tente novamente.",
     };
   }
 }

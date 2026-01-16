@@ -21,7 +21,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-      {pending ? "Analyzing..." : "Analyze History"}
+      {pending ? "Analisando..." : "Analisar Histórico"}
       <Sparkles className="ml-2 h-4 w-4" />
     </Button>
   );
@@ -33,10 +33,10 @@ export default function VehicleHistoryPage() {
   const [state, dispatch] = useActionState(getVehicleHistoryAnalysis, initialState);
 
    useEffect(() => {
-    if (state.message && state.message !== "Analysis complete.") {
+    if (state.message && state.message !== "Análise completa.") {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Erro",
         description: state.message,
       });
     }
@@ -45,37 +45,37 @@ export default function VehicleHistoryPage() {
   return (
     <div className="grid gap-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline tracking-tight">Vehicle History Analysis</h1>
+        <h1 className="text-3xl font-bold font-headline tracking-tight">Análise de Histórico do Veículo</h1>
         <p className="text-muted-foreground">
-          Let AI analyze a vehicle's history to predict future issues and recommend maintenance.
+          Deixe a IA analisar o histórico de um veículo para prever problemas futuros e recomendar manutenções.
         </p>
       </div>
 
       <form action={dispatch}>
         <Card>
           <CardHeader>
-            <CardTitle>Vehicle Service History</CardTitle>
+            <CardTitle>Histórico de Serviço do Veículo</CardTitle>
             <CardDescription>
-              Provide the vehicle's service records and any current symptoms.
+              Forneça os registros de serviço do veículo e quaisquer sintomas atuais.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="vehicleHistory">Service History</Label>
+              <Label htmlFor="vehicleHistory">Histórico de Serviço</Label>
               <Textarea
                 id="vehicleHistory"
                 name="vehicleHistory"
-                placeholder="e.g., 2022-01-15: Oil change at 30,000 miles. 2023-05-20: Replaced front brake pads..."
+                placeholder="ex: 15/01/2022: Troca de óleo com 50.000 km. 20/05/2023: Substituição das pastilhas de freio dianteiras..."
                 className="min-h-32 font-code"
                 required
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="currentSymptoms">Current Symptoms (Optional)</Label>
+              <Label htmlFor="currentSymptoms">Sintomas Atuais (Opcional)</Label>
               <Textarea
                 id="currentSymptoms"
                 name="currentSymptoms"
-                placeholder="e.g., Slight vibration at high speeds."
+                placeholder="ex: Leve vibração em altas velocidades."
               />
             </div>
           </CardContent>
@@ -91,7 +91,7 @@ export default function VehicleHistoryPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <History className="h-6 w-6 text-primary" />
-                AI Analysis Summary
+                Resumo da Análise da IA
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -104,7 +104,7 @@ export default function VehicleHistoryPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
-                  Predicted Future Issues
+                  Problemas Futuros Previstos
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -116,7 +116,7 @@ export default function VehicleHistoryPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Lightbulb className="h-5 w-5 text-yellow-500" />
-                  Recommended Maintenance
+                  Manutenção Recomendada
                 </CardTitle>
               </CardHeader>
               <CardContent>

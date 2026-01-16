@@ -11,15 +11,15 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AIPoweredDiagnosticAssistanceInputSchema = z.object({
-  symptoms: z.string().describe('The reported symptoms of the vehicle.'),
-  vehicleHistory: z.string().describe('The service history of the vehicle.'),
+  symptoms: z.string().describe('Os sintomas relatados do veículo.'),
+  vehicleHistory: z.string().describe('O histórico de serviço do veículo.'),
 });
 export type AIPoweredDiagnosticAssistanceInput = z.infer<typeof AIPoweredDiagnosticAssistanceInputSchema>;
 
 const AIPoweredDiagnosticAssistanceOutputSchema = z.object({
-  diagnosis: z.string().describe('The AI-powered diagnosis of the vehicle issue.'),
-  confidenceLevel: z.number().describe('The confidence level of the diagnosis (0-1).'),
-  recommendedActions: z.string().describe('Recommended actions based on the diagnosis.'),
+  diagnosis: z.string().describe('O diagnóstico do problema do veículo gerado pela IA.'),
+  confidenceLevel: z.number().describe('O nível de confiança do diagnóstico (0-1).'),
+  recommendedActions: z.string().describe('Ações recomendadas com base no diagnóstico.'),
 });
 export type AIPoweredDiagnosticAssistanceOutput = z.infer<typeof AIPoweredDiagnosticAssistanceOutputSchema>;
 
@@ -31,16 +31,16 @@ const prompt = ai.definePrompt({
   name: 'aiPoweredDiagnosticAssistancePrompt',
   input: {schema: AIPoweredDiagnosticAssistanceInputSchema},
   output: {schema: AIPoweredDiagnosticAssistanceOutputSchema},
-  prompt: `You are an expert mechanic AI assistant. Your task is to diagnose vehicle issues based on reported symptoms and vehicle history.
+  prompt: `Você é um assistente de IA especialista em mecânica. Sua tarefa é diagnosticar problemas em veículos com base nos sintomas relatados e no histórico do veículo.
 
-Symptoms: {{{symptoms}}}
-Vehicle History: {{{vehicleHistory}}}
+Sintomas: {{{symptoms}}}
+Histórico do Veículo: {{{vehicleHistory}}}
 
-Provide a diagnosis, a confidence level (0-1), and recommended actions. Be specific in your diagnosis.
+Forneça um diagnóstico, um nível de confiança (0-1) e ações recomendadas. Seja específico em seu diagnóstico.
 \n{
-  "diagnosis": "diagnosis",
+  "diagnosis": "diagnóstico",
   "confidenceLevel": 0.8,
-  "recommendedActions": "recommendedActions"
+  "recommendedActions": "ações recomendadas"
 }`,
 });
 
