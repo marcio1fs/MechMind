@@ -68,7 +68,9 @@ export type PerformedService = {
 export type Order = {
   id: string;
   customer: string;
+  customerDocumentType?: "CPF" | "CNPJ";
   customerCpf?: string;
+  customerCnpj?: string;
   customerPhone?: string;
   vehicle: {
     make: string;
@@ -93,6 +95,7 @@ const mockOrders: Order[] = [
   {
     id: "ORD-001",
     customer: "JOHN DOE",
+    customerDocumentType: "CPF",
     customerCpf: "111.222.333-44",
     customerPhone: "5511999998888",
     vehicle: { make: "HONDA", model: "CIVIC", year: 2021, plate: "ABC1D23", color: "BRANCO" },
@@ -111,8 +114,9 @@ const mockOrders: Order[] = [
   },
   {
     id: "ORD-002",
-    customer: "JANE SMITH",
-    customerCpf: "222.333.444-55",
+    customer: "OFICINA DO ZÉ LTDA",
+    customerDocumentType: "CNPJ",
+    customerCnpj: "12.345.678/0001-99",
     customerPhone: "5521987654321",
     vehicle: { make: "FORD", model: "F-150", year: 2019, plate: "DEF4E56", color: "PRETO" },
     mechanicId: "MEC-002",
@@ -127,6 +131,7 @@ const mockOrders: Order[] = [
   {
     id: "ORD-003",
     customer: "SAM WILSON",
+    customerDocumentType: "CPF",
     customerCpf: "333.444.555-66",
     customerPhone: "5531912345678",
     vehicle: { make: "TOYOTA", model: "CAMRY", year: 2022, plate: "GHI7F89", color: "PRATA" },
@@ -140,6 +145,7 @@ const mockOrders: Order[] = [
   {
     id: "ORD-004",
     customer: "EMILY BROWN",
+    customerDocumentType: "CPF",
     customerCpf: "444.555.666-77",
     customerPhone: "5541955554444",
     vehicle: { make: "BMW", model: "X5", year: 2020, plate: "JKL0G12", color: "AZUL" },

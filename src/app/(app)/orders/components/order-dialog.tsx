@@ -51,19 +51,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AddPartDialog } from "./add-part-dialog";
 import type { StockItem } from "../../inventory/page";
 import type { Mechanic } from "../../mechanics/page";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const formSchema = z.object({
   id: z.string().optional(),
   customer: z.string().min(1, "O NOME DO CLIENTE É OBRIGATÓRIO."),
-  customerCpf: z.string()
-    .optional()
-    .refine((val) => {
-      if (!val) return true; // Allow empty
-      const cleanVal = val.replace(/\D/g, '');
-      return cleanVal.length === 11;
-    }, {
-      message: "CPF INVÁLIDO. DEVE CONTER 11 DÍGITOS.",
-    }),
+  customerDocumentType: z.enum(["CPF", "CNPJ"]).default("CPF"),
+  customerCpf: z.string().optional(),
+  customerCnpj: z.string().optional(),
   customerPhone: z.string()
     .optional()
     .refine((val) => {
@@ -108,6 +103,25 @@ const formSchema = z.object({
     sale_price: z.number(),
   })).optional(),
   total: z.coerce.number().min(0, "O TOTAL NÃO PODE SER NEGATIVO."),
+}).superRefine((data, ctx) => {
+    if (data.customerDocumentType === 'CPF' && data.customerCpf) {
+        if (data.customerCpf.replace(/\D/g, '').length !== 11) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "CPF INVÁLIDO. DEVE CONTER 11 DÍGITOS.",
+                path: ["customerCpf"],
+            });
+        }
+    }
+    if (data.customerDocumentType === 'CNPJ' && data.customerCnpj) {
+        if (data.customerCnpj.replace(/\D/g, '').length !== 14) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "CNPJ INVÁLIDO. DEVE CONTER 14 DÍGITOS.",
+                path: ["customerCnpj"],
+            });
+        }
+    }
 });
 
 type OrderFormValues = z.infer<typeof formSchema>;
@@ -139,7 +153,9 @@ export function OrderDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       customer: "",
+      customerDocumentType: "CPF",
       customerCpf: "",
+      customerCnpj: "",
       customerPhone: "",
       vehicle: {
         make: "",
@@ -166,6 +182,7 @@ export function OrderDialog({
   const isFinalizado = status === "FINALIZADO";
   const parts = form.watch("parts");
   const watchedServices = form.watch("services");
+  const documentType = form.watch("customerDocumentType");
 
   const partsTotal = useMemo(() => {
     if (!parts) return 0;
@@ -186,6 +203,7 @@ export function OrderDialog({
       if (order) {
         form.reset({
           ...order,
+          customerDocumentType: order.customerDocumentType || "CPF",
           startDate: new Date(order.startDate),
           services: order.services || [],
           parts: order.parts || [],
@@ -193,7 +211,9 @@ export function OrderDialog({
       } else {
         form.reset({
           customer: "",
+          customerDocumentType: "CPF",
           customerCpf: "",
+          customerCnpj: "",
           customerPhone: "",
           vehicle: {
             make: "",
@@ -325,33 +345,80 @@ export function OrderDialog({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="customerDocumentType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>TIPO DE DOCUMENTO</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                      disabled={isFinalizado}
+                    >
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <RadioGroupItem value="CPF" id="cpf" />
+                        </FormControl>
+                        <Label htmlFor="cpf" className="font-normal">PESSOA FÍSICA (CPF)</Label>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <RadioGroupItem value="CNPJ" id="cnpj" />
+                        </FormControl>
+                        <Label htmlFor="cnpj" className="font-normal">PESSOA JURÍDICA (CNPJ)</Label>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="customerCpf"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CPF</FormLabel>
-                    <FormControl>
-                      <Input placeholder="000.000.000-00" {...field} disabled={isFinalizado} maxLength={14} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                {documentType === "CPF" ? (
+                    <FormField
+                    control={form.control}
+                    name="customerCpf"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>CPF</FormLabel>
+                        <FormControl>
+                            <Input placeholder="000.000.000-00" {...field} value={field.value ?? ""} disabled={isFinalizado} maxLength={14} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                ) : (
+                    <FormField
+                    control={form.control}
+                    name="customerCnpj"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>CNPJ</FormLabel>
+                        <FormControl>
+                            <Input placeholder="00.000.000/0000-00" {...field} value={field.value ?? ""} disabled={isFinalizado} maxLength={18} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
                 )}
-              />
-              <FormField
+                <FormField
                 control={form.control}
                 name="customerPhone"
                 render={({ field }) => (
-                  <FormItem>
+                    <FormItem>
                     <FormLabel>TELEFONE/WHATSAPP</FormLabel>
                     <FormControl>
-                      <Input placeholder="5511999998888" {...field} disabled={isFinalizado} maxLength={15} />
+                        <Input placeholder="5511999998888" {...field} value={field.value ?? ""} disabled={isFinalizado} maxLength={15} />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
+                    </FormItem>
                 )}
-              />
+                />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -740,5 +807,3 @@ export function OrderDialog({
     </>
   );
 }
-
-    

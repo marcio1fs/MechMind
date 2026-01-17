@@ -39,9 +39,17 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
         ? order.parts.map(p => `- ${p.quantity}x ${p.name}: R$${(p.quantity * p.sale_price).toFixed(2)}`).join('\n')
         : "Nenhuma peça utilizada.";
       
+      const documentText = order.customerDocumentType === 'CNPJ' && order.customerCnpj 
+        ? `*CNPJ:* ${order.customerCnpj}\n`
+        : (order.customerCpf ? `*CPF:* ${order.customerCpf}\n` : '');
+
       let message = `*Recibo de Pagamento - MechMind*\n\n`;
       message += `Olá ${order.customer},\n`;
       message += `Agradecemos pela preferência! Segue o resumo da sua Ordem de Serviço *${order.id}*.\n\n`;
+      message += `*Cliente:* ${order.customer}\n`;
+      if (documentText) {
+        message += documentText;
+      }
       message += `*Veículo:* ${order.vehicle.make} ${order.vehicle.model} (${order.vehicle.plate})\n`;
       message += `*Data:* ${format(new Date(), "dd/MM/yyyy")}\n\n`;
       message += `*Serviços Realizados:*\n${servicesText}\n\n`;
@@ -86,7 +94,10 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
                 <div>
                     <h3 className="font-semibold mb-1">CLIENTE</h3>
                     <p>{order.customer}</p>
-                    {order.customerCpf && <p className="text-muted-foreground text-xs">CPF: {order.customerCpf}</p>}
+                    {order.customerDocumentType === 'CNPJ' && order.customerCnpj
+                        ? <p className="text-muted-foreground text-xs">CNPJ: {order.customerCnpj}</p>
+                        : order.customerCpf && <p className="text-muted-foreground text-xs">CPF: {order.customerCpf}</p>
+                    }
                     {order.customerPhone && <p className="text-muted-foreground text-xs">TELEFONE: {order.customerPhone}</p>}
                 </div>
                 <div>
