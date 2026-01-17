@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Sparkles } from "lucide-react";
+import { CalendarIcon, Loader2, Sparkles, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,30 +43,39 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getAIDiagnosisForOrder } from "../actions";
-import type { Order } from "../page";
+import type { Order, UsedPart } from "../page";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AddPartDialog } from "./add-part-dialog";
+import type { StockItem } from "../../inventory/page";
 
 const formSchema = z.object({
   id: z.string().optional(),
-  customer: z.string().min(1, "O nome do cliente é obrigatório."),
+  customer: z.string().min(1, "O NOME DO CLIENTE É OBRIGATÓRIO."),
   vehicle: z.object({
-    make: z.string().min(1, "A marca é obrigatória."),
-    model: z.string().min(1, "O modelo é obrigatório."),
+    make: z.string().min(1, "A MARCA É OBRIGATÓRIA."),
+    model: z.string().min(1, "O MODELO É OBRIGATÓRIO."),
     year: z.coerce
       .number()
-      .min(1900, "Ano inválido.")
-      .max(new Date().getFullYear() + 1, "Ano inválido."),
-    plate: z.string().min(1, "O número da placa é obrigatório.").toUpperCase(),
-    color: z.string().min(1, "A cor do veículo é obrigatória."),
+      .min(1900, "ANO INVÁLIDO.")
+      .max(new Date().getFullYear() + 1, "ANO INVÁLIDO."),
+    plate: z.string().min(1, "O NÚMERO DA PLACA É OBRIGATÓRIO.").toUpperCase(),
+    color: z.string().min(1, "A COR DO VEÍCULO É OBRIGATÓRIA."),
   }),
   startDate: z.date({
-    required_error: "A data de início é obrigatória.",
+    required_error: "A DATA DE INÍCIO É OBRIGATÓRIA.",
   }),
   status: z.enum(["Concluído", "Em Andamento", "Pendente"]),
   symptoms: z.string().optional(),
   diagnosis: z.string().optional(),
   services: z.string().optional(),
-  parts: z.string().optional(),
-  total: z.coerce.number().min(0, "O total não pode ser negativo."),
+  parts: z.array(z.object({
+    itemId: z.string(),
+    code: z.string(),
+    name: z.string(),
+    quantity: z.number(),
+    sale_price: z.number(),
+  })).optional(),
+  total: z.coerce.number().min(0, "O TOTAL NÃO PODE SER NEGATIVO."),
 });
 
 type OrderFormValues = z.infer<typeof formSchema>;
@@ -76,6 +85,7 @@ interface OrderDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   order: Order | null;
   onSave: (order: Order) => void;
+  stockItems: StockItem[];
 }
 
 export function OrderDialog({
@@ -83,9 +93,11 @@ export function OrderDialog({
   onOpenChange,
   order,
   onSave,
+  stockItems,
 }: OrderDialogProps) {
   const { toast } = useToast();
   const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [isAddPartDialogOpen, setIsAddPartDialogOpen] = useState(false);
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(formSchema),
@@ -102,7 +114,7 @@ export function OrderDialog({
       symptoms: "",
       diagnosis: "",
       services: "",
-      parts: "",
+      parts: [],
       total: 0,
     },
   });
@@ -115,6 +127,7 @@ export function OrderDialog({
         form.reset({
           ...order,
           startDate: new Date(order.startDate),
+          parts: order.parts || [],
         });
       } else {
         form.reset({
@@ -131,7 +144,7 @@ export function OrderDialog({
           symptoms: "",
           diagnosis: "",
           services: "",
-          parts: "",
+          parts: [],
           total: 0,
         });
       }
@@ -142,6 +155,7 @@ export function OrderDialog({
     onSave({
       ...data,
       id: order?.id || `ORD-${Date.now()}`,
+      parts: data.parts || [],
     });
     onOpenChange(false);
   };
@@ -151,9 +165,9 @@ export function OrderDialog({
     if (!symptoms || symptoms.length < 10) {
       toast({
         variant: "destructive",
-        title: "Sintomas insuficientes",
+        title: "SINTOMAS INSUFICIENTES",
         description:
-          "Por favor, descreva os sintomas com mais detalhes para obter um diagnóstico.",
+          "POR FAVOR, DESCREVA OS SINTOMAS COM MAIS DETALHES PARA OBTER UM DIAGNÓSTICO.",
       });
       return;
     }
@@ -163,31 +177,52 @@ export function OrderDialog({
       vehicleHistory: "",
     }); // vehicleHistory is optional.
     if (result.data) {
-      const formattedDiagnosis = `Diagnóstico: ${
+      const formattedDiagnosis = `DIAGNÓSTICO: ${
         result.data.diagnosis
-      }\n\nConfiança: ${(result.data.confidenceLevel * 100).toFixed(
+      }\n\nCONFIANÇA: ${(result.data.confidenceLevel * 100).toFixed(
         0
-      )}%\n\nAções Recomendadas:\n${result.data.recommendedActions}`;
+      )}%\n\nAÇÕES RECOMENDADAS:\n${result.data.recommendedActions}`;
       form.setValue("diagnosis", formattedDiagnosis, { shouldValidate: true });
-      toast({ title: "Diagnóstico gerado com sucesso!" });
+      toast({ title: "DIAGNÓSTICO GERADO COM SUCESSO!" });
     } else {
       toast({
         variant: "destructive",
-        title: "Erro no Diagnóstico",
-        description: result.message || "Não foi possível gerar o diagnóstico.",
+        title: "ERRO NO DIAGNÓSTICO",
+        description: result.message || "NÃO FOI POSSÍVEL GERAR O DIAGNÓSTICO.",
       });
     }
     setIsDiagnosing(false);
   };
 
+  const handleAddParts = (newParts: UsedPart[]) => {
+    const currentParts = form.getValues('parts') || [];
+    const updatedParts: UsedPart[] = [...currentParts];
+    newParts.forEach(newPart => {
+        const existingPartIndex = updatedParts.findIndex(p => p.itemId === newPart.itemId);
+        if (existingPartIndex > -1) {
+            updatedParts[existingPartIndex].quantity += newPart.quantity;
+        } else {
+            updatedParts.push(newPart);
+        }
+    });
+    form.setValue('parts', updatedParts, { shouldValidate: true });
+  };
+
+  const handleRemovePart = (index: number) => {
+    const currentParts = form.getValues('parts') || [];
+    const updatedParts = currentParts.filter((_, i) => i !== index);
+    form.setValue('parts', updatedParts, { shouldValidate: true });
+  };
+
   const title = order
-    ? "Editar Ordem de Serviço"
-    : "Adicionar Nova Ordem de Serviço";
+    ? "EDITAR ORDEM DE SERVIÇO"
+    : "ADICIONAR NOVA ORDEM DE SERVIÇO";
   const description = order
-    ? "Edite os detalhes da ordem de serviço."
-    : "Preencha os detalhes para adicionar uma nova ordem de serviço.";
+    ? "EDITE OS DETALHES DA ORDEM DE SERVIÇO."
+    : "PREENCHA OS DETALHES PARA ADICIONAR UMA NOVA ORDEM DE SERVIÇO.";
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
@@ -204,9 +239,9 @@ export function OrderDialog({
               name="customer"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Cliente</FormLabel>
+                  <FormLabel>NOME DO CLIENTE</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: João da Silva" {...field} />
+                    <Input placeholder="EX: JOÃO DA SILVA" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -218,9 +253,9 @@ export function OrderDialog({
                 name="vehicle.make"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Marca</FormLabel>
+                    <FormLabel>MARCA</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Honda" {...field} />
+                      <Input placeholder="EX: HONDA" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -231,9 +266,9 @@ export function OrderDialog({
                 name="vehicle.model"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Modelo</FormLabel>
+                    <FormLabel>MODELO</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Civic" {...field} />
+                      <Input placeholder="EX: CIVIC" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -246,7 +281,7 @@ export function OrderDialog({
                 name="vehicle.year"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ano</FormLabel>
+                    <FormLabel>ANO</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -259,9 +294,9 @@ export function OrderDialog({
                 name="vehicle.plate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Placa</FormLabel>
+                    <FormLabel>PLACA</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: ABC1234" {...field} />
+                      <Input placeholder="EX: ABC1234" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -272,9 +307,9 @@ export function OrderDialog({
                 name="vehicle.color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cor</FormLabel>
+                    <FormLabel>COR</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Preto" {...field} />
+                      <Input placeholder="EX: PRETO" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -287,7 +322,7 @@ export function OrderDialog({
               name="startDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Data de Início</FormLabel>
+                  <FormLabel>DATA DE INÍCIO</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -301,7 +336,7 @@ export function OrderDialog({
                           {field.value ? (
                             format(field.value, "PPP", { locale: ptBR })
                           ) : (
-                            <span>Escolha uma data</span>
+                            <span>ESCOLHA UMA DATA</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -326,20 +361,20 @@ export function OrderDialog({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel>STATUS</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
+                        <SelectValue placeholder="SELECIONE O STATUS" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Pendente">Pendente</SelectItem>
-                      <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                      <SelectItem value="Concluído">Concluído</SelectItem>
+                      <SelectItem value="Pendente">PENDENTE</SelectItem>
+                      <SelectItem value="Em Andamento">EM ANDAMENTO</SelectItem>
+                      <SelectItem value="Concluído">CONCLUÍDO</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -352,10 +387,10 @@ export function OrderDialog({
                 name="symptoms"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Sintomas Reportados</FormLabel>
+                    <FormLabel>SINTOMAS REPORTADOS</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Descreva os sintomas reportados pelo cliente..."
+                        placeholder="DESCREVA OS SINTOMAS REPORTADOS PELO CLIENTE..."
                         {...field}
                       />
                     </FormControl>
@@ -371,7 +406,7 @@ export function OrderDialog({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel>Diagnóstico por IA</FormLabel>
+                      <FormLabel>DIAGNÓSTICO POR IA</FormLabel>
                       <Button
                         type="button"
                         variant="outline"
@@ -384,12 +419,12 @@ export function OrderDialog({
                         ) : (
                           <Sparkles className="mr-2 h-4 w-4" />
                         )}
-                        Gerar Diagnóstico
+                        GERAR DIAGNÓSTICO
                       </Button>
                     </div>
                     <FormControl>
                       <Textarea
-                        placeholder="O diagnóstico gerado pela IA aparecerá aqui..."
+                        placeholder="O DIAGNÓSTICO GERADO PELA IA APARECERÁ AQUI..."
                         {...field}
                         className="min-h-24 uppercase"
                         readOnly
@@ -406,10 +441,10 @@ export function OrderDialog({
                 name="services"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{status === 'Pendente' ? "Serviços Planejados (Opcional)" : "Serviços Realizados"}</FormLabel>
+                    <FormLabel>{status === 'Pendente' ? "SERVIÇOS PLANEJADOS (OPCIONAL)" : "SERVIÇOS REALIZADOS"}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder={status === 'Pendente' ? "Descreva os serviços a serem realizados..." : "Descreva os serviços realizados..."}
+                        placeholder={status === 'Pendente' ? "DESCREVA OS SERVIÇOS A SEREM REALIZADOS..." : "DESCREVA OS SERVIÇOS REALIZADOS..."}
                         {...field}
                       />
                     </FormControl>
@@ -419,29 +454,50 @@ export function OrderDialog({
               />
             </div>
             <div className="grid gap-2">
-              <FormField
-                control={form.control}
-                name="parts"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{status === 'Pendente' ? "Peças Estimadas (Opcional)" : "Peças Substituídas (Opcional)"}</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder={status === 'Pendente' ? "Liste as peças estimadas para o serviço..." : "Liste as peças utilizadas..."}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormLabel>{status === 'Pendente' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</FormLabel>
+              <div className="rounded-md border">
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>PEÇA</TableHead>
+                              <TableHead className="text-center">QTD</TableHead>
+                              <TableHead className="text-right">PREÇO UN.</TableHead>
+                              <TableHead className="text-right">SUBTOTAL</TableHead>
+                              <TableHead className="w-12"></TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {form.watch('parts')?.map((part, index) => (
+                              <TableRow key={part.itemId}>
+                                  <TableCell>{part.name}</TableCell>
+                                  <TableCell className="text-center">{part.quantity}</TableCell>
+                                  <TableCell className="text-right">R${part.sale_price.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right">R${(part.quantity * part.sale_price).toFixed(2)}</TableCell>
+                                  <TableCell>
+                                      <Button variant="ghost" size="icon" onClick={() => handleRemovePart(index)}>
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                          {(!form.watch('parts') || form.watch('parts')?.length === 0) && (
+                              <TableRow>
+                                  <TableCell colSpan={5} className="text-center text-muted-foreground h-24">NENHUMA PEÇA ADICIONADA.</TableCell>
+                              </TableRow>
+                          )}
+                      </TableBody>
+                  </Table>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setIsAddPartDialogOpen(true)}>
+                  ADICIONAR PEÇA DO ESTOQUE
+              </Button>
             </div>
             <FormField
               control={form.control}
               name="total"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{status === 'Pendente' ? "Orçamento Inicial (R$)" : "Total Final (R$)"}</FormLabel>
+                  <FormLabel>{status === 'Pendente' ? "ORÇAMENTO INICIAL (R$)" : "TOTAL FINAL (R$)"}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
                   </FormControl>
@@ -450,11 +506,19 @@ export function OrderDialog({
               )}
             />
             <DialogFooter>
-              <Button type="submit">Salvar Ordem de Serviço</Button>
+              <Button type="submit">SALVAR ORDEM DE SERVIÇO</Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+    <AddPartDialog
+      isOpen={isAddPartDialogOpen}
+      onOpenChange={setIsAddPartDialogOpen}
+      stockItems={stockItems}
+      onAddParts={handleAddParts}
+      currentParts={form.watch('parts') || []}
+    />
+    </>
   );
 }

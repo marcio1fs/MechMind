@@ -41,6 +41,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { mockStockItems } from "@/lib/mock-data";
+
+export type UsedPart = {
+  itemId: string;
+  code: string;
+  name: string;
+  quantity: number;
+  sale_price: number;
+};
 
 export type Order = {
   id: string;
@@ -55,7 +64,7 @@ export type Order = {
   startDate: Date;
   status: "Concluído" | "Em Andamento" | "Pendente";
   services: string;
-  parts: string;
+  parts: UsedPart[];
   total: number;
   symptoms?: string;
   diagnosis?: string;
@@ -64,46 +73,46 @@ export type Order = {
 const mockOrders: Order[] = [
   {
     id: "ORD-001",
-    customer: "John Doe",
-    vehicle: { make: "Honda", model: "Civic", year: 2021, plate: "ABC1D23", color: "Branco" },
+    customer: "JOHN DOE",
+    vehicle: { make: "HONDA", model: "CIVIC", year: 2021, plate: "ABC1D23", color: "BRANCO" },
     startDate: new Date("2024-07-20T12:00:00Z"),
     status: "Concluído",
-    services: "Troca de óleo, rodízio de pneus",
-    parts: "Filtro de óleo, óleo sintético 5W-30",
+    services: "TROCA DE ÓLEO, RODÍZIO DE PNEUS",
+    parts: [{ itemId: 'ITEM-001', code: 'HF-103', name: 'FILTRO DE ÓLEO', quantity: 1, sale_price: 35.00 }],
     total: 125.5,
-    symptoms: "Luz de manutenção acesa.",
-    diagnosis: "Diagnóstico: Manutenção de rotina necessária.\n\nConfiança: 95%\n\nAções Recomendadas:\nRealizar troca de óleo e filtro. Fazer rodízio dos pneus e verificar a pressão."
+    symptoms: "LUZ DE MANUTENÇÃO ACESA.",
+    diagnosis: "DIAGNÓSTICO: MANUTENÇÃO DE ROTINA NECESSÁRIA.\n\nCONFIANÇA: 95%\n\nAÇÕES RECOMENDADAS:\nREALIZAR TROCA DE ÓLEO E FILTRO. FAZER RODÍZIO DOS PNEUS E VERIFICAR A PRESSÃO."
   },
   {
     id: "ORD-002",
-    customer: "Jane Smith",
-    vehicle: { make: "Ford", model: "F-150", year: 2019, plate: "DEF4E56", color: "Preto" },
+    customer: "JANE SMITH",
+    vehicle: { make: "FORD", model: "F-150", year: 2019, plate: "DEF4E56", color: "PRETO" },
     startDate: new Date("2024-07-21T12:00:00Z"),
     status: "Em Andamento",
-    services: "Substituição da pastilha de freio",
-    parts: "Pastilhas de freio dianteiras de cerâmica",
+    services: "SUBSTITUIÇÃO DA PASTILHA DE FREIO",
+    parts: [{ itemId: 'ITEM-002', code: 'PST-201', name: 'PASTILHA DE FREIO DIANTEIRA', quantity: 2, sale_price: 150.00 }],
     total: 350.0,
-    symptoms: "Barulho de rangido ao frear.",
+    symptoms: "BARULHO DE RANGIDO AO FREAR.",
   },
   {
     id: "ORD-003",
-    customer: "Sam Wilson",
-    vehicle: { make: "Toyota", model: "Camry", year: 2022, plate: "GHI7F89", color: "Prata" },
+    customer: "SAM WILSON",
+    vehicle: { make: "TOYOTA", model: "CAMRY", year: 2022, plate: "GHI7F89", color: "PRATA" },
     startDate: new Date("2024-07-22T12:00:00Z"),
     status: "Pendente",
-    services: "Verificação de diagnóstico",
-    parts: "N/A",
+    services: "VERIFICAÇÃO DE DIAGNÓSTICO",
+    parts: [],
     total: 75.0,
-    symptoms: "Motor falhando em marcha lenta.",
+    symptoms: "MOTOR FALHANDO EM MARCHA LENTA.",
   },
   {
     id: "ORD-004",
-    customer: "Emily Brown",
-    vehicle: { make: "BMW", model: "X5", year: 2020, plate: "JKL0G12", color: "Azul" },
+    customer: "EMILY BROWN",
+    vehicle: { make: "BMW", model: "X5", year: 2020, plate: "JKL0G12", color: "AZUL" },
     startDate: new Date("2024-06-15T12:00:00Z"),
     status: "Concluído",
-    services: "Inspeção anual, substituição do filtro de ar",
-    parts: "Filtro de ar da cabine, filtro de ar do motor",
+    services: "INSPEÇÃO ANUAL, SUBSTITUIÇÃO DO FILTRO DE AR",
+    parts: [],
     total: 215.75,
   },
 ];
@@ -117,6 +126,7 @@ const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outl
 
 
 export default function OrdersPage() {
+  const [stockItems, setStockItems] = useState(mockStockItems);
   const [orders, setOrders] = useState(mockOrders);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -142,7 +152,7 @@ export default function OrdersPage() {
 
     const result = await getOrderSummary({
       servicesPerformed: order.services,
-      partsReplaced: order.parts,
+      partsReplaced: order.parts.map(p => `${p.quantity}X ${p.name}`).join(', ') || "NENHUMA PEÇA",
       totalCost: order.total,
       vehicleMake: order.vehicle.make,
       vehicleModel: order.vehicle.model,
@@ -157,19 +167,46 @@ export default function OrdersPage() {
 
   const handleSaveOrder = (order: Order) => {
     const existingOrder = orders.find(o => o.id === order.id);
+    
+    if (order.status === 'Concluído' && (!existingOrder || existingOrder.status !== 'Concluído')) {
+        let stockSufficient = true;
+        const tempStock = [...stockItems];
+        
+        for (const part of order.parts) {
+            const stockItemIndex = tempStock.findIndex(i => i.id === part.itemId);
+            if (stockItemIndex > -1) {
+                if (tempStock[stockItemIndex].quantity < part.quantity) {
+                    toast({
+                        variant: "destructive",
+                        title: `ESTOQUE INSUFICIENTE PARA ${part.name.toUpperCase()}`,
+                        description: `DISPONÍVEL: ${tempStock[stockItemIndex].quantity}, REQUERIDO: ${part.quantity}. A ORDEM DE SERVIÇO FOI SALVA, MAS O ESTOQUE NÃO FOI ATUALIZADO.`,
+                    });
+                    stockSufficient = false;
+                    break;
+                }
+                tempStock[stockItemIndex].quantity -= part.quantity;
+            }
+        }
+
+        if (stockSufficient) {
+            setStockItems(tempStock);
+            toast({ title: "SUCESSO!", description: "ESTOQUE ATUALIZADO COM SUCESSO." });
+        }
+    }
+
     if (existingOrder) {
       setOrders(orders.map(o => o.id === order.id ? order : o));
-      toast({ title: "Sucesso!", description: "Ordem de serviço atualizada com sucesso." });
+      toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
     } else {
       setOrders([order, ...orders]);
-      toast({ title: "Sucesso!", description: "Ordem de serviço adicionada com sucesso." });
+      toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ADICIONADA COM SUCESSO." });
     }
     setSelectedOrder(null);
   };
 
   const handleDeleteOrder = (order: Order) => {
     setOrders(orders.filter(o => o.id !== order.id));
-    toast({ title: "Sucesso!", description: "Ordem de serviço excluída com sucesso." });
+    toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO EXCLUÍDA COM SUCESSO." });
     setSelectedOrder(null);
     setIsDeleteDialogOpen(false);
   };
@@ -192,15 +229,15 @@ export default function OrdersPage() {
     <div className="flex flex-col gap-8">
         <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-                <h1 className="text-3xl font-bold font-headline tracking-tight">Ordens de Serviço</h1>
+                <h1 className="text-3xl font-bold font-headline tracking-tight">ORDENS DE SERVIÇO</h1>
                 <p className="text-muted-foreground">
-                Gerencie e analise todas as ordens de serviço.
+                GERENCIE E ANALISE TODAS AS ORDENS DE SERVIÇO.
                 </p>
             </div>
             <div>
                 <Button onClick={() => handleOpenDialog('order', null)}>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Adicionar Ordem
+                    ADICIONAR ORDEM
                 </Button>
             </div>
         </div>
@@ -209,7 +246,7 @@ export default function OrdersPage() {
             <div className="relative w-full max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Pesquisar por ID, cliente, veículo ou placa..." 
+                    placeholder="PESQUISAR POR ID, CLIENTE, VEÍCULO OU PLACA..." 
                     className="pl-9"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -217,13 +254,13 @@ export default function OrdersPage() {
             </div>
             <Select value={statusFilter} onValueChange={(value: Order["status"] | "Todos") => setStatusFilter(value)}>
                 <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filtrar por status" />
+                    <SelectValue placeholder="FILTRAR POR STATUS" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="Todos">Todos</SelectItem>
-                    <SelectItem value="Pendente">Pendente</SelectItem>
-                    <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                    <SelectItem value="Concluído">Concluído</SelectItem>
+                    <SelectItem value="Todos">TODOS</SelectItem>
+                    <SelectItem value="Pendente">PENDENTE</SelectItem>
+                    <SelectItem value="Em Andamento">EM ANDAMENTO</SelectItem>
+                    <SelectItem value="Concluído">CONCLUÍDO</SelectItem>
                 </SelectContent>
             </Select>
         </div>
@@ -232,13 +269,13 @@ export default function OrdersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID do Pedido</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Veículo</TableHead>
-              <TableHead>Data de Início</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="w-[100px] text-right">Ações</TableHead>
+              <TableHead>ID DO PEDIDO</TableHead>
+              <TableHead>CLIENTE</TableHead>
+              <TableHead>VEÍCULO</TableHead>
+              <TableHead>DATA DE INÍCIO</TableHead>
+              <TableHead>STATUS</TableHead>
+              <TableHead className="text-right">TOTAL</TableHead>
+              <TableHead className="w-[100px] text-right">AÇÕES</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -253,7 +290,7 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell>{format(order.startDate, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                     <TableCell>
-                    <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
+                    <Badge variant={statusVariant[order.status]}>{order.status.toUpperCase()}</Badge>
                     </TableCell>
                     <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
@@ -261,17 +298,17 @@ export default function OrdersPage() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
                                     <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Ações</span>
+                                    <span className="sr-only">AÇÕES</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>Editar</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
                                     <Sparkles className="mr-2 h-4 w-4" />
-                                    Gerar Resumo
+                                    GERAR RESUMO
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10">Excluir</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
@@ -279,7 +316,7 @@ export default function OrdersPage() {
                 ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24">Nenhuma ordem de serviço encontrada.</TableCell>
+                    <TableCell colSpan={7} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
                 </TableRow>
             )}
           </TableBody>
@@ -290,16 +327,16 @@ export default function OrdersPage() {
       <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Resumo do Pedido Gerado por IA</DialogTitle>
+            <DialogTitle>RESUMO DO PEDIDO GERADO POR IA</DialogTitle>
             <DialogDescription>
-              Este é um resumo conciso da ordem de serviço gerada por IA.
+              ESTE É UM RESUMO CONCISO DA ORDEM DE SERVIÇO GERADA POR IA.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 min-h-[6rem]">
             {isLoadingSummary && (
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Gerando resumo...</span>
+                <span>GERANDO RESUMO...</span>
               </div>
             )}
             {summary && <p className="text-sm">{summary.summary}</p>}
@@ -313,6 +350,7 @@ export default function OrdersPage() {
         onOpenChange={setIsOrderDialogOpen}
         order={selectedOrder}
         onSave={handleSaveOrder}
+        stockItems={stockItems}
       />
 
       {/* Dialog for Delete Confirmation */}
