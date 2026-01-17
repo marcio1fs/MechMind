@@ -73,7 +73,7 @@ export default function SignupPage() {
         title: 'CONTA CRIADA!',
         description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
       });
-      // Redirection is handled by useEffect
+      setIsProvisioning(false);
     } catch (error: any) {
       console.error(error);
       let description = 'NÃO FOI POSSÍVEL CRIAR SUA CONTA. TENTE NOVAMENTE.';
@@ -87,9 +87,9 @@ export default function SignupPage() {
         title: 'ERRO NO CADASTRO',
         description,
       });
+      setIsProvisioning(false);
     } finally {
       setIsLoading(false);
-      setIsProvisioning(false);
     }
   };
 
@@ -122,7 +122,7 @@ export default function SignupPage() {
         title: 'CONTA CRIADA!',
         description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
       });
-       // Redirection is handled by useEffect
+      setIsProvisioning(false);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -131,9 +131,9 @@ export default function SignupPage() {
         description:
           'NÃO FOI POSSÍVEL SE CADASTRAR COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
       });
+      setIsProvisioning(false);
     } finally {
       setIsGoogleLoading(false);
-      setIsProvisioning(false);
     }
   };
 

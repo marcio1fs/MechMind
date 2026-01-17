@@ -89,7 +89,7 @@ export default function LoginPage() {
       }
 
       toast({ title: 'SUCESSO', description: 'LOGIN COM O GOOGLE REALIZADO COM SUCESSO.' });
-      // Redirection is handled by useEffect
+      setIsProvisioning(false);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -98,9 +98,9 @@ export default function LoginPage() {
         description:
           'NÃO FOI POSSÍVEL FAZER O LOGIN COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
       });
+      setIsProvisioning(false);
     } finally {
       setIsGoogleLoading(false);
-      setIsProvisioning(false);
     }
   };
 
