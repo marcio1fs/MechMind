@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -46,6 +46,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { mockStockItems, mockMechanics, mockVehicleMakes, type Mechanic } from "@/lib/mock-data";
 
 export type UsedPart = {
@@ -98,7 +99,7 @@ const mockOrders: Order[] = [
     parts: [{ itemId: 'ITEM-001', code: 'HF-103', name: 'FILTRO DE ÓLEO', quantity: 1, sale_price: 35.00 }],
     total: 125.5,
     symptoms: "LUZ DE MANUTENÇÃO ACESA.",
-    diagnosis: "DIAGNÓSTICO: MANUTENÇÃO DE ROTINA NECESSÁRIA.\n\nCONFIANÇA: 95%\n\nAÇÕES RECOMENDADAS:\nREALIZAR TROCA DE ÓLEO E FILTRO. FAZER RODÍZIO DOS PNEUS E VERIFICAR A PRESSÃO."
+    diagnosis: "DIAGNÓSTICO: MANUTENção DE ROTINA NECESSÁRIA.\n\nCONFIANÇA: 95%\n\nAÇÕES RECOMENDADAS:\nREALIZAR TROCA DE ÓLEO E FILTRO. FAZER RODÍZIO DOS PNEUS E VERIFICAR A PRESSÃO."
   },
   {
     id: "ORD-002",
@@ -162,6 +163,11 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Order["status"] | "TODOS">("TODOS");
   const { toast } = useToast();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleOpenDialog = (dialog: 'summary' | 'order' | 'delete', order: Order | null) => {
     setSelectedOrder(order);
@@ -276,17 +282,21 @@ export default function OrdersPage() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <Select value={statusFilter} onValueChange={(value: Order["status"] | "TODOS") => setStatusFilter(value)}>
-                        <SelectTrigger className="w-auto min-w-[180px]">
-                            <SelectValue placeholder="FILTRAR POR STATUS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="TODOS">TODOS</SelectItem>
-                            <SelectItem value="PENDENTE">PENDENTE</SelectItem>
-                            <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
-                            <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    {isMounted ? (
+                        <Select value={statusFilter} onValueChange={(value: Order["status"] | "TODOS") => setStatusFilter(value)}>
+                            <SelectTrigger className="w-auto min-w-[180px]">
+                                <SelectValue placeholder="FILTRAR POR STATUS" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="TODOS">TODOS</SelectItem>
+                                <SelectItem value="PENDENTE">PENDENTE</SelectItem>
+                                <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
+                                <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                        <Skeleton className="h-10 w-[180px]" />
+                    )}
                 </div>
                 <div className="rounded-lg border">
                     <Table>
@@ -319,29 +329,35 @@ export default function OrdersPage() {
                                 </TableCell>
                                 <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
                                 <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                                <span className="sr-only">AÇÕES</span>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
-                                                <Sparkles className="mr-2 h-4 w-4" />
-                                                GERAR RESUMO
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    {isMounted ? (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    <span className="sr-only">AÇÕES</span>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
+                                                    <Sparkles className="mr-2 h-4 w-4" />
+                                                    GERAR RESUMO
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    ) : (
+                                        <div className="flex justify-end">
+                                            <Skeleton className="h-10 w-10" />
+                                        </div>
+                                    )}
                                 </TableCell>
                             </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRada.</TableCell>
+                                <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
@@ -392,5 +408,7 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+    
 
     
