@@ -195,7 +195,7 @@ service cloud.firestore {
      * @principle Allows self-service for profile creation and collaborative read access within a tenant, while protecting role modifications.
      */
     match /oficinas/{oficinaId}/users/{userId} {
-      allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow get: if isOwner(userId) || isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow create: if isCreatingOwnUserDoc(userId, oficinaId);
       allow update: if (isExistingDoc() && hasImmutableUserFields() && (isOwner(userId) || isOficinaAdmin(oficinaId))) || isGlobalAdmin();
@@ -259,5 +259,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
