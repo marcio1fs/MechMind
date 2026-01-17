@@ -1,28 +1,106 @@
-import Image from "next/image"
-import Link from "next/link"
+'use client';
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { PlaceHolderImages } from "@/lib/placeholder-images"
-import { Wrench } from "lucide-react"
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Wrench, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth, useUser } from '@/firebase';
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from 'firebase/auth';
 
 export default function LoginPage() {
-  const loginImage = PlaceHolderImages.find(p => p.id === 'login-background');
+  const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({ variant: 'destructive', title: 'ERRO', description: 'PREENCHA O E-MAIL E A SENHA.' });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({ title: 'SUCESSO', description: 'LOGIN REALIZADO COM SUCESSO.' });
+      // Redirection is handled by useEffect
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'ERRO NO LOGIN',
+        description: 'CREDENCIAS INVÁLIDAS. VERIFIQUE SEU E-MAIL E SENHA.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast({ title: 'SUCESSO', description: 'LOGIN COM O GOOGLE REALIZADO COM SUCESSO.' });
+      // Redirection is handled by useEffect
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'ERRO NO LOGIN COM O GOOGLE',
+        description:
+          'NÃO FOI POSSÍVEL FAZER O LOGIN COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  if (isUserLoading || (!isUserLoading && user)) {
+     return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
             <div className="flex items-center justify-center gap-2">
-                <Wrench className="h-8 w-8 text-primary" />
-                <h1 className="text-3xl font-bold font-headline">MechMind</h1>
+              <Wrench className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold font-headline">MechMind</h1>
             </div>
             <p className="text-balance text-muted-foreground">
               Digite seu e-mail abaixo para fazer login em sua conta
             </p>
           </div>
-          <div className="grid gap-4">
+          <form onSubmit={handleLogin} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -31,6 +109,9 @@ export default function LoginPage() {
                 placeholder="m@exemplo.com"
                 required
                 className="normal-case placeholder:normal-case"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading || isGoogleLoading}
               />
             </div>
             <div className="grid gap-2">
@@ -43,17 +124,31 @@ export default function LoginPage() {
                   Esqueceu sua senha?
                 </Link>
               </div>
-              <Input id="password" type="password" required />
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading || isGoogleLoading}
+              />
             </div>
-            <Button type="submit" className="w-full">
-                Entrar
+            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Entrar
             </Button>
-            <Button variant="outline" className="w-full">
-              Entrar com Google
-            </Button>
-          </div>
+          </form>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogleLogin}
+            disabled={isLoading || isGoogleLoading}
+          >
+            {isGoogleLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Entrar com Google
+          </Button>
           <div className="mt-4 text-center text-sm">
-            Não tem uma conta?{" "}
+            Não tem uma conta?{' '}
             <Link href="/signup" className="underline">
               Cadastre-se
             </Link>
@@ -62,16 +157,16 @@ export default function LoginPage() {
       </div>
       <div className="hidden bg-muted lg:block">
         {loginImage && (
-            <Image
-              src={loginImage.imageUrl}
-              alt={loginImage.description}
-              width="1200"
-              height="1800"
-              className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-              data-ai-hint={loginImage.imageHint}
-            />
+          <Image
+            src={loginImage.imageUrl}
+            alt={loginImage.description}
+            width="1200"
+            height="1800"
+            className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            data-ai-hint={loginImage.imageHint}
+          />
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,31 +1,135 @@
-import Image from "next/image"
-import Link from "next/link"
+'use client';
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { PlaceHolderImages } from "@/lib/placeholder-images"
-import { Wrench } from "lucide-react"
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Wrench, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth, useUser } from '@/firebase';
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile,
+} from 'firebase/auth';
 
 export default function SignupPage() {
-  const loginImage = PlaceHolderImages.find(p => p.id === 'login-background');
+  const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !password) {
+      toast({
+        variant: 'destructive',
+        title: 'ERRO',
+        description: 'PREENCHA TODOS OS CAMPOS.',
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: name });
+      toast({
+        title: 'CONTA CRIADA!',
+        description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
+      });
+      // Redirection is handled by useEffect
+    } catch (error: any) {
+      console.error(error);
+      let description = 'NÃO FOI POSSÍVEL CRIAR SUA CONTA. TENTE NOVAMENTE.';
+      if (error.code === 'auth/email-already-in-use') {
+        description = 'ESTE E-MAIL JÁ ESTÁ EM USO. TENTE FAZER LOGIN.';
+      } else if (error.code === 'auth/weak-password') {
+        description = 'A SENHA É MUITO FRACA. USE PELO MENOS 6 CARACTERES.';
+      }
+      toast({
+        variant: 'destructive',
+        title: 'ERRO NO CADASTRO',
+        description,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast({
+        title: 'CONTA CRIADA!',
+        description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
+      });
+       // Redirection is handled by useEffect
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'ERRO NO CADASTRO COM O GOOGLE',
+        description:
+          'NÃO FOI POSSÍVEL SE CADASTRAR COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+   if (isUserLoading || (!isUserLoading && user)) {
+     return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
             <div className="flex items-center justify-center gap-2">
-                <Wrench className="h-8 w-8 text-primary" />
-                <h1 className="text-3xl font-bold font-headline">MechMind</h1>
+              <Wrench className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold font-headline">MechMind</h1>
             </div>
             <p className="text-balance text-muted-foreground">
               Crie sua conta para começar a gerenciar sua oficina.
             </p>
           </div>
-          <div className="grid gap-4">
-             <div className="grid gap-2">
+          <form onSubmit={handleSignup} className="grid gap-4">
+            <div className="grid gap-2">
               <Label htmlFor="name">NOME</Label>
-              <Input id="name" placeholder="JOHN DOE" required />
+              <Input
+                id="name"
+                placeholder="JOHN DOE"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isLoading || isGoogleLoading}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">E-mail</Label>
@@ -35,39 +139,51 @@ export default function SignupPage() {
                 placeholder="m@exemplo.com"
                 required
                 className="normal-case placeholder:normal-case"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading || isGoogleLoading}
               />
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="password">SENHA</Label>
-              <Input id="password" type="password" required />
+              <Label htmlFor="password">SENHA</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading || isGoogleLoading}
+              />
             </div>
-            <Button type="submit" className="w-full">
-                CRIAR CONTA
+            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              CRIAR CONTA
             </Button>
-             <Button variant="outline" className="w-full">
-              CADASTRAR COM GOOGLE
-            </Button>
-          </div>
+          </form>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignup} disabled={isLoading || isGoogleLoading}>
+            {isGoogleLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            CADASTRAR COM GOOGLE
+          </Button>
           <div className="mt-4 text-center text-sm">
-            Já tem uma conta?{" "}
+            Já tem uma conta?{' '}
             <Link href="/login" className="underline">
               Entrar
             </Link>
           </div>
         </div>
       </div>
-       <div className="hidden bg-muted lg:block">
+      <div className="hidden bg-muted lg:block">
         {loginImage && (
-            <Image
-              src={loginImage.imageUrl}
-              alt={loginImage.description}
-              width="1200"
-              height="1800"
-              className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-              data-ai-hint={loginImage.imageHint}
-            />
+          <Image
+            src={loginImage.imageUrl}
+            alt={loginImage.description}
+            width="1200"
+            height="1800"
+            className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            data-ai-hint={loginImage.imageHint}
+          />
         )}
       </div>
     </div>
-  )
+  );
 }

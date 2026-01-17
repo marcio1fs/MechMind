@@ -20,8 +20,11 @@ import {
   UserCog,
   DollarSign,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   { href: "/dashboard", label: "PAINEL", icon: LayoutDashboard },
@@ -37,6 +40,19 @@ const menuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });
+      router.push('/login');
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'ERRO NO LOGOUT', description: 'NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.' });
+    }
+  };
 
   return (
     <>
@@ -67,11 +83,9 @@ export default function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="SAIR">
-                    <Link href="/login">
-                        <LogOut/>
-                        <span>SAIR</span>
-                    </Link>
+                <SidebarMenuButton onClick={handleLogout} tooltip="SAIR">
+                    <LogOut/>
+                    <span>SAIR</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>
