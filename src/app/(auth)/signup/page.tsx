@@ -11,17 +11,19 @@ import { Label } from '@/components/ui/label';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Wrench, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function SignupPage() {
   const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -51,7 +53,20 @@ export default function SignupPage() {
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: name });
+      const newUser = userCredential.user;
+      await updateProfile(newUser, { displayName: name });
+
+      // Create user document in Firestore
+      const [firstName, ...lastName] = name.split(' ');
+      await setDoc(doc(firestore, "oficinas", "default_oficina", "users", newUser.uid), {
+        id: newUser.uid,
+        oficinaId: "default_oficina",
+        firstName: firstName || '',
+        lastName: lastName.join(' ') || '',
+        email: newUser.email,
+        role: "ADMIN", // First user becomes admin of their workshop
+      });
+
       toast({
         title: 'CONTA CRIADA!',
         description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
@@ -79,7 +94,26 @@ export default function SignupPage() {
     setIsGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const newUser = result.user;
+
+      // Check if user document already exists, if not, create it
+      const userDocRef = doc(firestore, "oficinas", "default_oficina", "users", newUser.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        const displayName = newUser.displayName || "Usuário";
+        const [firstName, ...lastName] = displayName.split(' ');
+        await setDoc(userDocRef, {
+          id: newUser.uid,
+          oficinaId: "default_oficina",
+          firstName: firstName || '',
+          lastName: lastName.join(' ') || '',
+          email: newUser.email,
+          role: "ADMIN",
+        });
+      }
+
       toast({
         title: 'CONTA CRIADA!',
         description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
