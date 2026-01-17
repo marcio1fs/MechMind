@@ -31,7 +31,7 @@ const menuItems = [
   { href: "/inventory", label: "ESTOQUE", icon: Package },
   { href: "/mechanics", label: "MECÂNICOS", icon: UserCog },
   { href: "/financial", label: "FINANCEIRO", icon: DollarSign },
-  { href: "/pricing", label: "PREÇOS", icon: CreditCard },
+  { href: "/pricing", label: "PLANOS", icon: CreditCard },
   { href: "/settings", label: "CONFIGURAÇÕES", icon: Settings },
 ];
 
