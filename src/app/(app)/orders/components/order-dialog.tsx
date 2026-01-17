@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,6 +22,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -120,6 +121,12 @@ export function OrderDialog({
   });
 
   const status = form.watch("status");
+  const parts = form.watch("parts");
+
+  const partsTotal = useMemo(() => {
+    if (!parts) return 0;
+    return parts.reduce((acc, part) => acc + (part.quantity * part.sale_price), 0);
+  }, [parts]);
 
   useEffect(() => {
     if (isOpen) {
@@ -150,6 +157,10 @@ export function OrderDialog({
       }
     }
   }, [order, form, isOpen]);
+
+  useEffect(() => {
+    form.setValue("total", partsTotal, { shouldValidate: true });
+  }, [partsTotal, form]);
 
   const onSubmit = (data: OrderFormValues) => {
     onSave({
@@ -497,10 +508,13 @@ export function OrderDialog({
               name="total"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{status === 'Pendente' ? "ORÇAMENTO INICIAL (R$)" : "TOTAL FINAL (R$)"}</FormLabel>
+                  <FormLabel>{status === 'Pendente' ? "ORÇAMENTO ESTIMADO (R$)" : "TOTAL FINAL (R$)"}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
                   </FormControl>
+                  <FormDescription>
+                    O valor total é calculado automaticamente com base nas peças. Você pode ajustá-lo para incluir os serviços.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
