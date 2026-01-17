@@ -261,5 +261,17 @@ service cloud.firestore {
       allow update: if (isUserOfOficina(oficinaId) && isExistingDoc() && isUpdatingValidOficinaData()) || isGlobalAdmin();
       allow delete: if (isUserOfOficina(oficinaId) && isExistingDoc()) || isGlobalAdmin();
     }
+
+     /**
+     * @description Rules for office-specific configuration documents.
+     * @path /oficinas/{oficinaId}/config/{configId}
+     * @principle Only office admins or global admins can manage sensitive configurations.
+     */
+    match /oficinas/{oficinaId}/config/{configId} {
+      allow get, list: if isOficinaAdmin(oficinaId) || isGlobalAdmin();
+      allow create: if isOficinaAdmin(oficinaId) || isGlobalAdmin();
+      allow update: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+      allow delete: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+    }
   }
 }

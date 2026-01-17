@@ -401,6 +401,20 @@
         "value",
         "date"
       ]
+    },
+    "WhatsappConfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WhatsappConfig",
+      "type": "object",
+      "description": "Stores WhatsApp integration configuration.",
+      "properties": {
+        "apiKey": {
+          "type": "string"
+        },
+        "senderNumber": {
+          "type": "string"
+        }
+      }
     }
   },
   "auth": {
@@ -539,6 +553,26 @@
             {
               "name": "vehicleHistoryId",
               "description": "Unique identifier for the VehicleHistory."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/oficinas/{oficinaId}/config/{configId}",
+        "definition": {
+          "entityName": "WhatsappConfig",
+          "schema": {
+            "$ref": "#/backend/entities/WhatsappConfig"
+          },
+          "description": "Stores specific configurations for an oficina, e.g., 'whatsapp' integration settings.",
+          "params": [
+            {
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
+            },
+            {
+              "name": "configId",
+              "description": "Identifier for the configuration, e.g., 'whatsapp'."
             }
           ]
         }
