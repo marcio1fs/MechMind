@@ -8,6 +8,7 @@ import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Timestamp } from "firebase/firestore";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,6 @@ import type { Order, UsedPart, PerformedService } from "../page";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddPartDialog } from "./add-part-dialog";
 import type { StockItem } from "../../inventory/page";
-import type { Mechanic } from "../../mechanics/page";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const formSchema = z.object({
@@ -131,9 +131,9 @@ interface OrderDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   order: Order | null;
-  onSave: (order: Order) => void;
+  onSave: (order: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => void;
   stockItems: StockItem[];
-  mechanics: Mechanic[];
+  mechanics: {id: string, name: string}[];
   vehicleMakes: string[];
 }
 
@@ -237,6 +237,7 @@ export function OrderDialog({
   useEffect(() => {
     if (isOpen) {
       if (order) {
+        const startDate = order.startDate instanceof Timestamp ? order.startDate.toDate() : order.startDate;
         form.reset({
           ...order,
           customerDocumentType: order.customerDocumentType || "CPF",
@@ -247,12 +248,13 @@ export function OrderDialog({
               ...order.vehicle,
               plate: order.vehicle.plate ? formatPlate(order.vehicle.plate) : ""
           },
-          startDate: new Date(order.startDate),
+          startDate: startDate,
           services: order.services || [],
           parts: order.parts || [],
         });
       } else {
         form.reset({
+          id: undefined,
           customer: "",
           customerDocumentType: "CPF",
           customerCpf: "",
@@ -265,6 +267,8 @@ export function OrderDialog({
             plate: "",
             color: "",
           },
+          mechanicId: undefined,
+          mechanicName: undefined,
           startDate: new Date(),
           status: "PENDENTE",
           symptoms: "",
@@ -291,7 +295,7 @@ export function OrderDialog({
     const selectedMechanic = mechanics.find(m => m.id === data.mechanicId);
     onSave({
       ...payload,
-      id: order?.id || `ORD-${Date.now()}`,
+      id: order?.id,
       mechanicName: selectedMechanic?.name,
       services: data.services || [],
       parts: data.parts || [],
@@ -476,7 +480,7 @@ export function OrderDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>MARCA</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isFinalizado}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isFinalizado}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="SELECIONE A MONTADORA" />
@@ -600,7 +604,7 @@ export function OrderDialog({
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>MECÂNICO RESPONSÁVEL</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isFinalizado}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isFinalizado}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="SELECIONE O MECÂNICO" />
@@ -628,6 +632,7 @@ export function OrderDialog({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    value={field.value}
                     disabled={isFinalizado}
                   >
                     <FormControl>

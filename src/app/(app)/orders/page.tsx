@@ -49,9 +49,9 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { mockVehicleMakes, type Mechanic, mockOrders } from "@/lib/mock-data";
+import { mockVehicleMakes } from "@/lib/mock-data";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp } from "firebase/firestore";
 import type { StockItem } from "../inventory/page";
 import type { Mechanic as FullMechanic } from "../mechanics/page";
 
@@ -72,6 +72,7 @@ export type PerformedService = {
 
 export type Order = {
   id: string;
+  oficinaId: string;
   customer: string;
   customerDocumentType?: "CPF" | "CNPJ";
   customerCpf?: string;
@@ -86,7 +87,7 @@ export type Order = {
   };
   mechanicId?: string;
   mechanicName?: string;
-  startDate: Date;
+  startDate: Date | Timestamp;
   status: "CONCLUÍDO" | "EM ANDAMENTO" | "PENDENTE" | "FINALIZADO";
   services: PerformedService[];
   parts: UsedPart[];
@@ -120,6 +121,13 @@ export default function OrdersPage() {
     return collection(firestore, "oficinas", OFICINA_ID, "users");
   }, [firestore, profile]);
   const { data: mechanicsData, isLoading: isLoadingMechanics } = useCollection<FullMechanic>(mechanicsCollection);
+  
+  const ordersCollection = useMemoFirebase(() => {
+      if (!firestore || !profile) return null;
+      return collection(firestore, "oficinas", OFICINA_ID, "ordensDeServico");
+  }, [firestore, profile]);
+  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
+
 
   const mechanics = useMemo(() => {
     if (!mechanicsData) return [];
@@ -130,7 +138,6 @@ export default function OrdersPage() {
     }));
   }, [mechanicsData]);
 
-  const [orders, setOrders] = useState(mockOrders);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -176,83 +183,93 @@ export default function OrdersPage() {
     setIsLoadingSummary(false);
   };
 
-  const handleSaveOrder = (order: Order) => {
-    const existingOrder = orders.find(o => o.id === order.id);
-    
-    // This logic needs to be updated when inventory is also on Firestore
-    // if (order.status === 'CONCLUÍDO' && (!existingOrder || existingOrder.status !== 'CONCLUÍDO')) {
-    //     let stockSufficient = true;
-    //     const tempStock = [...(stockItems || [])];
-        
-    //     for (const part of order.parts) {
-    //         const stockItemIndex = tempStock.findIndex(i => i.id === part.itemId);
-    //         if (stockItemIndex > -1) {
-    //             if (tempStock[stockItemIndex].quantity < part.quantity) {
-    //                 toast({
-    //                     variant: "destructive",
-    //                     title: `ESTOQUE INSUFICIENTE PARA ${part.name.toUpperCase()}`,
-    //                     description: `DISPONÍVEL: ${tempStock[stockItemIndex].quantity}, REQUERIDO: ${part.quantity}. A ORDEM DE SERVIÇO FOI SALVA, MAS O ESTOQUE NÃO FOI ATUALIZADO.`,
-    //                 });
-    //                 stockSufficient = false;
-    //                 break;
-    //             }
-    //             tempStock[stockItemIndex].quantity -= part.quantity;
-    //         }
-    //     }
-
-    //     if (stockSufficient) {
-    //         // setStockItems(tempStock); // This will be handled by Firestore listeners
-    //         toast({ title: "SUCESSO!", description: "ESTOQUE ATUALIZADO COM SUCESSO." });
-    //     }
-    // }
-
-    if (existingOrder) {
-      setOrders(orders.map(o => o.id === order.id ? order : o));
-      toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
-    } else {
-      setOrders([order, ...orders]);
-      toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ADICIONADA COM SUCESSO." });
+  const handleSaveOrder = async (orderData: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => {
+    if (!firestore || !ordersCollection || !profile) return;
+    const { id, ...data } = orderData;
+    try {
+        if (id) {
+            const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", id);
+            await setDoc(orderRef, data, { merge: true });
+            toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
+        } else {
+            await addDoc(ordersCollection, {
+                ...data,
+                oficinaId: OFICINA_ID,
+            });
+            toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ADICIONADA COM SUCESSO." });
+        }
+        setIsOrderDialogOpen(false);
+    } catch (error) {
+        console.error("Error saving order:", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO." });
     }
-    setSelectedOrder(null);
   };
 
-  const handleDeleteOrder = (order: Order) => {
-    setOrders(orders.filter(o => o.id !== order.id));
-    toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO EXCLUÍDA COM SUCESSO." });
-    setSelectedOrder(null);
-    setIsDeleteDialogOpen(false);
+  const handleDeleteOrder = async (order: Order) => {
+    if (!firestore) return;
+    try {
+        const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
+        await deleteDoc(orderRef);
+        toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO EXCLUÍDA COM SUCESSO." });
+        setSelectedOrder(null);
+        setIsDeleteDialogOpen(false);
+    } catch (error) {
+        console.error("Error deleting order:", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR A ORDEM DE SERVIÇO." });
+    }
   };
 
-  const handleConfirmPayment = (order: Order, paymentMethod: string) => {
-    const updatedOrder = { ...order, status: "FINALIZADO" as const, paymentMethod };
-    setOrders(orders.map(o => o.id === order.id ? updatedOrder : o));
-
-    console.log("AUTOMAÇÃO: Criando lançamento financeiro para a OS:", {
-      description: `PAGAMENTO OS: ${order.id}`,
-      category: "ORDEM DE SERVIÇO",
-      type: "IN",
-      value: order.total,
-      reference_id: order.id,
-      reference_type: "OS",
-    });
-
-    toast({
-        title: "PAGAMENTO REGISTRADO!",
-        description: `O pagamento para a OS ${order.id} foi registrado com sucesso.`,
-    });
+  const handleConfirmPayment = async (order: Order, paymentMethod: string) => {
+     if (!firestore || !profile) return;
     
-    toast({
-        title: "LANÇAMENTO FINANCEIRO CRIADO",
-        description: `Entrada de R$${order.total.toFixed(2)} registrada no módulo financeiro.`,
-    });
+    const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
+    const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
 
-    setIsPaymentDialogOpen(false);
-    setSelectedOrder(updatedOrder); 
-    setIsReceiptDialogOpen(true); 
+    try {
+        // Update order status
+        await updateDoc(orderRef, { 
+            status: "FINALIZADO",
+            paymentMethod: paymentMethod,
+        });
+
+        // Create financial transaction
+        await addDoc(financialCollection, {
+            oficinaId: OFICINA_ID,
+            description: `PAGAMENTO OS: ${order.id}`,
+            category: "ORDEM DE SERVIÇO",
+            type: "IN",
+            value: order.total,
+            date: serverTimestamp(),
+            reference_id: order.id,
+            reference_type: "OS",
+        });
+
+        toast({
+            title: "PAGAMENTO REGISTRADO!",
+            description: `O pagamento para a OS ${order.id} foi registrado com sucesso.`,
+        });
+        
+        toast({
+            title: "LANÇAMENTO FINANCEIRO CRIADO",
+            description: `Entrada de R$${order.total.toFixed(2)} registrada no módulo financeiro.`,
+        });
+
+        setIsPaymentDialogOpen(false);
+        // Find the updated order data from the local state to show receipt
+        const updatedOrder = orders?.find(o => o.id === order.id);
+        if (updatedOrder) {
+            setSelectedOrder({ ...updatedOrder, status: "FINALIZADO", paymentMethod }); 
+        }
+        setIsReceiptDialogOpen(true);
+    } catch (error) {
+        console.error("Error confirming payment:", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL REGISTRAR O PAGAMENTO." });
+    }
   };
 
 
   const filteredOrders = useMemo(() => {
+    if (!orders) return [];
     return orders.filter(order => {
         const matchesSearch = 
             order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -265,6 +282,8 @@ export default function OrdersPage() {
         return matchesSearch && matchesStatus;
     });
   }, [orders, searchTerm, statusFilter]);
+  
+  const isLoading = isLoadingOrders || isLoadingStock || isLoadingMechanics;
 
   return (
     <div className="flex flex-col gap-6">
@@ -324,65 +343,82 @@ export default function OrdersPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredOrders.length > 0 ? (
-                            filteredOrders.map((order) => (
-                            <TableRow key={order.id}>
-                                <TableCell className="font-medium">{order.id}</TableCell>
-                                <TableCell>
-                                    <div>{order.customer}</div>
-                                    <div className="text-xs text-muted-foreground">{order.customerPhone}</div>
-                                </TableCell>
-                                <TableCell>
-                                    <div>{`${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`}</div>
-                                    <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>
-                                </TableCell>
-                                <TableCell>{order.mechanicName || 'N/A'}</TableCell>
-                                <TableCell>{isMounted ? format(new Date(order.startDate), "dd/MM/yyyy", { locale: ptBR }) : <Skeleton className="h-4 w-20" />}</TableCell>
-                                <TableCell>
-                                    <Badge variant={statusVariant[order.status]}>
-                                        {order.status === 'FINALIZADO' && <CheckCircle className="mr-1 h-3 w-3" />}
-                                        {order.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
-                                <TableCell className="text-right">
-                                    {isMounted ? (
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">AÇÕES</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
-                                                <DropdownMenuItem 
-                                                    onClick={() => handleOpenDialog('payment', order)}
-                                                    disabled={order.status !== 'CONCLUÍDO'}
-                                                >
-                                                    <CreditCard className="mr-2 h-4 w-4" />
-                                                    REGISTRAR PAGAMENTO
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
-                                                    <Sparkles className="mr-2 h-4 w-4" />
-                                                    GERAR RESUMO
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    ) : (
-                                        <div className="flex justify-end">
-                                            <Skeleton className="h-10 w-10" />
-                                        </div>
-                                    )}
-                                </TableCell>
+                        {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-10 w-10 ml-auto" /></TableCell>
                             </TableRow>
-                            ))
+                        ))}
+                        {!isLoading && filteredOrders.length > 0 ? (
+                            filteredOrders.map((order) => {
+                                const startDate = order.startDate instanceof Timestamp ? order.startDate.toDate() : order.startDate;
+                                return (
+                                <TableRow key={order.id}>
+                                    <TableCell className="font-medium">{order.id}</TableCell>
+                                    <TableCell>
+                                        <div>{order.customer}</div>
+                                        <div className="text-xs text-muted-foreground">{order.customerPhone}</div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div>{`${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`}</div>
+                                        <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>
+                                    </TableCell>
+                                    <TableCell>{order.mechanicName || 'N/A'}</TableCell>
+                                    <TableCell>{isMounted ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : <Skeleton className="h-4 w-20" />}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={statusVariant[order.status]}>
+                                            {order.status === 'FINALIZADO' && <CheckCircle className="mr-1 h-3 w-3" />}
+                                            {order.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">
+                                        {isMounted ? (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <span className="sr-only">AÇÕES</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleOpenDialog('payment', order)}
+                                                        disabled={order.status !== 'CONCLUÍDO'}
+                                                    >
+                                                        <CreditCard className="mr-2 h-4 w-4" />
+                                                        REGISTRAR PAGAMENTO
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
+                                                        <Sparkles className="mr-2 h-4 w-4" />
+                                                        GERAR RESUMO
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        ) : (
+                                            <div className="flex justify-end">
+                                                <Skeleton className="h-10 w-10" />
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                                )
+                            })
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
-                            </TableRow>
+                            !isLoading && (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
+                                </TableRow>
+                            )
                         )}
                     </TableBody>
                     </Table>
@@ -412,15 +448,17 @@ export default function OrdersPage() {
       </Dialog>
         
       {/* Dialog for Create/Edit Order */}
-      <OrderDialog
-        isOpen={isOrderDialogOpen}
-        onOpenChange={setIsOrderDialogOpen}
-        order={selectedOrder}
-        onSave={handleSaveOrder}
-        stockItems={stockItems || []}
-        mechanics={mechanics || []}
-        vehicleMakes={mockVehicleMakes}
-      />
+      {isOrderDialogOpen && (
+        <OrderDialog
+            isOpen={isOrderDialogOpen}
+            onOpenChange={setIsOrderDialogOpen}
+            order={selectedOrder}
+            onSave={handleSaveOrder}
+            stockItems={stockItems || []}
+            mechanics={mechanics || []}
+            vehicleMakes={mockVehicleMakes}
+        />
+      )}
 
       {/* Dialog for Delete Confirmation */}
       <DeleteOrderDialog
