@@ -33,12 +33,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.replace('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,11 +122,36 @@ export default function SignupPage() {
     }
   };
 
-   if (isUserLoading || (!isUserLoading && user)) {
+   if (isUserLoading) {
      return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
+    );
+  }
+
+  if (user) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <div className="mx-auto grid w-[350px] gap-6 text-center">
+                <div className="flex items-center justify-center gap-2">
+                    <Wrench className="h-8 w-8 text-primary" />
+                    <h1 className="text-3xl font-bold font-headline">MechMind</h1>
+                </div>
+                <p className="text-balance text-muted-foreground">
+                    Você já está autenticado.
+                </p>
+                <Button asChild>
+                    <Link href="/dashboard">Ir para o Painel</Link>
+                </Button>
+                 <div className="mt-4 text-center text-sm">
+                    Não é você?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => auth.signOut()}>
+                        Sair
+                    </Button>
+                </div>
+            </div>
+        </div>
     );
   }
 

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -32,13 +32,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  
-  useEffect(() => {
-    // If user is already logged in, redirect to dashboard
-    if (!isUserLoading && user) {
-      router.replace('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,12 +91,32 @@ export default function LoginPage() {
     }
   };
   
-  // Show a loading spinner while checking for user, to avoid flashing the login page
-  if (isUserLoading || (!isUserLoading && user)) {
+  // Show a loading spinner only while checking auth state.
+  if (isUserLoading) {
      return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
+    );
+  }
+
+  // If user is already logged in, show a link to the dashboard instead of the form.
+  if (user) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <div className="mx-auto grid w-[350px] gap-6 text-center">
+                <div className="flex items-center justify-center gap-2">
+                    <Wrench className="h-8 w-8 text-primary" />
+                    <h1 className="text-3xl font-bold font-headline">MechMind</h1>
+                </div>
+                <p className="text-balance text-muted-foreground">
+                    Você já está autenticado.
+                </p>
+                <Button asChild>
+                    <Link href="/dashboard">Ir para o Painel</Link>
+                </Button>
+            </div>
+        </div>
     );
   }
 
