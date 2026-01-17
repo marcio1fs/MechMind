@@ -76,6 +76,10 @@
         "role": {
           "type": "string",
           "description": "Role of the user (e.g., ADMIN, OFICINA)."
+        },
+        "specialty": {
+          "type": "string",
+          "description": "Specialty of the mechanic."
         }
       },
       "required": [
@@ -94,48 +98,136 @@
       "description": "Represents a service order (Ordem de Serviço).",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the OrdemDeServico entity."
+          "type": "string"
         },
         "oficinaId": {
-          "type": "string",
-          "description": "Reference to Oficina. (Relationship: Oficina 1:N OrdemDeServico). Indicates which Oficina the service order belongs to."
+          "type": "string"
         },
-        "clienteName": {
-          "type": "string",
-          "description": "Name of the client."
+        "customer": {
+          "type": "string"
         },
-        "vehiclePlate": {
+        "customerDocumentType": {
           "type": "string",
-          "description": "Vehicle license plate number."
+          "enum": [
+            "CPF",
+            "CNPJ"
+          ]
         },
-        "description": {
+        "customerCpf": {
+          "type": "string"
+        },
+        "customerCnpj": {
+          "type": "string"
+        },
+        "customerPhone": {
+          "type": "string"
+        },
+        "vehicle": {
+          "type": "object",
+          "properties": {
+            "make": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "year": {
+              "type": "number"
+            },
+            "plate": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "make",
+            "model",
+            "year",
+            "plate"
+          ]
+        },
+        "mechanicId": {
+          "type": "string"
+        },
+        "mechanicName": {
+          "type": "string"
+        },
+        "startDate": {
           "type": "string",
-          "description": "Description of the service to be performed."
+          "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "Current status of the service order (e.g., OPEN, IN_PROGRESS, COMPLETED)."
+          "enum": [
+            "CONCLUÍDO",
+            "EM ANDAMENTO",
+            "PENDENTE",
+            "FINALIZADO"
+          ]
         },
-        "createdAt": {
-          "type": "string",
-          "description": "Date and time when the service order was created.",
-          "format": "date-time"
+        "symptoms": {
+          "type": "string"
         },
-        "completedAt": {
-          "type": "string",
-          "description": "Date and time when the service order was completed.",
-          "format": "date-time"
+        "diagnosis": {
+          "type": "string"
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "unitPrice": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "sale_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "total": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string"
         }
       },
       "required": [
         "id",
         "oficinaId",
-        "clienteName",
-        "vehiclePlate",
-        "description",
+        "customer",
+        "vehicle",
+        "startDate",
         "status",
-        "createdAt"
+        "total"
       ]
     },
     "SubscriptionPlan": {
@@ -213,12 +305,108 @@
         "oficinaId",
         "vehiclePlate"
       ]
+    },
+    "StockItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StockItem",
+      "type": "object",
+      "description": "Represents an item in the workshop's inventory.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "oficinaId": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "min_quantity": {
+          "type": "number"
+        },
+        "cost_price": {
+          "type": "number"
+        },
+        "sale_price": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "oficinaId",
+        "name",
+        "code",
+        "quantity",
+        "sale_price"
+      ]
+    },
+    "FinancialTransaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FinancialTransaction",
+      "type": "object",
+      "description": "Represents a single financial transaction (income or expense).",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "oficinaId": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "IN",
+            "OUT"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reference_id": {
+          "type": "string"
+        },
+        "reference_type": {
+          "type": "string",
+          "enum": [
+            "OS",
+            "STOCK",
+            "MANUAL"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "oficinaId",
+        "description",
+        "type",
+        "value",
+        "date"
+      ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
@@ -296,6 +484,46 @@
         }
       },
       {
+        "path": "/oficinas/{oficinaId}/inventory/{stockItemId}",
+        "definition": {
+          "entityName": "StockItem",
+          "schema": {
+            "$ref": "#/backend/entities/StockItem"
+          },
+          "description": "Stores inventory item details. Includes denormalized 'oficinaId' for authorization independence.",
+          "params": [
+            {
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
+            },
+            {
+              "name": "stockItemId",
+              "description": "Unique identifier for the StockItem."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/oficinas/{oficinaId}/financialTransactions/{transactionId}",
+        "definition": {
+          "entityName": "FinancialTransaction",
+          "schema": {
+            "$ref": "#/backend/entities/FinancialTransaction"
+          },
+          "description": "Stores financial transaction details. Includes denormalized 'oficinaId' for authorization independence.",
+          "params": [
+            {
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
+            },
+            {
+              "name": "transactionId",
+              "description": "Unique identifier for the FinancialTransaction."
+            }
+          ]
+        }
+      },
+      {
         "path": "/oficinas/{oficinaId}/vehicleHistory/{vehicleHistoryId}",
         "definition": {
           "entityName": "VehicleHistory",
@@ -335,3 +563,4 @@
     "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable data model for the OSMECH application, focusing on Authorization Independence, Structural Segregation, Access Modeling, and Data Clarity. \n\n**Authorization Independence:** The structure achieves Authorization Independence by denormalizing the `oficinaId` field into the `users`, `ordensDeServico`, and `vehicleHistory` collections. This eliminates the need for `get()` calls to parent documents in security rules, enabling atomic operations (transactions/batches) and simplifying debugging.\n\n**Structural Segregation:** Data with different access needs is segregated into separate collections. For instance, user data is stored in `oficinas/{oficinaId}/users/{userId}`, service orders in `oficinas/{oficinaId}/ordensDeServico/{ordemDeServicoId}`, and vehicle history in `oficinas/{oficinaId}/vehicleHistory/{vehicleHistoryId}`, ensuring each collection has a homogeneous security posture.\n\n**Access Modeling:** The structure adheres to consistent patterns for authorization:\n\n*   **Path-Based Ownership:** User data (`/oficinas/{oficinaId}/users/{userId}`) is organized using hierarchical paths to ensure straightforward ownership-based security rules.\n*   **Membership Map (Not Applicable):** Since roles are defined in the user document, no membership map is used for collaborative access here.\n*   **Global Roles (DBAC):** While roles are stored on the user document directly, a dedicated collection for admin roles (`/roles_admin/{uid}`) is supported, enabling existence-based rules for admin privileges.\n\n**QAPs (Rules are not Filters):** The structure supports secure `list` operations by ensuring that authorization information is available within each document, preventing the need to filter based on external data.\n\n**Data Clarity and Predictability:** The structure employs explicit state modeling with the `status` field in `OrdemDeServico`, predictable schema, and radical consistency with semantic naming conventions (e.g., `oficinaId`, `userId`).\n\n*   **Subscription Plans:** Subscription plan details (`/subscriptionPlans/{subscriptionPlanId}`) are stored in a separate collection.  Oficinas reference these plans using the `subscriptionPlanId` field, supporting the SaaS model.\n"
   }
 }
+    

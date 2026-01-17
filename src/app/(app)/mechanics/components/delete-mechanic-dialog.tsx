@@ -28,7 +28,7 @@ export function DeleteMechanicDialog({ isOpen, onOpenChange, mechanic, onDelete 
             <AlertDialogHeader>
             <AlertDialogTitle>VOCÊ TEM CERTEZA?</AlertDialogTitle>
             <AlertDialogDescription>
-                ESTA AÇÃO NÃO PODE SER DESFEITA. ISTO EXCLUIRÁ PERMANENTEMENTE O MECÂNICO <span className="font-bold">{mechanic.name}</span>.
+                ESTA AÇÃO NÃO PODE SER DESFEITA. ISTO EXCLUIRÁ PERMANENTEMENTE O MECÂNICO <span className="font-bold">{`${mechanic.firstName} ${mechanic.lastName}`}</span>.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -44,3 +44,5 @@ export function DeleteMechanicDialog({ isOpen, onOpenChange, mechanic, onDelete 
         </AlertDialog>
     );
 }
+
+    

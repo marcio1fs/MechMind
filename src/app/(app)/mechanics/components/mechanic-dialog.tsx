@@ -26,7 +26,9 @@ import { useEffect } from "react";
 
 const formSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(1, "O NOME É OBRIGATÓRIO."),
+  firstName: z.string().min(1, "O NOME É OBRIGATÓRIO."),
+  lastName: z.string().min(1, "O SOBRENOME É OBRIGATÓRIO."),
+  email: z.string().email("O E-MAIL É INVÁLIDO."),
   specialty: z.string().min(1, "A ESPECIALIDADE É OBRIGATÓRIA."),
 });
 
@@ -36,14 +38,16 @@ interface MechanicDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   mechanic: Mechanic | null;
-  onSave: (mechanic: Mechanic) => void;
+  onSave: (mechanic: Omit<Mechanic, 'oficinaId' | 'role'>) => void;
 }
 
 export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: MechanicDialogProps) {
   const form = useForm<MechanicFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      firstName: "",
+      lastName: "",
+      email: "",
       specialty: "",
     },
   });
@@ -54,7 +58,10 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
           form.reset(mechanic);
         } else {
           form.reset({
-            name: "",
+            id: undefined,
+            firstName: "",
+            lastName: "",
+            email: "",
             specialty: "",
           });
         }
@@ -62,10 +69,7 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
   }, [mechanic, form, isOpen]);
 
   const onSubmit = (data: MechanicFormValues) => {
-    onSave({
-      ...data,
-      id: mechanic?.id || `MEC-${Date.now()}`,
-    });
+    onSave(data);
     onOpenChange(false);
   };
 
@@ -81,16 +85,44 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>NOME</FormLabel>
+                    <FormControl>
+                        <Input placeholder="EX: CARLOS" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>SOBRENOME</FormLabel>
+                    <FormControl>
+                        <Input placeholder="EX: ALBERTO" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
             <FormField
             control={form.control}
-            name="name"
+            name="email"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>NOME DO MECÂNICO</FormLabel>
+                <FormLabel>E-MAIL</FormLabel>
                 <FormControl>
-                    <Input placeholder="EX: CARLOS ALBERTO" {...field} />
+                    <Input placeholder="EX: carlos@email.com" {...field} type="email" />
                 </FormControl>
-                <FormMessage />
+                 <FormMessage />
                 </FormItem>
             )}
             />
@@ -116,3 +148,5 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
     </Dialog>
   );
 }
+
+    

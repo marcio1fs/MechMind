@@ -233,5 +233,31 @@ service cloud.firestore {
       allow update: if (isUserOfOficina(oficinaId) && isExistingDoc() && isUpdatingValidOficinaData()) || isGlobalAdmin();
       allow delete: if (isUserOfOficina(oficinaId) && isExistingDoc()) || isGlobalAdmin();
     }
+
+    /**
+     * @description Rules for inventory item documents within an oficina.
+     * @path /oficinas/{oficinaId}/inventory/{stockItemId}
+     */
+    match /oficinas/{oficinaId}/inventory/{stockItemId} {
+      allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow create: if (isUserOfOficina(oficinaId) && isCreatingValidOficinaData(oficinaId)) || isGlobalAdmin();
+      allow update: if (isUserOfOficina(oficinaId) && isExistingDoc() && isUpdatingValidOficinaData()) || isGlobalAdmin();
+      allow delete: if (isUserOfOficina(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+    }
+
+    /**
+     * @description Rules for financial transaction documents within an oficina.
+     * @path /oficinas/{oficinaId}/financialTransactions/{transactionId}
+     */
+    match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
+      allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow create: if (isUserOfOficina(oficinaId) && isCreatingValidOficinaData(oficinaId)) || isGlobalAdmin();
+      allow update: if (isUserOfOficina(oficinaId) && isExistingDoc() && isUpdatingValidOficinaData()) || isGlobalAdmin();
+      allow delete: if (isUserOfOficina(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+    }
   }
 }
+
+    

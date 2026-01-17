@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -19,15 +19,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { mockMechanics, type Mechanic } from "@/lib/mock-data";
 import { MechanicDialog } from "./components/mechanic-dialog";
 import { DeleteMechanicDialog } from "./components/delete-mechanic-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, doc, addDoc, setDoc, deleteDoc } from "firebase/firestore";
 
-export type { Mechanic };
+// This type should align with the User entity in backend.json
+export type Mechanic = {
+  id: string;
+  oficinaId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialty: string;
+  role: string;
+};
+
+// A hardcoded oficinaId for demonstration purposes.
+// In a real multi-tenant app, this would come from the user's profile.
+const OFICINA_ID = "default_oficina";
 
 export default function MechanicsPage() {
-  const [mechanics, setMechanics] = useState(mockMechanics);
+  const firestore = useFirestore();
+  const mechanicsCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, "oficinas", OFICINA_ID, "users");
+  }, [firestore]);
+
+  const { data: mechanics, isLoading } = useCollection<Mechanic>(mechanicsCollection);
+
   const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
   const [isMechanicDialogOpen, setIsMechanicDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -44,23 +65,48 @@ export default function MechanicsPage() {
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
   };
   
-  const handleSaveMechanic = (mechanic: Mechanic) => {
-    const existingMechanic = mechanics.find(m => m.id === mechanic.id);
-    if (existingMechanic) {
-      setMechanics(mechanics.map(m => m.id === mechanic.id ? mechanic : m));
-      toast({ title: "SUCESSO!", description: "MECÂNICO ATUALIZADO COM SUCESSO." });
-    } else {
-      setMechanics([...mechanics, mechanic]);
-      toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
+  const handleSaveMechanic = async (mechanicData: Omit<Mechanic, 'id' | 'oficinaId' | 'role'> & { id?: string }) => {
+    if (!firestore || !mechanicsCollection) return;
+
+    const { id, ...data } = mechanicData;
+    
+    try {
+      if (id) {
+        // Editing existing mechanic
+        const mechanicRef = doc(firestore, "oficinas", OFICINA_ID, "users", id);
+        await setDoc(mechanicRef, data, { merge: true });
+        toast({ title: "SUCESSO!", description: "MECÂNICO ATUALIZADO COM SUCESSO." });
+      } else {
+        // Adding new mechanic
+        // Note: This flow doesn't create a Firebase Auth user, only a Firestore document.
+        // A complete solution would involve a Cloud Function or a more complex client-side flow.
+        await addDoc(mechanicsCollection, {
+            ...data,
+            oficinaId: OFICINA_ID,
+            role: "OFICINA", // Default role
+        });
+        toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
+      }
+      setSelectedMechanic(null);
+      setIsMechanicDialogOpen(false);
+    } catch (error) {
+        console.error("Error saving mechanic: ", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O MECÂNICO." });
     }
-    setSelectedMechanic(null);
   };
 
-  const handleDeleteMechanic = (mechanic: Mechanic) => {
-    setMechanics(mechanics.filter(m => m.id !== mechanic.id));
-    toast({ title: "SUCESSO!", description: "MECÂNICO EXCLUÍDO COM SUCESSO." });
-    setSelectedMechanic(null);
-    setIsDeleteDialogOpen(false);
+  const handleDeleteMechanic = async (mechanic: Mechanic) => {
+    if (!firestore) return;
+    try {
+        const mechanicRef = doc(firestore, "oficinas", OFICINA_ID, "users", mechanic.id);
+        await deleteDoc(mechanicRef);
+        toast({ title: "SUCESSO!", description: "MECÂNICO EXCLUÍDO COM SUCESSO." });
+        setSelectedMechanic(null);
+        setIsDeleteDialogOpen(false);
+    } catch (error) {
+        console.error("Error deleting mechanic: ", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O MECÂNICO." });
+    }
   };
 
   return (
@@ -94,16 +140,28 @@ export default function MechanicsPage() {
                     <TableRow>
                     <TableHead>NOME</TableHead>
                     <TableHead>ESPECIALIDADE</TableHead>
+                    <TableHead>E-MAIL</TableHead>
                     <TableHead className="w-[100px] text-right">AÇÕES</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {mechanics.map((mechanic) => (
+                    {isLoading && (
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-10 w-10 ml-auto" /></TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                    {!isLoading && mechanics?.map((mechanic) => (
                         <TableRow key={mechanic.id}>
                         <TableCell className="font-medium">
-                            <div>{mechanic.name}</div>
+                            <div>{`${mechanic.firstName} ${mechanic.lastName}`}</div>
                         </TableCell>
                         <TableCell>{mechanic.specialty}</TableCell>
+                        <TableCell>{mechanic.email}</TableCell>
                         <TableCell className="text-right">
                             {isMounted ? (
                                 <DropdownMenu>
@@ -126,6 +184,11 @@ export default function MechanicsPage() {
                         </TableCell>
                         </TableRow>
                     ))}
+                     {!isLoading && mechanics?.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">Nenhum mecânico encontrado.</TableCell>
+                        </TableRow>
+                     )}
                 </TableBody>
                 </Table>
             </div>
@@ -148,3 +211,5 @@ export default function MechanicsPage() {
     </div>
   );
 }
+
+    
