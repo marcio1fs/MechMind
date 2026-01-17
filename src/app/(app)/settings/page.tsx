@@ -17,23 +17,23 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>INTEGRAÇÃO COM WHATSAPP</CardTitle>
           <CardDescription>
-            CONECTE SUA CONTA DO WHATSAPP BUSINESS PARA ENVIAR ATUALIZAÇÕES AUTOMÁTICAS PARA SEUS CLIENTES.
-            <span className="mt-1 block text-xs text-muted-foreground/90">
-              NOTA: ESTA INTEGRAÇÃO (PAGA) É PARA AUTOMAÇÕES. O ENVIO MANUAL DE RECIBOS É GRATUITO E NÃO REQUER ESTA CONFIGURAÇÃO.
+            Para habilitar o envio automático de notificações (ex: atualizações de status da OS), você deve contratar um provedor de API do WhatsApp Business (como Twilio ou Meta) e inserir suas credenciais abaixo. Esta configuração é de responsabilidade do cliente.
+            <span className="mt-2 block text-xs text-muted-foreground/90">
+              LEMBRETE: O envio manual de recibos via WhatsApp é gratuito e não precisa desta configuração. Esta seção é apenas para automações (recurso pago).
             </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="whatsapp-api-key">PROVEDOR DE API</Label>
+            <Label>PROVEDOR DE API</Label>
              <p className="text-sm text-muted-foreground">ATUALMENTE, OFERECEMOS SUPORTE À API DO TWILIO OU DA META PARA WHATSAPP CLOUD.</p>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="whatsapp-api-key">CHAVE DA API</Label>
-            <Input id="whatsapp-api-key" placeholder="Digite sua chave de API" />
+            <Label htmlFor="whatsapp-api-key">SUA CHAVE DE API (API Key)</Label>
+            <Input id="whatsapp-api-key" placeholder="Cole sua chave de API aqui" />
           </div>
            <div className="grid gap-2">
-            <Label htmlFor="whatsapp-sender-number">NÚMERO DE TELEFONE DO REMETENTE</Label>
+            <Label htmlFor="whatsapp-sender-number">SEU NÚMERO DE TELEFONE DO REMETENTE</Label>
             <Input id="whatsapp-sender-number" placeholder="ex: +5511999998888" />
           </div>
         </CardContent>
