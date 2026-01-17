@@ -350,7 +350,7 @@ export default function OrdersPage() {
                                     <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>
                                 </TableCell>
                                 <TableCell>{order.mechanicName || 'N/A'}</TableCell>
-                                <TableCell>{format(new Date(order.startDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                <TableCell>{isMounted ? format(new Date(order.startDate), "dd/MM/yyyy", { locale: ptBR }) : <Skeleton className="h-4 w-20" />}</TableCell>
                                 <TableCell>
                                     <Badge variant={statusVariant[order.status]}>
                                         {order.status === 'FINALIZADO' && <CheckCircle className="mr-1 h-3 w-3" />}
@@ -460,7 +460,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
-    
-
-    
