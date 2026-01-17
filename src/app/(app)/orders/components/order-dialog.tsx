@@ -69,7 +69,7 @@ const formSchema = z.object({
   startDate: z.date({
     required_error: "A DATA DE INÍCIO É OBRIGATÓRIA.",
   }),
-  status: z.enum(["CONCLUÍDO", "EM ANDAMENTO", "PENDENTE"]),
+  status: z.enum(["CONCLUÍDO", "EM ANDAMENTO", "PENDENTE", "FINALIZADO"]),
   symptoms: z.string().optional(),
   diagnosis: z.string().optional(),
   services: z.array(z.object({
@@ -138,6 +138,7 @@ export function OrderDialog({
   });
 
   const status = form.watch("status");
+  const isFinalizado = status === "FINALIZADO";
   const parts = form.watch("parts");
   const watchedServices = form.watch("services");
 
@@ -278,6 +279,11 @@ export function OrderDialog({
             onSubmit={form.handleSubmit(onSubmit)}
             className="grid gap-4 py-4 max-h-[80vh] overflow-y-auto pr-4"
           >
+            {isFinalizado && (
+              <div className="p-4 rounded-md bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800">
+                ORDEM DE SERVIÇO FINALIZADA E PAGA. A EDIÇÃO NÃO É PERMITIDA.
+              </div>
+            )}
             <h3 className="text-base font-semibold text-foreground border-b pb-2 mt-2">CLIENTE E VEÍCULO</h3>
             <FormField
               control={form.control}
@@ -286,7 +292,7 @@ export function OrderDialog({
                 <FormItem>
                   <FormLabel>NOME DO CLIENTE</FormLabel>
                   <FormControl>
-                    <Input placeholder="EX: JOÃO DA SILVA" {...field} />
+                    <Input placeholder="EX: JOÃO DA SILVA" {...field} disabled={isFinalizado} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -299,7 +305,7 @@ export function OrderDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>MARCA</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isFinalizado}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="SELECIONE A MONTADORA" />
@@ -324,7 +330,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>MODELO</FormLabel>
                     <FormControl>
-                      <Input placeholder="EX: CIVIC" {...field} />
+                      <Input placeholder="EX: CIVIC" {...field} disabled={isFinalizado}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -339,7 +345,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>ANO</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} disabled={isFinalizado}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -352,7 +358,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>PLACA</FormLabel>
                     <FormControl>
-                      <Input placeholder="EX: ABC1234" {...field} />
+                      <Input placeholder="EX: ABC1234" {...field} disabled={isFinalizado}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -365,7 +371,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>COR</FormLabel>
                     <FormControl>
-                      <Input placeholder="EX: PRETO" {...field} />
+                      <Input placeholder="EX: PRETO" {...field} disabled={isFinalizado}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -392,6 +398,7 @@ export function OrderDialog({
                                 "w-full pl-3 text-left font-normal normal-case",
                                 !field.value && "text-muted-foreground"
                             )}
+                            disabled={isFinalizado}
                             >
                             {field.value ? (
                                 format(field.value, "PPP", { locale: ptBR })
@@ -407,6 +414,7 @@ export function OrderDialog({
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
+                            disabled
                             initialFocus
                         />
                         </PopoverContent>
@@ -421,7 +429,7 @@ export function OrderDialog({
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>MECÂNICO RESPONSÁVEL</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isFinalizado}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="SELECIONE O MECÂNICO" />
@@ -449,6 +457,7 @@ export function OrderDialog({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    disabled={isFinalizado}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -459,6 +468,7 @@ export function OrderDialog({
                       <SelectItem value="PENDENTE">PENDENTE</SelectItem>
                       <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
                       <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
+                       <SelectItem value="FINALIZADO" disabled>FINALIZADO</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -480,6 +490,7 @@ export function OrderDialog({
                       <Textarea
                         placeholder="DESCREVA OS SINTOMAS REPORTADOS PELO CLIENTE..."
                         {...field}
+                        disabled={isFinalizado}
                       />
                     </FormControl>
                     <FormMessage />
@@ -500,7 +511,7 @@ export function OrderDialog({
                         variant="outline"
                         size="sm"
                         onClick={handleGenerateDiagnosis}
-                        disabled={isDiagnosing}
+                        disabled={isDiagnosing || isFinalizado}
                       >
                         {isDiagnosing ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -548,7 +559,7 @@ export function OrderDialog({
                                                 control={form.control}
                                                 name={`services.${index}.description`}
                                                 render={({ field }) => (
-                                                    <Input {...field} placeholder="EX: TROCA DE ÓLEO" className="w-full" />
+                                                    <Input {...field} placeholder="EX: TROCA DE ÓLEO" className="w-full" disabled={isFinalizado}/>
                                                 )}
                                             />
                                         </TableCell>
@@ -557,7 +568,7 @@ export function OrderDialog({
                                                 control={form.control}
                                                 name={`services.${index}.quantity`}
                                                 render={({ field }) => (
-                                                    <Input type="number" {...field} className="w-full text-center" min="1" />
+                                                    <Input type="number" {...field} className="w-full text-center" min="1" disabled={isFinalizado}/>
                                                 )}
                                             />
                                         </TableCell>
@@ -566,13 +577,13 @@ export function OrderDialog({
                                                 control={form.control}
                                                 name={`services.${index}.unitPrice`}
                                                 render={({ field }) => (
-                                                    <Input type="number" step="0.01" {...field} className="w-full text-right" min="0" />
+                                                    <Input type="number" step="0.01" {...field} className="w-full text-right" min="0" disabled={isFinalizado}/>
                                                 )}
                                             />
                                         </TableCell>
                                         <TableCell className="text-right font-medium">R${subtotal.toFixed(2)}</TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => removeService(index)}>
+                                            <Button variant="ghost" size="icon" onClick={() => removeService(index)} disabled={isFinalizado}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                             </Button>
                                         </TableCell>
@@ -592,6 +603,7 @@ export function OrderDialog({
                     variant="outline" 
                     onClick={() => appendService({ description: "", quantity: 1, unitPrice: 0 })}
                     className="w-full sm:w-auto self-start"
+                    disabled={isFinalizado}
                 >
                     ADICIONAR SERVIÇO
                 </Button>
@@ -621,7 +633,7 @@ export function OrderDialog({
                                   <TableCell className="text-right">R${part.sale_price.toFixed(2)}</TableCell>
                                   <TableCell className="text-right">R${(part.quantity * part.sale_price).toFixed(2)}</TableCell>
                                   <TableCell>
-                                      <Button variant="ghost" size="icon" onClick={() => handleRemovePart(index)}>
+                                      <Button variant="ghost" size="icon" onClick={() => handleRemovePart(index)} disabled={isFinalizado}>
                                           <Trash2 className="h-4 w-4 text-destructive" />
                                       </Button>
                                   </TableCell>
@@ -635,7 +647,7 @@ export function OrderDialog({
                       </TableBody>
                   </Table>
               </div>
-              <Button type="button" variant="outline" onClick={() => setIsAddPartDialogOpen(true)}>
+              <Button type="button" variant="outline" onClick={() => setIsAddPartDialogOpen(true)} disabled={isFinalizado}>
                   ADICIONAR PEÇA DO ESTOQUE
               </Button>
             </div>
@@ -646,7 +658,7 @@ export function OrderDialog({
                 <FormItem>
                   <FormLabel>{status === 'PENDENTE' ? "ORÇAMENTO ESTIMADO (R$)" : "TOTAL FINAL (R$)"}</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} />
+                    <Input type="number" step="0.01" {...field} disabled={isFinalizado} />
                   </FormControl>
                   <FormDescription>
                     O VALOR TOTAL É A SOMA DOS SERVIÇOS E PEÇAS. VOCÊ PODE AJUSTÁ-LO MANUALMENTE SE NECESSÁRIO.
@@ -657,7 +669,7 @@ export function OrderDialog({
             />
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>CANCELAR</Button>
-              <Button type="submit">SALVAR ORDEM DE SERVIÇO</Button>
+              <Button type="submit" disabled={isFinalizado}>SALVAR ORDEM DE SERVIÇO</Button>
             </DialogFooter>
           </form>
         </Form>

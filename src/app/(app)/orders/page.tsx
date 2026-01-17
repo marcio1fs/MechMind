@@ -30,9 +30,11 @@ import {
 } from "@/components/ui/dialog";
 import { getOrderSummary } from "./actions";
 import { type OrderSummaryOutput } from "@/ai/flows/order-summary-generation";
-import { Sparkles, Loader2, MoreHorizontal, PlusCircle, Search } from "lucide-react";
+import { Sparkles, Loader2, MoreHorizontal, PlusCircle, Search, CreditCard, CheckCircle } from "lucide-react";
 import { OrderDialog } from "./components/order-dialog";
 import { DeleteOrderDialog } from "./components/delete-order-dialog";
+import { PaymentDialog } from "./components/payment-dialog";
+import { ReceiptDialog } from "./components/receipt-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
     Select,
@@ -76,12 +78,13 @@ export type Order = {
   mechanicId?: string;
   mechanicName?: string;
   startDate: Date;
-  status: "CONCLUÍDO" | "EM ANDAMENTO" | "PENDENTE";
+  status: "CONCLUÍDO" | "EM ANDAMENTO" | "PENDENTE" | "FINALIZADO";
   services: PerformedService[];
   parts: UsedPart[];
   total: number;
   symptoms?: string;
   diagnosis?: string;
+  paymentMethod?: string;
 };
 
 const mockOrders: Order[] = [
@@ -92,14 +95,15 @@ const mockOrders: Order[] = [
     mechanicId: "MEC-001",
     mechanicName: "CARLOS ALBERTO",
     startDate: new Date("2024-07-20T12:00:00Z"),
-    status: "CONCLUÍDO",
+    status: "FINALIZADO",
     services: [
         { description: "TROCA DE ÓLEO E FILTRO", quantity: 1, unitPrice: 90.50 },
     ],
     parts: [{ itemId: 'ITEM-001', code: 'HF-103', name: 'FILTRO DE ÓLEO', quantity: 1, sale_price: 35.00 }],
     total: 125.5,
     symptoms: "LUZ DE MANUTENÇÃO ACESA.",
-    diagnosis: "DIAGNÓSTICO: MANUTENção DE ROTINA NECESSÁRIA.\n\nCONFIANÇA: 95%\n\nAÇÕES RECOMENDADAS:\nREALIZAR TROCA DE ÓLEO E FILTRO. FAZER RODÍZIO DOS PNEUS E VERIFICAR A PRESSÃO."
+    diagnosis: "DIAGNÓSTICO: MANUTENção DE ROTINA NECESSÁRIA.\n\nCONFIANÇA: 95%\n\nAÇÕES RECOMENDADAS:\nREALIZAR TROCA DE ÓLEO E FILTRO. FAZER RODÍZIO DOS PNEUS E VERIFICAR A PRESSÃO.",
+    paymentMethod: "CARTÃO DE CRÉDITO",
   },
   {
     id: "ORD-002",
@@ -146,7 +150,8 @@ const mockOrders: Order[] = [
 const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outline" } = {
     "CONCLUÍDO": "default",
     "EM ANDAMENTO": "secondary",
-    "PENDENTE": "outline"
+    "PENDENTE": "outline",
+    "FINALIZADO": "default",
 }
 
 
@@ -157,6 +162,8 @@ export default function OrdersPage() {
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [summary, setSummary] = useState<OrderSummaryOutput | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
@@ -169,11 +176,12 @@ export default function OrdersPage() {
     setIsMounted(true);
   }, []);
 
-  const handleOpenDialog = (dialog: 'summary' | 'order' | 'delete', order: Order | null) => {
+  const handleOpenDialog = (dialog: 'summary' | 'order' | 'delete' | 'payment', order: Order | null) => {
     setSelectedOrder(order);
     if (dialog === 'summary' && order) handleGenerateSummary(order);
     if (dialog === 'order') setIsOrderDialogOpen(true);
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
+    if (dialog === 'payment') setIsPaymentDialogOpen(true);
   };
 
   const handleGenerateSummary = async (order: Order) => {
@@ -242,6 +250,24 @@ export default function OrdersPage() {
     setIsDeleteDialogOpen(false);
   };
 
+  const handleConfirmPayment = (order: Order, paymentMethod: string) => {
+    const updatedOrder = { ...order, status: "FINALIZADO" as const, paymentMethod };
+    setOrders(orders.map(o => o.id === order.id ? updatedOrder : o));
+
+    // TODO: Integrate with financial module
+    console.log("Creating financial transaction for", updatedOrder);
+
+    toast({
+        title: "PAGAMENTO REGISTRADO!",
+        description: `O pagamento para a OS ${order.id} foi registrado com sucesso.`,
+    });
+
+    setIsPaymentDialogOpen(false);
+    setSelectedOrder(updatedOrder); 
+    setIsReceiptDialogOpen(true); 
+  };
+
+
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
         const matchesSearch = 
@@ -292,6 +318,7 @@ export default function OrdersPage() {
                                 <SelectItem value="PENDENTE">PENDENTE</SelectItem>
                                 <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
                                 <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
+                                <SelectItem value="FINALIZADO">FINALIZADO</SelectItem>
                             </SelectContent>
                         </Select>
                     ) : (
@@ -325,7 +352,10 @@ export default function OrdersPage() {
                                 <TableCell>{order.mechanicName || 'N/A'}</TableCell>
                                 <TableCell>{format(new Date(order.startDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                                 <TableCell>
-                                <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
+                                    <Badge variant={statusVariant[order.status]}>
+                                        {order.status === 'FINALIZADO' && <CheckCircle className="mr-1 h-3 w-3" />}
+                                        {order.status}
+                                    </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
                                 <TableCell className="text-right">
@@ -339,12 +369,19 @@ export default function OrdersPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    onClick={() => handleOpenDialog('payment', order)}
+                                                    disabled={order.status !== 'CONCLUÍDO'}
+                                                >
+                                                    <CreditCard className="mr-2 h-4 w-4" />
+                                                    REGISTRAR PAGAMENTO
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
                                                     <Sparkles className="mr-2 h-4 w-4" />
                                                     GERAR RESUMO
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     ) : (
@@ -404,6 +441,21 @@ export default function OrdersPage() {
         onOpenChange={setIsDeleteDialogOpen}
         order={selectedOrder}
         onDelete={handleDeleteOrder}
+      />
+
+      {/* Dialog for Payment */}
+      <PaymentDialog
+        isOpen={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        order={selectedOrder}
+        onConfirm={handleConfirmPayment}
+      />
+
+      {/* Dialog for Receipt */}
+      <ReceiptDialog
+        isOpen={isReceiptDialogOpen}
+        onOpenChange={setIsReceiptDialogOpen}
+        order={selectedOrder}
       />
     </div>
   );
