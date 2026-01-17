@@ -41,7 +41,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { mockStockItems } from "@/lib/mock-data";
+import { mockStockItems, mockMechanics, type Mechanic } from "@/lib/mock-data";
 
 export type UsedPart = {
   itemId: string;
@@ -61,8 +61,10 @@ export type Order = {
     plate: string;
     color: string;
   };
+  mechanicId?: string;
+  mechanicName?: string;
   startDate: Date;
-  status: "Concluído" | "Em Andamento" | "Pendente";
+  status: "CONCLUÍDO" | "EM ANDAMENTO" | "PENDENTE";
   services: string;
   parts: UsedPart[];
   total: number;
@@ -75,8 +77,10 @@ const mockOrders: Order[] = [
     id: "ORD-001",
     customer: "JOHN DOE",
     vehicle: { make: "HONDA", model: "CIVIC", year: 2021, plate: "ABC1D23", color: "BRANCO" },
+    mechanicId: "MEC-001",
+    mechanicName: "CARLOS ALBERTO",
     startDate: new Date("2024-07-20T12:00:00Z"),
-    status: "Concluído",
+    status: "CONCLUÍDO",
     services: "TROCA DE ÓLEO, RODÍZIO DE PNEUS",
     parts: [{ itemId: 'ITEM-001', code: 'HF-103', name: 'FILTRO DE ÓLEO', quantity: 1, sale_price: 35.00 }],
     total: 125.5,
@@ -87,8 +91,10 @@ const mockOrders: Order[] = [
     id: "ORD-002",
     customer: "JANE SMITH",
     vehicle: { make: "FORD", model: "F-150", year: 2019, plate: "DEF4E56", color: "PRETO" },
+    mechanicId: "MEC-002",
+    mechanicName: "BRUNO FERNANDES",
     startDate: new Date("2024-07-21T12:00:00Z"),
-    status: "Em Andamento",
+    status: "EM ANDAMENTO",
     services: "SUBSTITUIÇÃO DA PASTILHA DE FREIO",
     parts: [{ itemId: 'ITEM-002', code: 'PST-201', name: 'PASTILHA DE FREIO DIANTEIRA', quantity: 2, sale_price: 150.00 }],
     total: 350.0,
@@ -99,7 +105,7 @@ const mockOrders: Order[] = [
     customer: "SAM WILSON",
     vehicle: { make: "TOYOTA", model: "CAMRY", year: 2022, plate: "GHI7F89", color: "PRATA" },
     startDate: new Date("2024-07-22T12:00:00Z"),
-    status: "Pendente",
+    status: "PENDENTE",
     services: "VERIFICAÇÃO DE DIAGNÓSTICO",
     parts: [],
     total: 75.0,
@@ -109,8 +115,10 @@ const mockOrders: Order[] = [
     id: "ORD-004",
     customer: "EMILY BROWN",
     vehicle: { make: "BMW", model: "X5", year: 2020, plate: "JKL0G12", color: "AZUL" },
+    mechanicId: "MEC-001",
+    mechanicName: "CARLOS ALBERTO",
     startDate: new Date("2024-06-15T12:00:00Z"),
-    status: "Concluído",
+    status: "CONCLUÍDO",
     services: "INSPEÇÃO ANUAL, SUBSTITUIÇÃO DO FILTRO DE AR",
     parts: [],
     total: 215.75,
@@ -119,14 +127,15 @@ const mockOrders: Order[] = [
 
 
 const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outline" } = {
-    "Concluído": "default",
-    "Em Andamento": "secondary",
-    "Pendente": "outline"
+    "CONCLUÍDO": "default",
+    "EM ANDAMENTO": "secondary",
+    "PENDENTE": "outline"
 }
 
 
 export default function OrdersPage() {
   const [stockItems, setStockItems] = useState(mockStockItems);
+  const [mechanics, setMechanics] = useState(mockMechanics);
   const [orders, setOrders] = useState(mockOrders);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -135,7 +144,7 @@ export default function OrdersPage() {
   const [summary, setSummary] = useState<OrderSummaryOutput | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<Order["status"] | "Todos">("Todos");
+  const [statusFilter, setStatusFilter] = useState<Order["status"] | "TODOS">("TODOS");
   const { toast } = useToast();
 
   const handleOpenDialog = (dialog: 'summary' | 'order' | 'delete', order: Order | null) => {
@@ -168,7 +177,7 @@ export default function OrdersPage() {
   const handleSaveOrder = (order: Order) => {
     const existingOrder = orders.find(o => o.id === order.id);
     
-    if (order.status === 'Concluído' && (!existingOrder || existingOrder.status !== 'Concluído')) {
+    if (order.status === 'CONCLUÍDO' && (!existingOrder || existingOrder.status !== 'CONCLUÍDO')) {
         let stockSufficient = true;
         const tempStock = [...stockItems];
         
@@ -219,7 +228,7 @@ export default function OrdersPage() {
             `${order.vehicle.make} ${order.vehicle.model}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.vehicle.plate.toLowerCase().replace('-', '').includes(searchTerm.toLowerCase().replace('-', ''));
         
-        const matchesStatus = statusFilter === 'Todos' || order.status === statusFilter;
+        const matchesStatus = statusFilter === 'TODOS' || order.status === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
@@ -252,15 +261,15 @@ export default function OrdersPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <Select value={statusFilter} onValueChange={(value: Order["status"] | "Todos") => setStatusFilter(value)}>
+            <Select value={statusFilter} onValueChange={(value: Order["status"] | "TODOS") => setStatusFilter(value)}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="FILTRAR POR STATUS" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="Todos">TODOS</SelectItem>
-                    <SelectItem value="Pendente">PENDENTE</SelectItem>
-                    <SelectItem value="Em Andamento">EM ANDAMENTO</SelectItem>
-                    <SelectItem value="Concluído">CONCLUÍDO</SelectItem>
+                    <SelectItem value="TODOS">TODOS</SelectItem>
+                    <SelectItem value="PENDENTE">PENDENTE</SelectItem>
+                    <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
+                    <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
                 </SelectContent>
             </Select>
         </div>
@@ -272,6 +281,7 @@ export default function OrdersPage() {
               <TableHead>ID DO PEDIDO</TableHead>
               <TableHead>CLIENTE</TableHead>
               <TableHead>VEÍCULO</TableHead>
+              <TableHead>MECÂNICO</TableHead>
               <TableHead>DATA DE INÍCIO</TableHead>
               <TableHead>STATUS</TableHead>
               <TableHead className="text-right">TOTAL</TableHead>
@@ -288,9 +298,10 @@ export default function OrdersPage() {
                         <div>{`${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`}</div>
                         <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>
                     </TableCell>
+                    <TableCell>{order.mechanicName || 'N/A'}</TableCell>
                     <TableCell>{format(order.startDate, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                     <TableCell>
-                    <Badge variant={statusVariant[order.status]}>{order.status.toUpperCase()}</Badge>
+                    <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
@@ -316,7 +327,7 @@ export default function OrdersPage() {
                 ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
+                    <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
                 </TableRow>
             )}
           </TableBody>
@@ -351,6 +362,7 @@ export default function OrdersPage() {
         order={selectedOrder}
         onSave={handleSaveOrder}
         stockItems={stockItems}
+        mechanics={mechanics}
       />
 
       {/* Dialog for Delete Confirmation */}

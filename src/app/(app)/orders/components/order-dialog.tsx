@@ -48,6 +48,7 @@ import type { Order, UsedPart } from "../page";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddPartDialog } from "./add-part-dialog";
 import type { StockItem } from "../../inventory/page";
+import type { Mechanic } from "../../mechanics/page";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -62,10 +63,12 @@ const formSchema = z.object({
     plate: z.string().min(1, "O NÚMERO DA PLACA É OBRIGATÓRIO.").toUpperCase(),
     color: z.string().min(1, "A COR DO VEÍCULO É OBRIGATÓRIA."),
   }),
+  mechanicId: z.string().optional(),
+  mechanicName: z.string().optional(),
   startDate: z.date({
     required_error: "A DATA DE INÍCIO É OBRIGATÓRIA.",
   }),
-  status: z.enum(["Concluído", "Em Andamento", "Pendente"]),
+  status: z.enum(["CONCLUÍDO", "EM ANDAMENTO", "PENDENTE"]),
   symptoms: z.string().optional(),
   diagnosis: z.string().optional(),
   services: z.string().optional(),
@@ -87,6 +90,7 @@ interface OrderDialogProps {
   order: Order | null;
   onSave: (order: Order) => void;
   stockItems: StockItem[];
+  mechanics: Mechanic[];
 }
 
 export function OrderDialog({
@@ -95,6 +99,7 @@ export function OrderDialog({
   order,
   onSave,
   stockItems,
+  mechanics,
 }: OrderDialogProps) {
   const { toast } = useToast();
   const [isDiagnosing, setIsDiagnosing] = useState(false);
@@ -111,7 +116,7 @@ export function OrderDialog({
         plate: "",
         color: "",
       },
-      status: "Pendente",
+      status: "PENDENTE",
       symptoms: "",
       diagnosis: "",
       services: "",
@@ -147,7 +152,7 @@ export function OrderDialog({
             color: "",
           },
           startDate: new Date(),
-          status: "Pendente",
+          status: "PENDENTE",
           symptoms: "",
           diagnosis: "",
           services: "",
@@ -163,9 +168,11 @@ export function OrderDialog({
   }, [partsTotal, form]);
 
   const onSubmit = (data: OrderFormValues) => {
+    const selectedMechanic = mechanics.find(m => m.id === data.mechanicId);
     onSave({
       ...data,
       id: order?.id || `ORD-${Date.now()}`,
+      mechanicName: selectedMechanic?.name,
       parts: data.parts || [],
     });
     onOpenChange(false);
@@ -222,7 +229,7 @@ export function OrderDialog({
         return [...acc, newPart];
     }, currentParts);
 
-    form.setValue('parts', updatedParts, { shouldValidate: true });
+    form.setValue('parts', [...updatedParts], { shouldValidate: true });
   };
 
   const handleRemovePart = (index: number) => {
@@ -334,44 +341,70 @@ export function OrderDialog({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>DATA DE INÍCIO</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-[240px] pl-3 text-left font-normal normal-case",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: ptBR })
-                          ) : (
-                            <span>ESCOLHA UMA DATA</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>DATA DE INÍCIO</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full pl-3 text-left font-normal normal-case",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            {field.value ? (
+                                format(field.value, "PPP", { locale: ptBR })
+                            ) : (
+                                <span>ESCOLHA UMA DATA</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="mechanicId"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>MECÂNICO RESPONSÁVEL</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="SELECIONE O MECÂNICO" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {mechanics.map(mechanic => (
+                            <SelectItem key={mechanic.id} value={mechanic.id}>
+                            {mechanic.name}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
 
             <FormField
               control={form.control}
@@ -389,9 +422,9 @@ export function OrderDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Pendente">PENDENTE</SelectItem>
-                      <SelectItem value="Em Andamento">EM ANDAMENTO</SelectItem>
-                      <SelectItem value="Concluído">CONCLUÍDO</SelectItem>
+                      <SelectItem value="PENDENTE">PENDENTE</SelectItem>
+                      <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
+                      <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -458,10 +491,10 @@ export function OrderDialog({
                 name="services"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{status === 'Pendente' ? "SERVIÇOS PLANEJADOS (OPCIONAL)" : "SERVIÇOS REALIZADOS"}</FormLabel>
+                    <FormLabel>{status === 'PENDENTE' ? "SERVIÇOS PLANEJADOS (OPCIONAL)" : "SERVIÇOS REALIZADOS"}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder={status === 'Pendente' ? "DESCREVA OS SERVIÇOS A SEREM REALIZADOS..." : "DESCREVA OS SERVIÇOS REALIZADOS..."}
+                        placeholder={status === 'PENDENTE' ? "DESCREVA OS SERVIÇOS A SEREM REALIZADOS..." : "DESCREVA OS SERVIÇOS REALIZADOS..."}
                         {...field}
                       />
                     </FormControl>
@@ -471,7 +504,7 @@ export function OrderDialog({
               />
             </div>
             <div className="grid gap-2">
-              <FormLabel>{status === 'Pendente' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</FormLabel>
+              <FormLabel>{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</FormLabel>
               <div className="rounded-md border">
                   <Table>
                       <TableHeader>
@@ -514,12 +547,12 @@ export function OrderDialog({
               name="total"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{status === 'Pendente' ? "ORÇAMENTO ESTIMADO (R$)" : "TOTAL FINAL (R$)"}</FormLabel>
+                  <FormLabel>{status === 'PENDENTE' ? "ORÇAMENTO ESTIMADO (R$)" : "TOTAL FINAL (R$)"}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormDescription>
-                    O valor total é calculado automaticamente com base nas peças. Você pode ajustá-lo para incluir os serviços.
+                    O VALOR TOTAL É CALCULADO AUTOMATICAMENTE COM BASE NAS PEÇAS. VOCÊ PODE AJUSTÁ-LO PARA INCLUIR OS SERVIÇOS.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

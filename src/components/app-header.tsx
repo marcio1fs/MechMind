@@ -19,17 +19,18 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const pathTitles: { [key: string]: string } = {
-    "/dashboard": "Painel",
-    "/diagnostics": "Diagnósticos",
-    "/orders": "Pedidos",
-    "/vehicle-history": "Histórico do Veículo",
-    "/inventory": "Estoque",
-    "/pricing": "Preços",
-    "/settings": "Configurações",
+    "/dashboard": "PAINEL",
+    "/diagnostics": "DIAGNÓSTICOS",
+    "/orders": "ORDENS DE SERVIÇO",
+    "/vehicle-history": "HISTÓRICO DO VEÍCULO",
+    "/inventory": "ESTOQUE",
+    "/mechanics": "MECÂNICOS",
+    "/pricing": "PREÇOS",
+    "/settings": "CONFIGURAÇÕES",
 };
 
 function getTitleFromPathname(pathname: string) {
-    return pathTitles[pathname] || "Painel";
+    return pathTitles[pathname] || "PAINEL";
 }
 
 
@@ -50,7 +51,7 @@ export default function AppHeader() {
         <h1 className="hidden text-lg font-semibold md:block">{title}</h1>
          <div className="flex items-center gap-2 md:hidden">
             <Wrench className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold font-headline">MechMind</span>
+            <span className="text-lg font-bold font-headline">MECHMIND</span>
         </div>
       </div>
       
@@ -67,15 +68,15 @@ export default function AppHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+            <DropdownMenuLabel>MINHA CONTA</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-                <Link href="/settings">Configurações</Link>
+                <Link href="/settings">CONFIGURAÇÕES</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Suporte</DropdownMenuItem>
+            <DropdownMenuItem>SUPORTE</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/login">Sair</Link>
+              <Link href="/login">SAIR</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

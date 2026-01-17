@@ -17,18 +17,20 @@ import {
   Wrench,
   LogOut,
   Package,
+  UserCog,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const menuItems = [
-  { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
-  { href: "/diagnostics", label: "Diagnósticos", icon: Wrench },
-  { href: "/orders", label: "Pedidos", icon: ClipboardList },
-  { href: "/vehicle-history", label: "Histórico do Veículo", icon: History },
-  { href: "/inventory", label: "Estoque", icon: Package },
-  { href: "/pricing", label: "Preços", icon: CreditCard },
-  { href: "/settings", label: "Configurações", icon: Settings },
+  { href: "/dashboard", label: "PAINEL", icon: LayoutDashboard },
+  { href: "/diagnostics", label: "DIAGNÓSTICOS", icon: Wrench },
+  { href: "/orders", label: "ORDENS DE SERVIÇO", icon: ClipboardList },
+  { href: "/vehicle-history", label: "HISTÓRICO DO VEÍCULO", icon: History },
+  { href: "/inventory", label: "ESTOQUE", icon: Package },
+  { href: "/mechanics", label: "MECÂNICOS", icon: UserCog },
+  { href: "/pricing", label: "PREÇOS", icon: CreditCard },
+  { href: "/settings", label: "CONFIGURAÇÕES", icon: Settings },
 ];
 
 export default function AppSidebar() {
@@ -39,7 +41,7 @@ export default function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
             <Wrench className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold font-headline">MechMind</span>
+            <span className="text-xl font-bold font-headline">MECHMIND</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">
@@ -63,10 +65,10 @@ export default function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Sair">
+                <SidebarMenuButton asChild tooltip="SAIR">
                     <Link href="/login">
                         <LogOut/>
-                        <span>Sair</span>
+                        <span>SAIR</span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
