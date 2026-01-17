@@ -48,7 +48,7 @@ export default function AppSidebar() {
     try {
       await signOut(auth);
       toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });
-      router.push('/login');
+      router.push('/');
     } catch (error) {
       toast({ variant: 'destructive', title: 'ERRO NO LOGOUT', description: 'NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.' });
     }

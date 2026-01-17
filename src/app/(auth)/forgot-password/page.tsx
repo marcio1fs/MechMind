@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
           </form>
           <div className="mt-4 text-center text-sm">
             Lembrou da senha?{' '}
-            <Link href="/login" className="underline">
+            <Link href="/" className="underline">
               Entrar
             </Link>
           </div>

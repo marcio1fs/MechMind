@@ -33,13 +33,12 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isProvisioning, setIsProvisioning] = useState(false);
   
   useEffect(() => {
-    if (!isUserLoading && user && !isProvisioning) {
+    if (!isUserLoading && user) {
       router.replace('/dashboard');
     }
-  }, [user, isUserLoading, router, isProvisioning]);
+  }, [user, isUserLoading, router]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +51,6 @@ export default function SignupPage() {
       return;
     }
     setIsLoading(true);
-    setIsProvisioning(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
@@ -73,7 +71,7 @@ export default function SignupPage() {
         title: 'CONTA CRIADA!',
         description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
       });
-      setIsProvisioning(false);
+      router.replace('/dashboard');
     } catch (error: any) {
       console.error(error);
       let description = 'NÃO FOI POSSÍVEL CRIAR SUA CONTA. TENTE NOVAMENTE.';
@@ -87,7 +85,6 @@ export default function SignupPage() {
         title: 'ERRO NO CADASTRO',
         description,
       });
-      setIsProvisioning(false);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +92,6 @@ export default function SignupPage() {
 
   const handleGoogleSignup = async () => {
     setIsGoogleLoading(true);
-    setIsProvisioning(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -122,7 +118,7 @@ export default function SignupPage() {
         title: 'CONTA CRIADA!',
         description: 'SUA CONTA FOI CRIADA COM SUCESSO.',
       });
-      setIsProvisioning(false);
+      router.replace('/dashboard');
     } catch (error: any) {
       console.error(error);
       toast({
@@ -131,13 +127,12 @@ export default function SignupPage() {
         description:
           'NÃO FOI POSSÍVEL SE CADASTRAR COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
       });
-      setIsProvisioning(false);
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
-   if (isUserLoading || (!isUserLoading && user && !isProvisioning)) {
+   if (isUserLoading || (!isUserLoading && user)) {
      return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -205,7 +200,7 @@ export default function SignupPage() {
           </Button>
           <div className="mt-4 text-center text-sm">
             Já tem uma conta?{' '}
-            <Link href="/login" className="underline">
+            <Link href="/" className="underline">
               Entrar
             </Link>
           </div>
