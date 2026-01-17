@@ -56,6 +56,12 @@ export type UsedPart = {
   sale_price: number;
 };
 
+export type PerformedService = {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+};
+
 export type Order = {
   id: string;
   customer: string;
@@ -70,7 +76,7 @@ export type Order = {
   mechanicName?: string;
   startDate: Date;
   status: "CONCLUÍDO" | "EM ANDAMENTO" | "PENDENTE";
-  services: string;
+  services: PerformedService[];
   parts: UsedPart[];
   total: number;
   symptoms?: string;
@@ -86,7 +92,9 @@ const mockOrders: Order[] = [
     mechanicName: "CARLOS ALBERTO",
     startDate: new Date("2024-07-20T12:00:00Z"),
     status: "CONCLUÍDO",
-    services: "TROCA DE ÓLEO, RODÍZIO DE PNEUS",
+    services: [
+        { description: "TROCA DE ÓLEO E FILTRO", quantity: 1, unitPrice: 90.50 },
+    ],
     parts: [{ itemId: 'ITEM-001', code: 'HF-103', name: 'FILTRO DE ÓLEO', quantity: 1, sale_price: 35.00 }],
     total: 125.5,
     symptoms: "LUZ DE MANUTENÇÃO ACESA.",
@@ -100,7 +108,7 @@ const mockOrders: Order[] = [
     mechanicName: "BRUNO FERNANDES",
     startDate: new Date("2024-07-21T12:00:00Z"),
     status: "EM ANDAMENTO",
-    services: "SUBSTITUIÇÃO DA PASTILHA DE FREIO",
+    services: [{ description: "MÃO DE OBRA - TROCA DE PASTILHAS", quantity: 1, unitPrice: 50.00 }],
     parts: [{ itemId: 'ITEM-002', code: 'PST-201', name: 'PASTILHA DE FREIO DIANTEIRA', quantity: 2, sale_price: 150.00 }],
     total: 350.0,
     symptoms: "BARULHO DE RANGIDO AO FREAR.",
@@ -111,7 +119,7 @@ const mockOrders: Order[] = [
     vehicle: { make: "TOYOTA", model: "CAMRY", year: 2022, plate: "GHI7F89", color: "PRATA" },
     startDate: new Date("2024-07-22T12:00:00Z"),
     status: "PENDENTE",
-    services: "VERIFICAÇÃO DE DIAGNÓSTICO",
+    services: [{ description: "VERIFICAÇÃO DE DIAGNÓSTICO", quantity: 1, unitPrice: 75.00 }],
     parts: [],
     total: 75.0,
     symptoms: "MOTOR FALHANDO EM MARCHA LENTA.",
@@ -124,7 +132,10 @@ const mockOrders: Order[] = [
     mechanicName: "CARLOS ALBERTO",
     startDate: new Date("2024-06-15T12:00:00Z"),
     status: "CONCLUÍDO",
-    services: "INSPEÇÃO ANUAL, SUBSTITUIÇÃO DO FILTRO DE AR",
+    services: [
+        { description: "INSPEÇÃO ANUAL", quantity: 1, unitPrice: 150.00 },
+        { description: "SUBSTITUIÇÃO DO FILTRO DE AR", quantity: 1, unitPrice: 65.75 }
+    ],
     parts: [],
     total: 215.75,
   },
@@ -165,7 +176,7 @@ export default function OrdersPage() {
     setSummary(null);
 
     const result = await getOrderSummary({
-      servicesPerformed: order.services,
+      servicesPerformed: order.services.map(s => `${s.quantity}X ${s.description}`).join(', ') || "NENHUM SERVIÇO REALIZADO",
       partsReplaced: order.parts.map(p => `${p.quantity}X ${p.name}`).join(', ') || "NENHUMA PEÇA",
       totalCost: order.total,
       vehicleMake: order.vehicle.make,
@@ -302,7 +313,7 @@ export default function OrdersPage() {
                                     <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>
                                 </TableCell>
                                 <TableCell>{order.mechanicName || 'N/A'}</TableCell>
-                                <TableCell>{format(order.startDate, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                <TableCell>{format(new Date(order.startDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                                 <TableCell>
                                 <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
                                 </TableCell>

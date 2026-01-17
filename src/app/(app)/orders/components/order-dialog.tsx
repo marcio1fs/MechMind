@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
@@ -45,7 +45,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getAIDiagnosisForOrder } from "../actions";
-import type { Order, UsedPart } from "../page";
+import type { Order, UsedPart, PerformedService } from "../page";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddPartDialog } from "./add-part-dialog";
 import type { StockItem } from "../../inventory/page";
@@ -72,7 +72,11 @@ const formSchema = z.object({
   status: z.enum(["CONCLUÍDO", "EM ANDAMENTO", "PENDENTE"]),
   symptoms: z.string().optional(),
   diagnosis: z.string().optional(),
-  services: z.string().optional(),
+  services: z.array(z.object({
+    description: z.string().min(1, "A DESCRIÇÃO É OBRIGATÓRIA."),
+    quantity: z.coerce.number().min(1, "A QUANTIDADE DEVE SER PELO MENOS 1."),
+    unitPrice: z.coerce.number().min(0, "O PREÇO NÃO PODE SER NEGATIVO."),
+  })).optional(),
   parts: z.array(z.object({
     itemId: z.string(),
     code: z.string(),
@@ -122,19 +126,34 @@ export function OrderDialog({
       status: "PENDENTE",
       symptoms: "",
       diagnosis: "",
-      services: "",
+      services: [],
       parts: [],
       total: 0,
     },
   });
 
+  const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
+    control: form.control,
+    name: "services",
+  });
+
   const status = form.watch("status");
   const parts = form.watch("parts");
+  const watchedServices = form.watch("services");
 
   const partsTotal = useMemo(() => {
     if (!parts) return 0;
     return parts.reduce((acc, part) => acc + (part.quantity * part.sale_price), 0);
   }, [parts]);
+
+  const servicesTotal = useMemo(() => {
+    if (!watchedServices) return 0;
+    return watchedServices.reduce((acc, service) => {
+        const qty = Number(service.quantity) || 0;
+        const price = Number(service.unitPrice) || 0;
+        return acc + (qty * price);
+    }, 0);
+  }, [watchedServices]);
 
   useEffect(() => {
     if (isOpen) {
@@ -142,6 +161,7 @@ export function OrderDialog({
         form.reset({
           ...order,
           startDate: new Date(order.startDate),
+          services: order.services || [],
           parts: order.parts || [],
         });
       } else {
@@ -158,7 +178,7 @@ export function OrderDialog({
           status: "PENDENTE",
           symptoms: "",
           diagnosis: "",
-          services: "",
+          services: [],
           parts: [],
           total: 0,
         });
@@ -167,8 +187,8 @@ export function OrderDialog({
   }, [order, form, isOpen]);
 
   useEffect(() => {
-    form.setValue("total", partsTotal, { shouldValidate: true });
-  }, [partsTotal, form]);
+    form.setValue("total", partsTotal + servicesTotal, { shouldValidate: true });
+  }, [partsTotal, servicesTotal, form]);
 
   const onSubmit = (data: OrderFormValues) => {
     const selectedMechanic = mechanics.find(m => m.id === data.mechanicId);
@@ -176,6 +196,7 @@ export function OrderDialog({
       ...data,
       id: order?.id || `ORD-${Date.now()}`,
       mechanicName: selectedMechanic?.name,
+      services: data.services || [],
       parts: data.parts || [],
     });
     onOpenChange(false);
@@ -503,22 +524,77 @@ export function OrderDialog({
               />
             </div>
             <div className="grid gap-2">
-              <FormField
-                control={form.control}
-                name="services"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{status === 'PENDENTE' ? "SERVIÇOS PLANEJADOS (OPCIONAL)" : "SERVIÇOS REALIZADOS"}</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder={status === 'PENDENTE' ? "DESCREVA OS SERVIÇOS A SEREM REALIZADOS..." : "DESCREVA OS SERVIÇOS REALIZADOS..."}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormLabel>{status === 'PENDENTE' ? "SERVIÇOS PLANEJADOS" : "SERVIÇOS REALIZADOS"}</FormLabel>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>SERVIÇO</TableHead>
+                                <TableHead className="w-[100px] text-center">QTD</TableHead>
+                                <TableHead className="w-[150px] text-right">VALOR UN.</TableHead>
+                                <TableHead className="w-[150px] text-right">SUBTOTAL</TableHead>
+                                <TableHead className="w-12"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {serviceFields.map((field, index) => {
+                                const quantity = watchedServices?.[index]?.quantity || 0;
+                                const unitPrice = watchedServices?.[index]?.unitPrice || 0;
+                                const subtotal = quantity * unitPrice;
+                                return (
+                                    <TableRow key={field.id}>
+                                        <TableCell>
+                                            <FormField
+                                                control={form.control}
+                                                name={`services.${index}.description`}
+                                                render={({ field }) => (
+                                                    <Input {...field} placeholder="EX: TROCA DE ÓLEO" className="w-full" />
+                                                )}
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <FormField
+                                                control={form.control}
+                                                name={`services.${index}.quantity`}
+                                                render={({ field }) => (
+                                                    <Input type="number" {...field} className="w-full text-center" min="1" />
+                                                )}
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <FormField
+                                                control={form.control}
+                                                name={`services.${index}.unitPrice`}
+                                                render={({ field }) => (
+                                                    <Input type="number" step="0.01" {...field} className="w-full text-right" min="0" />
+                                                )}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium">R${subtotal.toFixed(2)}</TableCell>
+                                        <TableCell>
+                                            <Button variant="ghost" size="icon" onClick={() => removeService(index)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                            {serviceFields.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-muted-foreground h-24">NENHUM SERVIÇO ADICIONADO.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => appendService({ description: "", quantity: 1, unitPrice: 0 })}
+                    className="w-full sm:w-auto self-start"
+                >
+                    ADICIONAR SERVIÇO
+                </Button>
             </div>
             
             <Separator className="my-4" />
@@ -573,7 +649,7 @@ export function OrderDialog({
                     <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormDescription>
-                    O VALOR TOTAL É CALCULADO AUTOMATICAMENTE COM BASE NAS PEÇAS. VOCÊ PODE AJUSTÁ-LO PARA INCLUIR OS SERVIÇOS.
+                    O VALOR TOTAL É A SOMA DOS SERVIÇOS E PEÇAS. VOCÊ PODE AJUSTÁ-LO MANUALMENTE SE NECESSÁRIO.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -597,5 +673,3 @@ export function OrderDialog({
     </>
   );
 }
-
-    
