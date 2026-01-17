@@ -25,6 +25,7 @@ const pathTitles: { [key: string]: string } = {
     "/vehicle-history": "HISTÓRICO DO VEÍCULO",
     "/inventory": "ESTOQUE",
     "/mechanics": "MECÂNICOS",
+    "/financial": "FINANCEIRO",
     "/pricing": "PREÇOS",
     "/settings": "CONFIGURAÇÕES",
 };

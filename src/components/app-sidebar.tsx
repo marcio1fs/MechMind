@@ -18,6 +18,7 @@ import {
   LogOut,
   Package,
   UserCog,
+  DollarSign,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -29,6 +30,7 @@ const menuItems = [
   { href: "/vehicle-history", label: "HISTÓRICO DO VEÍCULO", icon: History },
   { href: "/inventory", label: "ESTOQUE", icon: Package },
   { href: "/mechanics", label: "MECÂNICOS", icon: UserCog },
+  { href: "/financial", label: "FINANCEIRO", icon: DollarSign },
   { href: "/pricing", label: "PREÇOS", icon: CreditCard },
   { href: "/settings", label: "CONFIGURAÇÕES", icon: Settings },
 ];
