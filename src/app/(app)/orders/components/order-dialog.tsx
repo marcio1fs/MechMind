@@ -333,7 +333,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>CPF</FormLabel>
                     <FormControl>
-                      <Input placeholder="000.000.000-00" {...field} disabled={isFinalizado} />
+                      <Input placeholder="000.000.000-00" {...field} disabled={isFinalizado} maxLength={14} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -346,7 +346,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>TELEFONE/WHATSAPP</FormLabel>
                     <FormControl>
-                      <Input placeholder="5511999998888" {...field} disabled={isFinalizado} />
+                      <Input placeholder="5511999998888" {...field} disabled={isFinalizado} maxLength={15} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -413,7 +413,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>PLACA</FormLabel>
                     <FormControl>
-                      <Input placeholder="EX: ABC1234" {...field} disabled={isFinalizado}/>
+                      <Input placeholder="EX: ABC1234" {...field} disabled={isFinalizado} maxLength={7}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
