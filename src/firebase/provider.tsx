@@ -54,6 +54,14 @@ export interface UserHookResult {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
+export interface FirebaseProviderProps {
+    children: ReactNode;
+    firebaseApp: FirebaseApp | null;
+    firestore: Firestore | null;
+    auth: Auth | null;
+}
+
+
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
   firebaseApp,
@@ -78,19 +86,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const authUnsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        // Clean up previous profile listener if it exists
+        // Always clean up the previous profile listener when auth state changes.
         if (profileUnsubscribe) {
           profileUnsubscribe();
+          profileUnsubscribe = undefined;
         }
 
         if (firebaseUser) {
-          // User is authenticated, listen for their profile document
           const profileDocRef = doc(firestore, "oficinas/default_oficina/users", firebaseUser.uid);
           profileUnsubscribe = onSnapshot(
             profileDocRef,
             (snapshot: DocumentSnapshot<DocumentData>) => {
               if (snapshot.exists()) {
-                // Profile found, user is fully loaded and ready
                 setUserAuthState({
                   user: firebaseUser,
                   profile: { id: snapshot.id, ...snapshot.data() } as UserProfile,
@@ -99,13 +106,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 });
               } else {
                 // User is authenticated, but profile doesn't exist yet.
-                // This is the 'provisioning' state. We keep `isUserLoading` as true.
-                // The login/signup process is responsible for creating this document.
-                // The `onSnapshot` will fire again once the document is created.
+                // This state tells the app to wait for the login/signup flow to create the profile doc.
                 setUserAuthState({
                   user: firebaseUser,
                   profile: null,
-                  isUserLoading: true,
+                  isUserLoading: true, // Keep loading until profile exists
                   userError: null,
                 });
               }
@@ -115,13 +120,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               setUserAuthState({
                 user: firebaseUser,
                 profile: null,
-                isUserLoading: false,
+                isUserLoading: false, // Stop loading on error to prevent infinite spinners
                 userError: error,
               });
             }
           );
         } else {
-          // User is not authenticated, clear all user state
+          // User is not authenticated, clear all user and profile state.
           setUserAuthState({ user: null, profile: null, isUserLoading: false, userError: null });
         }
       },
@@ -131,7 +136,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
 
-    // Cleanup function for the useEffect hook
+    // Cleanup function for the main useEffect hook.
     return () => {
       authUnsubscribe();
       if (profileUnsubscribe) {
