@@ -294,7 +294,7 @@ export function OrderDialog({
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-[240px] pl-3 text-left font-normal",
+                            "w-[240px] pl-3 text-left font-normal normal-case",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -391,7 +391,7 @@ export function OrderDialog({
                       <Textarea
                         placeholder="O diagnóstico gerado pela IA aparecerá aqui..."
                         {...field}
-                        className="min-h-24"
+                        className="min-h-24 uppercase"
                         readOnly
                       />
                     </FormControl>
