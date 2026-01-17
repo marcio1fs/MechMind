@@ -92,6 +92,7 @@ interface OrderDialogProps {
   onSave: (order: Order) => void;
   stockItems: StockItem[];
   mechanics: Mechanic[];
+  vehicleMakes: string[];
 }
 
 export function OrderDialog({
@@ -101,6 +102,7 @@ export function OrderDialog({
   onSave,
   stockItems,
   mechanics,
+  vehicleMakes,
 }: OrderDialogProps) {
   const { toast } = useToast();
   const [isDiagnosing, setIsDiagnosing] = useState(false);
@@ -215,7 +217,7 @@ export function OrderDialog({
 
   const handleAddParts = (newParts: UsedPart[]) => {
     const currentParts = form.getValues('parts') || [];
-    const updatedParts = [...currentParts];
+    const updatedParts: UsedPart[] = [...currentParts];
 
     newParts.forEach(newPart => {
         const existingPartIndex = updatedParts.findIndex(p => p.itemId === newPart.itemId);
@@ -276,9 +278,20 @@ export function OrderDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>MARCA</FormLabel>
-                    <FormControl>
-                      <Input placeholder="EX: HONDA" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="SELECIONE A MONTADORA" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicleMakes.map(make => (
+                          <SelectItem key={make} value={make}>
+                            {make}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -584,3 +597,5 @@ export function OrderDialog({
     </>
   );
 }
+
+    

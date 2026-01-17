@@ -46,7 +46,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
-import { mockStockItems, mockMechanics, type Mechanic } from "@/lib/mock-data";
+import { mockStockItems, mockMechanics, mockVehicleMakes, type Mechanic } from "@/lib/mock-data";
 
 export type UsedPart = {
   itemId: string;
@@ -330,7 +330,7 @@ export default function OrdersPage() {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
+                                <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRada.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
@@ -368,6 +368,7 @@ export default function OrdersPage() {
         onSave={handleSaveOrder}
         stockItems={stockItems}
         mechanics={mechanics}
+        vehicleMakes={mockVehicleMakes}
       />
 
       {/* Dialog for Delete Confirmation */}
@@ -380,3 +381,5 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+    

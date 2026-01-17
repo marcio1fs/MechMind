@@ -29,6 +29,25 @@ export const mockMechanics: Mechanic[] = [
   { id: "MEC-003", name: "RICARDO PEREIRA", specialty: "ELÉTRICA E AR CONDICIONADO" },
 ];
 
+export const mockVehicleMakes: string[] = [
+    "FIAT",
+    "VOLKSWAGEN",
+    "CHEVROLET",
+    "FORD",
+    "HYUNDAI",
+    "TOYOTA",
+    "HONDA",
+    "RENAULT",
+    "JEEP",
+    "NISSAN",
+    "PEUGEOT",
+    "CITROËN",
+    "MITSUBISHI",
+    "BMW",
+    "MERCEDES-BENZ",
+    "AUDI",
+];
+
 export type FinancialTransaction = {
   id: string;
   description: string;
@@ -46,3 +65,5 @@ export const mockFinancialTransactions: FinancialTransaction[] = [
     { id: "FIN-005", description: "CONTA DE LUZ", category: "DESPESAS FIXAS", type: "OUT", value: 350.20, date: "2024-07-10T11:00:00Z" },
     { id: "FIN-006", description: "VENDA BALCÃO - FILTRO DE AR", category: "VENDA BALCÃO", type: "IN", value: 80.00, date: "2024-07-21T16:00:00Z" },
 ];
+
+    
