@@ -68,6 +68,8 @@ export type PerformedService = {
 export type Order = {
   id: string;
   customer: string;
+  customerCpf?: string;
+  customerPhone?: string;
   vehicle: {
     make: string;
     model: string;
@@ -91,6 +93,8 @@ const mockOrders: Order[] = [
   {
     id: "ORD-001",
     customer: "JOHN DOE",
+    customerCpf: "111.222.333-44",
+    customerPhone: "5511999998888",
     vehicle: { make: "HONDA", model: "CIVIC", year: 2021, plate: "ABC1D23", color: "BRANCO" },
     mechanicId: "MEC-001",
     mechanicName: "CARLOS ALBERTO",
@@ -108,6 +112,8 @@ const mockOrders: Order[] = [
   {
     id: "ORD-002",
     customer: "JANE SMITH",
+    customerCpf: "222.333.444-55",
+    customerPhone: "5521987654321",
     vehicle: { make: "FORD", model: "F-150", year: 2019, plate: "DEF4E56", color: "PRETO" },
     mechanicId: "MEC-002",
     mechanicName: "BRUNO FERNANDES",
@@ -121,6 +127,8 @@ const mockOrders: Order[] = [
   {
     id: "ORD-003",
     customer: "SAM WILSON",
+    customerCpf: "333.444.555-66",
+    customerPhone: "5531912345678",
     vehicle: { make: "TOYOTA", model: "CAMRY", year: 2022, plate: "GHI7F89", color: "PRATA" },
     startDate: new Date("2024-07-22T12:00:00Z"),
     status: "PENDENTE",
@@ -132,6 +140,8 @@ const mockOrders: Order[] = [
   {
     id: "ORD-004",
     customer: "EMILY BROWN",
+    customerCpf: "444.555.666-77",
+    customerPhone: "5541955554444",
     vehicle: { make: "BMW", model: "X5", year: 2020, plate: "JKL0G12", color: "AZUL" },
     mechanicId: "MEC-001",
     mechanicName: "CARLOS ALBERTO",
@@ -330,7 +340,7 @@ export default function OrdersPage() {
                     <TableHeader>
                         <TableRow>
                         <TableHead>ID DO PEDIDO</TableHead>
-                        <TableHead>CLIENTE</TableHead>
+                        <TableHead>CLIENTE / CONTATO</TableHead>
                         <TableHead>VEÍCULO</TableHead>
                         <TableHead>MECÂNICO</TableHead>
                         <TableHead>DATA DE INÍCIO</TableHead>
@@ -344,7 +354,10 @@ export default function OrdersPage() {
                             filteredOrders.map((order) => (
                             <TableRow key={order.id}>
                                 <TableCell className="font-medium">{order.id}</TableCell>
-                                <TableCell>{order.customer}</TableCell>
+                                <TableCell>
+                                    <div>{order.customer}</div>
+                                    <div className="text-xs text-muted-foreground">{order.customerPhone}</div>
+                                </TableCell>
                                 <TableCell>
                                     <div>{`${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`}</div>
                                     <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>

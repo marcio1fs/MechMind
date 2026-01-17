@@ -51,8 +51,9 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
         message += `*Forma de Pagamento:* ${order.paymentMethod}\n\n`;
       }
       message += `Atenciosamente,\nEquipe MechMind`;
-
-      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+      
+      const phone = order.customerPhone?.replace(/\D/g, '');
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone || ''}&text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
   };
 
@@ -85,6 +86,8 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
                 <div>
                     <h3 className="font-semibold mb-1">CLIENTE</h3>
                     <p>{order.customer}</p>
+                    {order.customerCpf && <p className="text-muted-foreground text-xs">CPF: {order.customerCpf}</p>}
+                    {order.customerPhone && <p className="text-muted-foreground text-xs">TELEFONE: {order.customerPhone}</p>}
                 </div>
                 <div>
                     <h3 className="font-semibold mb-1">VEÍCULO</h3>

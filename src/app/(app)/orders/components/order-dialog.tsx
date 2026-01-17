@@ -54,6 +54,8 @@ import type { Mechanic } from "../../mechanics/page";
 const formSchema = z.object({
   id: z.string().optional(),
   customer: z.string().min(1, "O NOME DO CLIENTE É OBRIGATÓRIO."),
+  customerCpf: z.string().optional(),
+  customerPhone: z.string().optional(),
   vehicle: z.object({
     make: z.string().min(1, "A MARCA É OBRIGATÓRIA."),
     model: z.string().min(1, "O MODELO É OBRIGATÓRIO."),
@@ -116,6 +118,8 @@ export function OrderDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       customer: "",
+      customerCpf: "",
+      customerPhone: "",
       vehicle: {
         make: "",
         model: "",
@@ -168,6 +172,8 @@ export function OrderDialog({
       } else {
         form.reset({
           customer: "",
+          customerCpf: "",
+          customerPhone: "",
           vehicle: {
             make: "",
             model: "",
@@ -298,6 +304,34 @@ export function OrderDialog({
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="customerCpf"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CPF</FormLabel>
+                    <FormControl>
+                      <Input placeholder="000.000.000-00" {...field} disabled={isFinalizado} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="customerPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>TELEFONE/WHATSAPP</FormLabel>
+                    <FormControl>
+                      <Input placeholder="5511999998888" {...field} disabled={isFinalizado} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
