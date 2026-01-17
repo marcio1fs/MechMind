@@ -41,6 +41,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from "@/components/ui/card";
 import { mockStockItems, mockMechanics, type Mechanic } from "@/lib/mock-data";
 
 export type UsedPart = {
@@ -235,104 +240,104 @@ export default function OrdersPage() {
   }, [orders, searchTerm, statusFilter]);
 
   return (
-    <div className="flex flex-col gap-8">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-                <h1 className="text-3xl font-bold font-headline tracking-tight">ORDENS DE SERVIÇO</h1>
-                <p className="text-muted-foreground">
-                GERENCIE E ANALISE TODAS AS ORDENS DE SERVIÇO.
-                </p>
-            </div>
-            <div>
-                <Button onClick={() => handleOpenDialog('order', null)}>
+    <div className="flex flex-col gap-6">
+        <Card>
+            <CardHeader className="flex-col items-start gap-4 border-b p-4 sm:p-6 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold font-headline tracking-tight">ORDENS DE SERVIÇO</h1>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                        GERENCIE E ANALISE TODAS AS ORDENS DE SERVIÇO.
+                    </p>
+                </div>
+                <Button onClick={() => handleOpenDialog('order', null)} size="sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     ADICIONAR ORDEM
                 </Button>
-            </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-            <div className="relative w-full max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="PESQUISAR POR ID, CLIENTE, VEÍCULO OU PLACA..." 
-                    className="pl-9"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-            <Select value={statusFilter} onValueChange={(value: Order["status"] | "TODOS") => setStatusFilter(value)}>
-                <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="FILTRAR POR STATUS" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="TODOS">TODOS</SelectItem>
-                    <SelectItem value="PENDENTE">PENDENTE</SelectItem>
-                    <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
-                    <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
-                </SelectContent>
-            </Select>
-        </div>
-
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID DO PEDIDO</TableHead>
-              <TableHead>CLIENTE</TableHead>
-              <TableHead>VEÍCULO</TableHead>
-              <TableHead>MECÂNICO</TableHead>
-              <TableHead>DATA DE INÍCIO</TableHead>
-              <TableHead>STATUS</TableHead>
-              <TableHead className="text-right">TOTAL</TableHead>
-              <TableHead className="w-[100px] text-right">AÇÕES</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => (
-                <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell>
-                        <div>{`${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>
-                    </TableCell>
-                    <TableCell>{order.mechanicName || 'N/A'}</TableCell>
-                    <TableCell>{format(order.startDate, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                    <TableCell>
-                    <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">AÇÕES</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    GERAR RESUMO
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </TableCell>
-                </TableRow>
-                ))
-            ) : (
-                <TableRow>
-                    <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="relative w-full max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="PESQUISAR POR ID, CLIENTE, VEÍCULO OU PLACA..." 
+                            className="pl-9"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <Select value={statusFilter} onValueChange={(value: Order["status"] | "TODOS") => setStatusFilter(value)}>
+                        <SelectTrigger className="w-auto min-w-[180px]">
+                            <SelectValue placeholder="FILTRAR POR STATUS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="TODOS">TODOS</SelectItem>
+                            <SelectItem value="PENDENTE">PENDENTE</SelectItem>
+                            <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
+                            <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="rounded-lg border">
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>ID DO PEDIDO</TableHead>
+                        <TableHead>CLIENTE</TableHead>
+                        <TableHead>VEÍCULO</TableHead>
+                        <TableHead>MECÂNICO</TableHead>
+                        <TableHead>DATA DE INÍCIO</TableHead>
+                        <TableHead>STATUS</TableHead>
+                        <TableHead className="text-right">TOTAL</TableHead>
+                        <TableHead className="w-[100px] text-right">AÇÕES</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredOrders.length > 0 ? (
+                            filteredOrders.map((order) => (
+                            <TableRow key={order.id}>
+                                <TableCell className="font-medium">{order.id}</TableCell>
+                                <TableCell>{order.customer}</TableCell>
+                                <TableCell>
+                                    <div>{`${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`}</div>
+                                    <div className="text-xs text-muted-foreground font-mono">{order.vehicle.plate}</div>
+                                </TableCell>
+                                <TableCell>{order.mechanicName || 'N/A'}</TableCell>
+                                <TableCell>{format(order.startDate, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                <TableCell>
+                                <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                                <span className="sr-only">AÇÕES</span>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                GERAR RESUMO
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center h-24">NENHUMA ORDEM DE SERVIÇO ENCONTRADA.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
 
       {/* Dialog for AI Summary */}
       <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>

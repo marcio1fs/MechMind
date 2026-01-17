@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getAIDiagnosisForOrder } from "../actions";
@@ -214,22 +215,18 @@ export function OrderDialog({
 
   const handleAddParts = (newParts: UsedPart[]) => {
     const currentParts = form.getValues('parts') || [];
-    
-    const updatedParts = newParts.reduce((acc, newPart) => {
-        const existingPartIndex = acc.findIndex(p => p.itemId === newPart.itemId);
-        if (existingPartIndex > -1) {
-            const newAcc = [...acc];
-            const existingPart = newAcc[existingPartIndex];
-            newAcc[existingPartIndex] = {
-                ...existingPart,
-                quantity: existingPart.quantity + newPart.quantity,
-            };
-            return newAcc;
-        }
-        return [...acc, newPart];
-    }, currentParts);
+    const updatedParts = [...currentParts];
 
-    form.setValue('parts', [...updatedParts], { shouldValidate: true });
+    newParts.forEach(newPart => {
+        const existingPartIndex = updatedParts.findIndex(p => p.itemId === newPart.itemId);
+        if (existingPartIndex > -1) {
+            updatedParts[existingPartIndex].quantity += newPart.quantity;
+        } else {
+            updatedParts.push(newPart);
+        }
+    });
+
+    form.setValue('parts', updatedParts, { shouldValidate: true });
   };
 
   const handleRemovePart = (index: number) => {
@@ -248,7 +245,7 @@ export function OrderDialog({
   return (
     <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -258,6 +255,7 @@ export function OrderDialog({
             onSubmit={form.handleSubmit(onSubmit)}
             className="grid gap-4 py-4 max-h-[80vh] overflow-y-auto pr-4"
           >
+            <h3 className="text-base font-semibold text-foreground border-b pb-2 mt-2">CLIENTE E VEÍCULO</h3>
             <FormField
               control={form.control}
               name="customer"
@@ -341,6 +339,9 @@ export function OrderDialog({
               />
             </div>
 
+            <Separator className="my-4" />
+
+            <h3 className="text-base font-semibold text-foreground border-b pb-2">DETALHES DA ORDEM DE SERVIÇO</h3>
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
@@ -405,7 +406,6 @@ export function OrderDialog({
                 )}
                 />
             </div>
-
             <FormField
               control={form.control}
               name="status"
@@ -431,6 +431,10 @@ export function OrderDialog({
                 </FormItem>
               )}
             />
+            
+            <Separator className="my-4" />
+
+            <h3 className="text-base font-semibold text-foreground border-b pb-2">DIAGNÓSTICO E SERVIÇOS</h3>
             <div className="grid gap-2">
               <FormField
                 control={form.control}
@@ -503,6 +507,10 @@ export function OrderDialog({
                 )}
               />
             </div>
+            
+            <Separator className="my-4" />
+            
+            <h3 className="text-base font-semibold text-foreground border-b pb-2">{status === 'PENDENTE' ? "PEÇAS E CUSTOS ESTIMADOS" : "PEÇAS E CUSTOS FINAIS"}</h3>
             <div className="grid gap-2">
               <FormLabel>{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</FormLabel>
               <div className="rounded-md border">
@@ -558,7 +566,8 @@ export function OrderDialog({
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>CANCELAR</Button>
               <Button type="submit">SALVAR ORDEM DE SERVIÇO</Button>
             </DialogFooter>
           </form>
