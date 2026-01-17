@@ -23,11 +23,23 @@ import { StockItemDialog } from "./components/stock-item-dialog";
 import { StockMovementDialog } from "./components/stock-movement-dialog";
 import { DeleteItemDialog } from "./components/delete-item-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { mockStockItems, type StockItem } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
 
 
-export type { StockItem };
+// This type should align with the StockItem entity in backend.json
+export type StockItem = {
+  id: string;
+  oficinaId: string;
+  code: string;
+  name: string;
+  category: string;
+  quantity: number;
+  min_quantity: number;
+  cost_price: number;
+  sale_price: number;
+};
 
 function getStatus(quantity: number, min_quantity: number): { text: string; variant: "default" | "outline" | "destructive" } {
   if (quantity <= 0) {
@@ -39,8 +51,19 @@ function getStatus(quantity: number, min_quantity: number): { text: string; vari
   return { text: "EM ESTOQUE", variant: "default" };
 }
 
+// A hardcoded oficinaId for demonstration purposes.
+const OFICINA_ID = "default_oficina";
+
+
 export default function InventoryPage() {
-  const [stockItems, setStockItems] = useState(mockStockItems);
+  const firestore = useFirestore();
+  const inventoryCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, "oficinas", OFICINA_ID, "inventory");
+  }, [firestore]);
+
+  const { data: stockItems, isLoading } = useCollection<StockItem>(inventoryCollection);
+  
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
@@ -59,26 +82,50 @@ export default function InventoryPage() {
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
   };
   
-  const handleSaveItem = (item: StockItem) => {
-    const existingItem = stockItems.find(i => i.id === item.id);
-    if (existingItem) {
-      setStockItems(stockItems.map(i => i.id === item.id ? item : i));
-      toast({ title: "SUCESSO!", description: "ITEM ATUALIZADO COM SUCESSO." });
-    } else {
-      setStockItems([...stockItems, item]);
-      toast({ title: "SUCESSO!", description: "ITEM ADICIONADO COM SUCESSO." });
+  const handleSaveItem = async (itemData: any) => {
+    if (!firestore || !inventoryCollection) return;
+    
+    const { id, ...data } = itemData;
+
+    try {
+        if (id) {
+            // Editing existing item
+            const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", id);
+            await setDoc(itemRef, data, { merge: true });
+            toast({ title: "SUCESSO!", description: "ITEM ATUALIZADO COM SUCESSO." });
+        } else {
+            // Adding new item
+            await addDoc(inventoryCollection, {
+                ...data,
+                oficinaId: OFICINA_ID,
+            });
+            toast({ title: "SUCESSO!", description: "ITEM ADICIONADO COM SUCESSO." });
+        }
+        setSelectedItem(null);
+        setIsItemDialogOpen(false);
+    } catch (error) {
+        console.error("Error saving item: ", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O ITEM." });
     }
-    setSelectedItem(null);
   };
 
-  const handleDeleteItem = (item: StockItem) => {
-    setStockItems(stockItems.filter(i => i.id !== item.id));
-    toast({ title: "SUCESSO!", description: "ITEM EXCLUÍDO COM SUCESSO." });
-    setSelectedItem(null);
-    setIsDeleteDialogOpen(false);
+  const handleDeleteItem = async (item: StockItem) => {
+    if (!firestore) return;
+    try {
+        const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
+        await deleteDoc(itemRef);
+        toast({ title: "SUCESSO!", description: "ITEM EXCLUÍDO COM SUCESSO." });
+        setSelectedItem(null);
+        setIsDeleteDialogOpen(false);
+    } catch (error) {
+        console.error("Error deleting item: ", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O ITEM." });
+    }
   };
 
-  const handleMoveItem = (item: StockItem, type: "IN" | "OUT", quantity: number) => {
+  const handleMoveItem = async (item: StockItem, type: "IN" | "OUT", quantity: number, reason?: string) => {
+     if (!firestore) return;
+
     const newQuantity = type === 'IN' ? item.quantity + quantity : item.quantity - quantity;
     if (newQuantity < 0) {
         toast({
@@ -88,9 +135,16 @@ export default function InventoryPage() {
         });
         return;
     }
-    setStockItems(stockItems.map(i => i.id === item.id ? { ...i, quantity: newQuantity } : i));
-    toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ${quantity} UNIDADE(S) (${type}) REGISTRADA PARA ${item.name}.` });
-    setSelectedItem(null);
+    try {
+        const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
+        await updateDoc(itemRef, { quantity: newQuantity });
+        toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ${quantity} UNIDADE(S) (${type}) REGISTRADA PARA ${item.name}.` });
+        setSelectedItem(null);
+        setIsMovementDialogOpen(false);
+    } catch (error) {
+        console.error("Error moving item: ", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL MOVIMENTAR O ITEM." });
+    }
   };
 
   return (
@@ -132,7 +186,20 @@ export default function InventoryPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {stockItems.map((item) => {
+                    {isLoading && (
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+                                <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-10 w-10 ml-auto" /></TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                    {!isLoading && stockItems?.map((item) => {
                     const status = getStatus(item.quantity, item.min_quantity);
                     return (
                         <TableRow key={item.id}>
@@ -171,6 +238,11 @@ export default function InventoryPage() {
                         </TableRow>
                     );
                     })}
+                     {!isLoading && stockItems?.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={7} className="h-24 text-center">Nenhum item encontrado.</TableCell>
+                        </TableRow>
+                     )}
                 </TableBody>
                 </Table>
             </div>

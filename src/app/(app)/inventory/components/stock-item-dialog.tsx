@@ -41,7 +41,7 @@ interface StockItemDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   item: StockItem | null;
-  onSave: (item: StockItem) => void;
+  onSave: (item: StockItemFormValues) => void;
 }
 
 export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockItemDialogProps) {
@@ -64,6 +64,7 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
           form.reset(item);
         } else {
           form.reset({
+            id: undefined,
             code: "",
             name: "",
             category: "",
@@ -77,10 +78,7 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
   }, [item, form, isOpen]);
 
   const onSubmit = (data: StockItemFormValues) => {
-    onSave({
-      ...data,
-      id: item?.id || `ITEM-${Date.now()}`,
-    } as StockItem);
+    onSave(data);
     onOpenChange(false);
   };
 

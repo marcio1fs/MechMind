@@ -49,7 +49,12 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { mockStockItems, mockMechanics, mockVehicleMakes, type Mechanic } from "@/lib/mock-data";
+import { mockVehicleMakes, type Mechanic, mockOrders } from "@/lib/mock-data";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import type { StockItem } from "../inventory/page";
+import type { Mechanic as FullMechanic } from "../mechanics/page";
+
 
 export type UsedPart = {
   itemId: string;
@@ -91,78 +96,6 @@ export type Order = {
   paymentMethod?: string;
 };
 
-const mockOrders: Order[] = [
-  {
-    id: "ORD-001",
-    customer: "JOHN DOE",
-    customerDocumentType: "CPF",
-    customerCpf: "111.222.333-44",
-    customerPhone: "5511999998888",
-    vehicle: { make: "HONDA", model: "CIVIC", year: 2021, plate: "ABC1D23", color: "BRANCO" },
-    mechanicId: "MEC-001",
-    mechanicName: "CARLOS ALBERTO",
-    startDate: new Date("2024-07-20T12:00:00Z"),
-    status: "FINALIZADO",
-    services: [
-        { description: "TROCA DE ÓLEO E FILTRO", quantity: 1, unitPrice: 90.50 },
-    ],
-    parts: [{ itemId: 'ITEM-001', code: 'HF-103', name: 'FILTRO DE ÓLEO', quantity: 1, sale_price: 35.00 }],
-    total: 125.5,
-    symptoms: "LUZ DE MANUTENÇÃO ACESA.",
-    diagnosis: "DIAGNÓSTICO: MANUTENção DE ROTINA NECESSÁRIA.\n\nCONFIANÇA: 95%\n\nAÇÕES RECOMENDADAS:\nREALIZAR TROCA DE ÓLEO E FILTRO. FAZER RODÍZIO DOS PNEUS E VERIFICAR A PRESSÃO.",
-    paymentMethod: "CARTÃO DE CRÉDITO",
-  },
-  {
-    id: "ORD-002",
-    customer: "OFICINA DO ZÉ LTDA",
-    customerDocumentType: "CNPJ",
-    customerCnpj: "12.345.678/0001-99",
-    customerPhone: "5521987654321",
-    vehicle: { make: "FORD", model: "F-150", year: 2019, plate: "DEF4E56", color: "PRETO" },
-    mechanicId: "MEC-002",
-    mechanicName: "BRUNO FERNANDES",
-    startDate: new Date("2024-07-21T12:00:00Z"),
-    status: "EM ANDAMENTO",
-    services: [{ description: "MÃO DE OBRA - TROCA DE PASTILHAS", quantity: 1, unitPrice: 50.00 }],
-    parts: [{ itemId: 'ITEM-002', code: 'PST-201', name: 'PASTILHA DE FREIO DIANTEIRA', quantity: 2, sale_price: 150.00 }],
-    total: 350.0,
-    symptoms: "BARULHO DE RANGIDO AO FREAR.",
-  },
-  {
-    id: "ORD-003",
-    customer: "SAM WILSON",
-    customerDocumentType: "CPF",
-    customerCpf: "333.444.555-66",
-    customerPhone: "5531912345678",
-    vehicle: { make: "TOYOTA", model: "CAMRY", year: 2022, plate: "GHI7F89", color: "PRATA" },
-    startDate: new Date("2024-07-22T12:00:00Z"),
-    status: "PENDENTE",
-    services: [{ description: "VERIFICAÇÃO DE DIAGNÓSTICO", quantity: 1, unitPrice: 75.00 }],
-    parts: [],
-    total: 75.0,
-    symptoms: "MOTOR FALHANDO EM MARCHA LENTA.",
-  },
-  {
-    id: "ORD-004",
-    customer: "EMILY BROWN",
-    customerDocumentType: "CPF",
-    customerCpf: "444.555.666-77",
-    customerPhone: "5541955554444",
-    vehicle: { make: "BMW", model: "X5", year: 2020, plate: "JKL0G12", color: "AZUL" },
-    mechanicId: "MEC-001",
-    mechanicName: "CARLOS ALBERTO",
-    startDate: new Date("2024-06-15T12:00:00Z"),
-    status: "CONCLUÍDO",
-    services: [
-        { description: "INSPEÇÃO ANUAL", quantity: 1, unitPrice: 150.00 },
-        { description: "SUBSTITUIÇÃO DO FILTRO DE AR", quantity: 1, unitPrice: 65.75 }
-    ],
-    parts: [],
-    total: 215.75,
-  },
-];
-
-
 const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outline" } = {
     "CONCLUÍDO": "default",
     "EM ANDAMENTO": "secondary",
@@ -170,10 +103,32 @@ const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outl
     "FINALIZADO": "default",
 }
 
+const OFICINA_ID = "default_oficina";
 
 export default function OrdersPage() {
-  const [stockItems, setStockItems] = useState(mockStockItems);
-  const [mechanics, setMechanics] = useState(mockMechanics);
+  const firestore = useFirestore();
+  
+  const inventoryCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, "oficinas", OFICINA_ID, "inventory");
+  }, [firestore]);
+  const { data: stockItems, isLoading: isLoadingStock } = useCollection<StockItem>(inventoryCollection);
+
+  const mechanicsCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, "oficinas", OFICINA_ID, "users");
+  }, [firestore]);
+  const { data: mechanicsData, isLoading: isLoadingMechanics } = useCollection<FullMechanic>(mechanicsCollection);
+
+  const mechanics = useMemo(() => {
+    if (!mechanicsData) return [];
+    return mechanicsData.map(m => ({
+        id: m.id,
+        name: `${m.firstName} ${m.lastName}`,
+        specialty: m.specialty
+    }));
+  }, [mechanicsData]);
+
   const [orders, setOrders] = useState(mockOrders);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -223,31 +178,32 @@ export default function OrdersPage() {
   const handleSaveOrder = (order: Order) => {
     const existingOrder = orders.find(o => o.id === order.id);
     
-    if (order.status === 'CONCLUÍDO' && (!existingOrder || existingOrder.status !== 'CONCLUÍDO')) {
-        let stockSufficient = true;
-        const tempStock = [...stockItems];
+    // This logic needs to be updated when inventory is also on Firestore
+    // if (order.status === 'CONCLUÍDO' && (!existingOrder || existingOrder.status !== 'CONCLUÍDO')) {
+    //     let stockSufficient = true;
+    //     const tempStock = [...(stockItems || [])];
         
-        for (const part of order.parts) {
-            const stockItemIndex = tempStock.findIndex(i => i.id === part.itemId);
-            if (stockItemIndex > -1) {
-                if (tempStock[stockItemIndex].quantity < part.quantity) {
-                    toast({
-                        variant: "destructive",
-                        title: `ESTOQUE INSUFICIENTE PARA ${part.name.toUpperCase()}`,
-                        description: `DISPONÍVEL: ${tempStock[stockItemIndex].quantity}, REQUERIDO: ${part.quantity}. A ORDEM DE SERVIÇO FOI SALVA, MAS O ESTOQUE NÃO FOI ATUALIZADO.`,
-                    });
-                    stockSufficient = false;
-                    break;
-                }
-                tempStock[stockItemIndex].quantity -= part.quantity;
-            }
-        }
+    //     for (const part of order.parts) {
+    //         const stockItemIndex = tempStock.findIndex(i => i.id === part.itemId);
+    //         if (stockItemIndex > -1) {
+    //             if (tempStock[stockItemIndex].quantity < part.quantity) {
+    //                 toast({
+    //                     variant: "destructive",
+    //                     title: `ESTOQUE INSUFICIENTE PARA ${part.name.toUpperCase()}`,
+    //                     description: `DISPONÍVEL: ${tempStock[stockItemIndex].quantity}, REQUERIDO: ${part.quantity}. A ORDEM DE SERVIÇO FOI SALVA, MAS O ESTOQUE NÃO FOI ATUALIZADO.`,
+    //                 });
+    //                 stockSufficient = false;
+    //                 break;
+    //             }
+    //             tempStock[stockItemIndex].quantity -= part.quantity;
+    //         }
+    //     }
 
-        if (stockSufficient) {
-            setStockItems(tempStock);
-            toast({ title: "SUCESSO!", description: "ESTOQUE ATUALIZADO COM SUCESSO." });
-        }
-    }
+    //     if (stockSufficient) {
+    //         // setStockItems(tempStock); // This will be handled by Firestore listeners
+    //         toast({ title: "SUCESSO!", description: "ESTOQUE ATUALIZADO COM SUCESSO." });
+    //     }
+    // }
 
     if (existingOrder) {
       setOrders(orders.map(o => o.id === order.id ? order : o));
@@ -460,8 +416,8 @@ export default function OrdersPage() {
         onOpenChange={setIsOrderDialogOpen}
         order={selectedOrder}
         onSave={handleSaveOrder}
-        stockItems={stockItems}
-        mechanics={mechanics}
+        stockItems={stockItems || []}
+        mechanics={mechanics || []}
         vehicleMakes={mockVehicleMakes}
       />
 

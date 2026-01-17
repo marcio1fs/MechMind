@@ -9,25 +9,11 @@ export type StockItem = {
   sale_price: number;
 };
 
-export const mockStockItems: StockItem[] = [
-  { id: "ITEM-001", code: "HF-103", name: "FILTRO DE ÓLEO", category: "MOTOR", quantity: 25, min_quantity: 10, cost_price: 15.50, sale_price: 35.00 },
-  { id: "ITEM-002", code: "PST-201", name: "PASTILHA DE FREIO DIANTEIRA", category: "FREIOS", quantity: 8, min_quantity: 10, cost_price: 80.00, sale_price: 150.00 },
-  { id: "ITEM-003", code: "BLB-H4", name: "LÂMPADA H4", category: "ELÉTRICA", quantity: 0, min_quantity: 20, cost_price: 5.00, sale_price: 15.00 },
-  { id: "ITEM-004", code: "AMRT-D01", name: "AMORTECEDOR DIANTEIRO", category: "SUSPENSÃO", quantity: 4, min_quantity: 4, cost_price: 250.00, sale_price: 450.00 },
-  { id: "ITEM-005", code: "VLA-IR", name: "VELA DE IGNIÇÃO IRIDIUM", category: "MOTOR", quantity: 15, min_quantity: 16, cost_price: 45.00, sale_price: 90.00 },
-];
-
 export type Mechanic = {
   id: string;
   name: string;
   specialty: string;
 };
-
-export const mockMechanics: Mechanic[] = [
-  { id: "MEC-001", name: "CARLOS ALBERTO", specialty: "MOTOR E INJEÇÃO" },
-  { id: "MEC-002", name: "BRUNO FERNANDES", specialty: "SUSPENSÃO E FREIOS" },
-  { id: "MEC-003", name: "RICARDO PEREIRA", specialty: "ELÉTRICA E AR CONDICIONADO" },
-];
 
 export const mockVehicleMakes: string[] = [
     "FIAT",
@@ -69,4 +55,75 @@ export const mockFinancialTransactions: FinancialTransaction[] = [
     { id: "FIN-007", description: "ALUGUEL", category: "DESPESAS FIXAS", type: "OUT", value: 1500.00, date: "2024-06-05T09:00:00Z", reference_type: "MANUAL" },
     { id: "FIN-008", description: "VENDA BALCÃO - JOGO DE VELAS", category: "VENDA BALCÃO", type: "IN", value: 360.00, date: "2024-05-28T11:00:00Z", reference_type: "MANUAL" },
 
+];
+
+export const mockOrders = [
+  {
+    id: "ORD-001",
+    customer: "JOHN DOE",
+    customerDocumentType: "CPF",
+    customerCpf: "111.222.333-44",
+    customerPhone: "5511999998888",
+    vehicle: { make: "HONDA", model: "CIVIC", year: 2021, plate: "ABC1D23", color: "BRANCO" },
+    mechanicId: "MEC-001",
+    mechanicName: "CARLOS ALBERTO",
+    startDate: new Date("2024-07-20T12:00:00Z"),
+    status: "FINALIZADO",
+    services: [
+        { description: "TROCA DE ÓLEO E FILTRO", quantity: 1, unitPrice: 90.50 },
+    ],
+    parts: [{ itemId: 'ITEM-001', code: 'HF-103', name: 'FILTRO DE ÓLEO', quantity: 1, sale_price: 35.00 }],
+    total: 125.5,
+    symptoms: "LUZ DE MANUTENÇÃO ACESA.",
+    diagnosis: "DIAGNÓSTICO: MANUTENção DE ROTINA NECESSÁRIA.\n\nCONFIANÇA: 95%\n\nAÇÕES RECOMENDADAS:\nREALIZAR TROCA DE ÓLEO E FILTRO. FAZER RODÍZIO DOS PNEUS E VERIFICAR A PRESSÃO.",
+    paymentMethod: "CARTÃO DE CRÉDITO",
+  },
+  {
+    id: "ORD-002",
+    customer: "OFICINA DO ZÉ LTDA",
+    customerDocumentType: "CNPJ",
+    customerCnpj: "12.345.678/0001-99",
+    customerPhone: "5521987654321",
+    vehicle: { make: "FORD", model: "F-150", year: 2019, plate: "DEF4E56", color: "PRETO" },
+    mechanicId: "MEC-002",
+    mechanicName: "BRUNO FERNANDES",
+    startDate: new Date("2024-07-21T12:00:00Z"),
+    status: "EM ANDAMENTO",
+    services: [{ description: "MÃO DE OBRA - TROCA DE PASTILHAS", quantity: 1, unitPrice: 50.00 }],
+    parts: [{ itemId: 'ITEM-002', code: 'PST-201', name: 'PASTILHA DE FREIO DIANTEIRA', quantity: 2, sale_price: 150.00 }],
+    total: 350.0,
+    symptoms: "BARULHO DE RANGIDO AO FREAR.",
+  },
+  {
+    id: "ORD-003",
+    customer: "SAM WILSON",
+    customerDocumentType: "CPF",
+    customerCpf: "333.444.555-66",
+    customerPhone: "5531912345678",
+    vehicle: { make: "TOYOTA", model: "CAMRY", year: 2022, plate: "GHI7F89", color: "PRATA" },
+    startDate: new Date("2024-07-22T12:00:00Z"),
+    status: "PENDENTE",
+    services: [{ description: "VERIFICAÇÃO DE DIAGNÓSTICO", quantity: 1, unitPrice: 75.00 }],
+    parts: [],
+    total: 75.0,
+    symptoms: "MOTOR FALHANDO EM MARCHA LENTA.",
+  },
+  {
+    id: "ORD-004",
+    customer: "EMILY BROWN",
+    customerDocumentType: "CPF",
+    customerCpf: "444.555.666-77",
+    customerPhone: "5541955554444",
+    vehicle: { make: "BMW", model: "X5", year: 2020, plate: "JKL0G12", color: "AZUL" },
+    mechanicId: "MEC-001",
+    mechanicName: "CARLOS ALBERTO",
+    startDate: new Date("2024-06-15T12:00:00Z"),
+    status: "CONCLUÍDO",
+    services: [
+        { description: "INSPEÇÃO ANUAL", quantity: 1, unitPrice: 150.00 },
+        { description: "SUBSTITUIÇÃO DO FILTRO DE AR", quantity: 1, unitPrice: 65.75 }
+    ],
+    parts: [],
+    total: 215.75,
+  },
 ];
