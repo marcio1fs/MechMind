@@ -81,8 +81,10 @@ export default function MechanicsPage() {
         // Adding new mechanic
         // Note: This flow doesn't create a Firebase Auth user, only a Firestore document.
         // A complete solution would involve a Cloud Function or a more complex client-side flow.
-        await addDoc(mechanicsCollection, {
+        const newDocRef = doc(mechanicsCollection);
+        await setDoc(newDocRef, {
             ...data,
+            id: newDocRef.id,
             oficinaId: OFICINA_ID,
             role: "OFICINA", // Default role
         });

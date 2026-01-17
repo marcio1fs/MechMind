@@ -192,7 +192,7 @@ service cloud.firestore {
     /**
      * @description Rules for user documents, which define roles and link users to an oficina.
      * @path /oficinas/{oficinaId}/users/{userId}
-     * @allow (create) A new user 'user-123' can create their own document at '/oficinas/oficina-A/users/user-123'.
+     * @allow (create) A new user 'user-123' can create their own document at '/oficinas/oficina-A/users/user-123'. An oficina admin can also create users.
      * @allow (list) Any user from 'oficina-A' can list the other users in their own workshop.
      * @deny (update) A user cannot change their own role or another user's role unless they are an oficina admin.
      * @deny (get) A user from 'oficina-B' cannot read user profiles from 'oficina-A'.
@@ -201,7 +201,7 @@ service cloud.firestore {
     match /oficinas/{oficinaId}/users/{userId} {
       allow get: if isOwner(userId) || isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
-      allow create: if isCreatingOwnUserDoc(userId, oficinaId);
+      allow create: if isCreatingOwnUserDoc(userId, oficinaId) || (isOficinaAdmin(oficinaId) && request.resource.data.id == userId && isCreatingValidOficinaData(oficinaId));
       allow update: if (isExistingDoc() && hasImmutableUserFields() && (isOwner(userId) || isOficinaAdmin(oficinaId))) || isGlobalAdmin();
       allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdmin(oficinaId))) || isGlobalAdmin();
     }
