@@ -33,12 +33,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isProvisioning, setIsProvisioning] = useState(false);
   
   useEffect(() => {
-    if (!isUserLoading && user) {
+    if (!isUserLoading && user && !isProvisioning) {
       router.replace('/dashboard');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, isProvisioning]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +52,7 @@ export default function SignupPage() {
       return;
     }
     setIsLoading(true);
+    setIsProvisioning(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
@@ -87,11 +89,13 @@ export default function SignupPage() {
       });
     } finally {
       setIsLoading(false);
+      setIsProvisioning(false);
     }
   };
 
   const handleGoogleSignup = async () => {
     setIsGoogleLoading(true);
+    setIsProvisioning(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -129,10 +133,11 @@ export default function SignupPage() {
       });
     } finally {
       setIsGoogleLoading(false);
+      setIsProvisioning(false);
     }
   };
 
-   if (isUserLoading || (!isUserLoading && user)) {
+   if (isUserLoading || (!isUserLoading && user && !isProvisioning)) {
      return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
