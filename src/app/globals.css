@@ -82,7 +82,7 @@
   }
   input,
   textarea {
-    @apply normal-case placeholder:normal-case;
+    @apply uppercase placeholder:uppercase;
   }
 }
 

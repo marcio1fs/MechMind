@@ -30,7 +30,7 @@ export default function SettingsPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="whatsapp-api-key">SUA CHAVE DE API (API Key)</Label>
-            <Input id="whatsapp-api-key" placeholder="Cole sua chave de API aqui" />
+            <Input id="whatsapp-api-key" placeholder="Cole sua chave de API aqui" className="normal-case placeholder:normal-case" />
           </div>
            <div className="grid gap-2">
             <Label htmlFor="whatsapp-sender-number">SEU NÚMERO DE TELEFONE DO REMETENTE</Label>
