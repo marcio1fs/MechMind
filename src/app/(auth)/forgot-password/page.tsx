@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { Wrench } from "lucide-react"
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   const loginImage = PlaceHolderImages.find(p => p.id === 'login-background');
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
@@ -19,7 +19,7 @@ export default function LoginPage() {
                 <h1 className="text-3xl font-bold font-headline">MechMind</h1>
             </div>
             <p className="text-balance text-muted-foreground">
-              Digite seu e-mail abaixo para fazer login em sua conta
+                Digite seu e-mail para redefinir sua senha.
             </p>
           </div>
           <div className="grid gap-4">
@@ -33,34 +33,19 @@ export default function LoginPage() {
                 className="normal-case placeholder:normal-case"
               />
             </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Senha</Label>
-                <Link
-                  href="/forgot-password"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Esqueceu sua senha?
-                </Link>
-              </div>
-              <Input id="password" type="password" required />
-            </div>
             <Button type="submit" className="w-full">
-                Entrar
-            </Button>
-            <Button variant="outline" className="w-full">
-              Entrar com Google
+                ENVIAR LINK DE REDEFINIÇÃO
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
-            Não tem uma conta?{" "}
-            <Link href="/signup" className="underline">
-              Cadastre-se
+            Lembrou da senha?{" "}
+            <Link href="/login" className="underline">
+              Entrar
             </Link>
           </div>
         </div>
       </div>
-      <div className="hidden bg-muted lg:block">
+       <div className="hidden bg-muted lg:block">
         {loginImage && (
             <Image
               src={loginImage.imageUrl}
