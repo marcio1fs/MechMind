@@ -207,15 +207,21 @@ export function OrderDialog({
 
   const handleAddParts = (newParts: UsedPart[]) => {
     const currentParts = form.getValues('parts') || [];
-    const updatedParts: UsedPart[] = [...currentParts];
-    newParts.forEach(newPart => {
-        const existingPartIndex = updatedParts.findIndex(p => p.itemId === newPart.itemId);
+    
+    const updatedParts = newParts.reduce((acc, newPart) => {
+        const existingPartIndex = acc.findIndex(p => p.itemId === newPart.itemId);
         if (existingPartIndex > -1) {
-            updatedParts[existingPartIndex].quantity += newPart.quantity;
-        } else {
-            updatedParts.push(newPart);
+            const newAcc = [...acc];
+            const existingPart = newAcc[existingPartIndex];
+            newAcc[existingPartIndex] = {
+                ...existingPart,
+                quantity: existingPart.quantity + newPart.quantity,
+            };
+            return newAcc;
         }
-    });
+        return [...acc, newPart];
+    }, currentParts);
+
     form.setValue('parts', updatedParts, { shouldValidate: true });
   };
 
@@ -478,8 +484,8 @@ export function OrderDialog({
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {form.watch('parts')?.map((part, index) => (
-                              <TableRow key={part.itemId}>
+                          {parts?.map((part, index) => (
+                              <TableRow key={`${part.itemId}-${index}`}>
                                   <TableCell>{part.name}</TableCell>
                                   <TableCell className="text-center">{part.quantity}</TableCell>
                                   <TableCell className="text-right">R${part.sale_price.toFixed(2)}</TableCell>
@@ -491,7 +497,7 @@ export function OrderDialog({
                                   </TableCell>
                               </TableRow>
                           ))}
-                          {(!form.watch('parts') || form.watch('parts')?.length === 0) && (
+                          {(!parts || parts.length === 0) && (
                               <TableRow>
                                   <TableCell colSpan={5} className="text-center text-muted-foreground h-24">NENHUMA PEÇA ADICIONADA.</TableCell>
                               </TableRow>
@@ -531,7 +537,7 @@ export function OrderDialog({
       onOpenChange={setIsAddPartDialogOpen}
       stockItems={stockItems}
       onAddParts={handleAddParts}
-      currentParts={form.watch('parts') || []}
+      currentParts={parts || []}
     />
     </>
   );
