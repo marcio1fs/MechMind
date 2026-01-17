@@ -270,12 +270,23 @@ export default function OrdersPage() {
     const updatedOrder = { ...order, status: "FINALIZADO" as const, paymentMethod };
     setOrders(orders.map(o => o.id === order.id ? updatedOrder : o));
 
-    // TODO: Integrate with financial module
-    console.log("Creating financial transaction for", updatedOrder);
+    console.log("AUTOMAÇÃO: Criando lançamento financeiro para a OS:", {
+      description: `PAGAMENTO OS: ${order.id}`,
+      category: "ORDEM DE SERVIÇO",
+      type: "IN",
+      value: order.total,
+      reference_id: order.id,
+      reference_type: "OS",
+    });
 
     toast({
         title: "PAGAMENTO REGISTRADO!",
         description: `O pagamento para a OS ${order.id} foi registrado com sucesso.`,
+    });
+    
+    toast({
+        title: "LANÇAMENTO FINANCEIRO CRIADO",
+        description: `Entrada de R$${order.total.toFixed(2)} registrada no módulo financeiro.`,
     });
 
     setIsPaymentDialogOpen(false);

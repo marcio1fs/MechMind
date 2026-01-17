@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import {
   Card,
   CardContent,
@@ -18,25 +19,15 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowDownCircle, ArrowUpCircle, DollarSign, PlusCircle, TrendingUp } from "lucide-react"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
 import { mockFinancialTransactions, type FinancialTransaction } from "@/lib/mock-data"
-import { format } from "date-fns"
+import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns"
 import { ptBR } from "date-fns/locale"
-
-const chartData = [
-  { month: "Jan", "Entradas": 4000, "Saídas": 2400 },
-  { month: "Fev", "Entradas": 3000, "Saídas": 1398 },
-  { month: "Mar", "Entradas": 5000, "Saídas": 7800 },
-  { month: "Abr", "Entradas": 2780, "Saídas": 3908 },
-  { month: "Mai", "Entradas": 1890, "Saídas": 4800 },
-  { month: "Jun", "Entradas": 2390, "Saídas": 3800 },
-];
 
 const statusVariant: { [key in FinancialTransaction["type"]]: "default" | "destructive" } = {
     "IN": "default",
     "OUT": "destructive"
 }
-
 const statusText: { [key in FinancialTransaction["type"]]: string } = {
     "IN": "ENTRADA",
     "OUT": "SAÍDA"
@@ -44,6 +35,69 @@ const statusText: { [key in FinancialTransaction["type"]]: string } = {
 
 
 export default function FinancialPage() {
+  const [transactions, setTransactions] = useState(mockFinancialTransactions);
+
+  const { monthlyRevenue, monthlyExpenses, monthlyNetProfit, totalBalance } = useMemo(() => {
+    const now = new Date();
+    const startOfCurrentMonth = startOfMonth(now);
+    const endOfCurrentMonth = endOfMonth(now);
+
+    let monthlyRevenue = 0;
+    let monthlyExpenses = 0;
+    let totalBalance = 0;
+
+    transactions.forEach(t => {
+        const transactionDate = parseISO(t.date);
+        if (t.type === 'IN') {
+            totalBalance += t.value;
+            if (transactionDate >= startOfCurrentMonth && transactionDate <= endOfCurrentMonth) {
+                monthlyRevenue += t.value;
+            }
+        } else {
+            totalBalance -= t.value;
+            if (transactionDate >= startOfCurrentMonth && transactionDate <= endOfCurrentMonth) {
+                monthlyExpenses += t.value;
+            }
+        }
+    });
+
+    const monthlyNetProfit = monthlyRevenue - monthlyExpenses;
+
+    return { monthlyRevenue, monthlyExpenses, monthlyNetProfit, totalBalance };
+
+  }, [transactions]);
+
+  const chartData = useMemo(() => {
+    const sixMonthsAgo = subMonths(new Date(), 5);
+    const monthsInterval = eachMonthOfInterval({
+        start: sixMonthsAgo,
+        end: new Date()
+    });
+
+    return monthsInterval.map(monthStart => {
+        const monthEnd = endOfMonth(monthStart);
+        const monthName = format(monthStart, "MMM", { locale: ptBR });
+
+        const monthlyData = transactions.reduce((acc, t) => {
+            const transactionDate = parseISO(t.date);
+            if (transactionDate >= monthStart && transactionDate <= monthEnd) {
+                if (t.type === 'IN') {
+                    acc.Entradas += t.value;
+                } else {
+                    acc.Saídas += t.value;
+                }
+            }
+            return acc;
+        }, { Entradas: 0, Saídas: 0 });
+
+        return {
+            month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+            ...monthlyData
+        };
+    });
+  }, [transactions]);
+
+
   return (
     <div className="flex flex-col gap-8">
         <div className="flex items-center justify-between">
@@ -67,9 +121,9 @@ export default function FinancialPage() {
             <ArrowUpCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$15.231,89</div>
+            <div className="text-2xl font-bold">R${monthlyRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              +15.3% EM RELAÇÃO AO MÊS ANTERIOR
+              RECEITA DESTE MÊS
             </p>
           </CardContent>
         </Card>
@@ -79,9 +133,9 @@ export default function FinancialPage() {
             <ArrowDownCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$8.750,50</div>
+            <div className="text-2xl font-bold">R${monthlyExpenses.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              +8.1% EM RELAÇÃO AO MÊS ANTERIOR
+              DESPESAS DESTE MÊS
             </p>
           </CardContent>
         </Card>
@@ -91,9 +145,9 @@ export default function FinancialPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$6.481,39</div>
+            <div className={`text-2xl font-bold ${monthlyNetProfit >= 0 ? 'text-green-500' : 'text-destructive'}`}>R${monthlyNetProfit.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              +25.2% EM RELAÇÃO AO MÊS ANTERIOR
+              LUCRO LÍQUIDO DESTE MÊS
             </p>
           </CardContent>
         </Card>
@@ -103,7 +157,7 @@ export default function FinancialPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$32.450,00</div>
+            <div className="text-2xl font-bold">R${totalBalance.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               SALDO TOTAL EM CAIXA E BANCOS
             </p>
@@ -142,6 +196,7 @@ export default function FinancialPage() {
                             borderColor: 'hsl(var(--border))',
                         }}
                     />
+                    <Legend wrapperStyle={{fontSize: "0.75rem"}}/>
                     <Bar dataKey="Entradas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -164,13 +219,13 @@ export default function FinancialPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {mockFinancialTransactions.slice(0, 5).map((transaction) => (
+                        {transactions.slice(0, 5).map((transaction) => (
                             <TableRow key={transaction.id}>
                                 <TableCell>
                                     <div className="font-medium">{transaction.description}</div>
                                     <div className="text-xs text-muted-foreground">{transaction.category}</div>
                                 </TableCell>
-                                <TableCell>{format(new Date(transaction.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                <TableCell>{format(parseISO(transaction.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                                 <TableCell>
                                     <Badge variant={statusVariant[transaction.type]}>{statusText[transaction.type]}</Badge>
                                 </TableCell>
