@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -17,11 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MoreHorizontal, PlusCircle, UserCog } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { mockMechanics, type Mechanic } from "@/lib/mock-data";
 import { MechanicDialog } from "./components/mechanic-dialog";
 import { DeleteMechanicDialog } from "./components/delete-mechanic-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export type { Mechanic };
 
@@ -31,6 +32,11 @@ export default function MechanicsPage() {
   const [isMechanicDialogOpen, setIsMechanicDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleOpenDialog = (dialog: 'mechanic' | 'delete', mechanic: Mechanic | null) => {
     setSelectedMechanic(mechanic);
@@ -99,18 +105,24 @@ export default function MechanicsPage() {
                         </TableCell>
                         <TableCell>{mechanic.specialty}</TableCell>
                         <TableCell className="text-right">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                        <span className="sr-only">AÇÕES</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleOpenDialog('mechanic', mechanic)}>EDITAR</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleOpenDialog('delete', mechanic)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {isMounted ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">AÇÕES</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleOpenDialog('mechanic', mechanic)}>EDITAR</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleOpenDialog('delete', mechanic)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : (
+                                <div className="flex justify-end">
+                                    <Skeleton className="h-10 w-10" />
+                                </div>
+                            )}
                         </TableCell>
                         </TableRow>
                     ))}

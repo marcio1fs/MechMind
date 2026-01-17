@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -24,6 +24,7 @@ import { StockMovementDialog } from "./components/stock-movement-dialog";
 import { DeleteItemDialog } from "./components/delete-item-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { mockStockItems, type StockItem } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export type { StockItem };
@@ -45,6 +46,11 @@ export default function InventoryPage() {
   const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleOpenDialog = (dialog: 'item' | 'movement' | 'delete', item: StockItem | null) => {
     setSelectedItem(item);
@@ -142,19 +148,25 @@ export default function InventoryPage() {
                         </TableCell>
                         <TableCell className="text-right">R${item.sale_price.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                        <span className="sr-only">AÇÕES</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleOpenDialog('item', item)}>EDITAR</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleOpenDialog('movement', item)}>MOVIMENTAR</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleOpenDialog('delete', item)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {isMounted ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">AÇÕES</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleOpenDialog('item', item)}>EDITAR</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleOpenDialog('movement', item)}>MOVIMENTAR</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleOpenDialog('delete', item)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : (
+                                <div className="flex justify-end">
+                                    <Skeleton className="h-10 w-10" />
+                                </div>
+                            )}
                         </TableCell>
                         </TableRow>
                     );
