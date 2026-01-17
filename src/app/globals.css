@@ -85,3 +85,23 @@
     @apply normal-case placeholder:normal-case;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt-print-content, #receipt-print-content * {
+    visibility: visible;
+  }
+  #receipt-print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 1rem;
+    margin: 0;
+  }
+  .no-print {
+    display: none;
+  }
+}

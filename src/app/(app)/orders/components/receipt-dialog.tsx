@@ -23,36 +23,21 @@ interface ReceiptDialogProps {
 }
 
 export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProps) {
-  const receiptRef = React.useRef<HTMLDivElement>(null);
   
   if (!order) return null;
 
   const handlePrint = () => {
-    const printContent = receiptRef.current;
-    if (printContent) {
-      const printWindow = window.open('', '', 'height=600,width=800');
-      if (printWindow) {
-        printWindow.document.write('<html><head><title>Imprimir Recibo</title>');
-        // You might want to include your global styles for printing
-        printWindow.document.write('<link rel="stylesheet" href="/globals.css" type="text/css" />');
-        printWindow.document.write('<style>@media print { body { -webkit-print-color-adjust: exact; } }</style>');
-        printWindow.document.write('</head><body>');
-        printWindow.document.write(printContent.innerHTML);
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 250);
-      }
-    }
+    window.print();
   };
 
   const handleWhatsApp = () => {
-      // Basic WhatsApp message generation
-      const servicesText = order.services.map(s => `- ${s.quantity}x ${s.description}: R$${(s.quantity * s.unitPrice).toFixed(2)}`).join('\n');
-      const partsText = order.parts.map(p => `- ${p.quantity}x ${p.name}: R$${(p.quantity * p.sale_price).toFixed(2)}`).join('\n');
+      const servicesText = order.services && order.services.length > 0 
+        ? order.services.map(s => `- ${s.quantity}x ${s.description}: R$${(s.quantity * s.unitPrice).toFixed(2)}`).join('\n')
+        : "Nenhum serviço realizado.";
+
+      const partsText = order.parts && order.parts.length > 0
+        ? order.parts.map(p => `- ${p.quantity}x ${p.name}: R$${(p.quantity * p.sale_price).toFixed(2)}`).join('\n')
+        : "Nenhuma peça utilizada.";
       
       let message = `*Recibo de Pagamento - MechMind*\n\n`;
       message += `Olá ${order.customer},\n`;
@@ -62,7 +47,9 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
       message += `*Serviços Realizados:*\n${servicesText}\n\n`;
       message += `*Peças Utilizadas:*\n${partsText}\n\n`;
       message += `*Valor Total Pago:* R$${order.total.toFixed(2)}\n`;
-      message += `*Forma de Pagamento:* ${order.paymentMethod}\n\n`;
+      if(order.paymentMethod) {
+        message += `*Forma de Pagamento:* ${order.paymentMethod}\n\n`;
+      }
       message += `Atenciosamente,\nEquipe MechMind`;
 
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
@@ -73,14 +60,14 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+        <DialogHeader className="no-print">
           <DialogTitle>RECIBO DE PAGAMENTO</DialogTitle>
           <DialogDescription>
             RECIBO PARA A ORDEM DE SERVIÇO <span className="font-bold">{order.id}</span>.
           </DialogDescription>
         </DialogHeader>
         
-        <div ref={receiptRef} className="text-sm p-4 border rounded-md bg-background" id="receipt">
+        <div id="receipt-print-content" className="text-sm p-4 border rounded-md bg-background">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                     <Wrench className="h-8 w-8 text-primary" />
@@ -137,11 +124,11 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
                 <span>R${order.total.toFixed(2)}</span>
             </div>
             <div className="text-right text-muted-foreground">
-                <p>Pago em {format(new Date(), "dd/MM/yyyy 'às' HH:mm")} via {order.paymentMethod}</p>
+                <p>Pago em {format(new Date(), "dd/MM/yyyy 'às' HH:mm")} {order.paymentMethod ? `via ${order.paymentMethod}` : ''}</p>
             </div>
         </div>
 
-        <DialogFooter className="mt-4 sm:justify-between gap-2">
+        <DialogFooter className="mt-4 sm:justify-between gap-2 no-print">
             <Button variant="outline" onClick={handleWhatsApp} className="w-full sm:w-auto"><MessageSquare className="mr-2" />ENVIAR VIA WHATSAPP</Button>
             <Button onClick={handlePrint} className="w-full sm:w-auto"><Printer className="mr-2" />IMPRIMIR RECIBO</Button>
         </DialogFooter>
