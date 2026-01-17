@@ -58,7 +58,7 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
                 <span className="text-2xl font-bold">R${order.total.toFixed(2)}</span>
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="payment-method">FORMA DE PAGAMENTO</FormLabel>
+                <Label htmlFor="payment-method">FORMA DE PAGAMENTO</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                     <SelectTrigger id="payment-method">
                         <SelectValue placeholder="SELECIONE A FORMA DE PAGAMENTO" />
