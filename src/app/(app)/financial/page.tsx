@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
@@ -16,19 +17,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowDownCircle, ArrowUpCircle, DollarSign, PlusCircle, TrendingUp } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, PlusCircle, TrendingUp, MoreHorizontal } from "lucide-react"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
-import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns"
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
-import { collection, Timestamp } from "firebase/firestore"
+import { collection, Timestamp, doc, addDoc, setDoc, deleteDoc } from "firebase/firestore"
+import { useToast } from "@/hooks/use-toast";
+import { FinancialTransactionDialog } from "./components/financial-transaction-dialog";
+import { DeleteTransactionDialog } from "./components/delete-transaction-dialog";
 
 
-type FinancialTransaction = {
+export type FinancialTransaction = {
   id: string;
+  oficinaId: string;
   description: string;
   category: string;
   type: "IN" | "OUT";
@@ -53,12 +64,74 @@ const OFICINA_ID = "default_oficina";
 export default function FinancialPage() {
   const firestore = useFirestore();
   const { profile } = useUser();
+  const { toast } = useToast();
+
   const financialCollection = useMemoFirebase(() => {
     if (!firestore || !profile) return null;
     return collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
   }, [firestore, profile]);
 
   const { data: transactions, isLoading } = useCollection<FinancialTransaction>(financialCollection);
+
+  const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const handleOpenDialog = (dialog: 'transaction' | 'delete', transaction: FinancialTransaction | null) => {
+    setSelectedTransaction(transaction);
+    if (dialog === 'transaction') setIsTransactionDialogOpen(true);
+    if (dialog === 'delete') setIsDeleteDialogOpen(true);
+  };
+
+  const handleSaveTransaction = async (transactionData: any) => {
+    if (!firestore || !financialCollection || !profile) return;
+    
+    const { id, ...data } = transactionData;
+
+    try {
+        if (id) {
+            // Editing existing transaction
+            const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", id);
+            await setDoc(transactionRef, data, { merge: true });
+            toast({ title: "SUCESSO!", description: "LANÇAMENTO ATUALIZADO COM SUCESSO." });
+        } else {
+            // Adding new transaction
+            await addDoc(financialCollection, {
+                ...data,
+                oficinaId: OFICINA_ID,
+                reference_type: "MANUAL",
+            });
+            toast({ title: "SUCESSO!", description: "LANÇAMENTO ADICIONADO COM SUCESSO." });
+        }
+        setIsTransactionDialogOpen(false);
+    } catch (error) {
+        console.error("Error saving transaction: ", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O LANÇAMENTO." });
+    }
+  };
+
+  const handleDeleteTransaction = async (transaction: FinancialTransaction) => {
+    if (!firestore) return;
+    try {
+        if(transaction.reference_type !== "MANUAL"){
+            toast({ variant: "destructive", title: "ERRO!", description: "LANÇAMENTOS AUTOMÁTICOS (OS, ESTOQUE) NÃO PODEM SER EXCLUÍDOS." });
+            setIsDeleteDialogOpen(false);
+            return;
+        }
+        const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", transaction.id);
+        await deleteDoc(transactionRef);
+        toast({ title: "SUCESSO!", description: "LANÇAMENTO EXCLUÍDO COM SUCESSO." });
+        setIsDeleteDialogOpen(false);
+    } catch (error) {
+        console.error("Error deleting transaction: ", error);
+        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O LANÇAMENTO." });
+    }
+  };
 
   const { monthlyRevenue, monthlyExpenses, monthlyNetProfit, totalBalance } = useMemo(() => {
     const now = new Date();
@@ -71,7 +144,9 @@ export default function FinancialPage() {
 
     if (transactions) {
         transactions.forEach(t => {
-            const transactionDate = t.date.toDate();
+            const transactionDate = t.date?.toDate();
+            if(!transactionDate) return;
+
             if (t.type === 'IN') {
                 totalBalance += t.value;
                 if (transactionDate >= startOfCurrentMonth && transactionDate <= endOfCurrentMonth) {
@@ -93,21 +168,21 @@ export default function FinancialPage() {
   }, [transactions]);
 
   const chartData = useMemo(() => {
+    if (!transactions) return [];
+    
     const sixMonthsAgo = subMonths(new Date(), 5);
     const monthsInterval = eachMonthOfInterval({
         start: sixMonthsAgo,
         end: new Date()
     });
 
-    if (!transactions) return [];
-
     return monthsInterval.map(monthStart => {
         const monthEnd = endOfMonth(monthStart);
         const monthName = format(monthStart, "MMM", { locale: ptBR });
 
         const monthlyData = transactions.reduce((acc, t) => {
-            const transactionDate = t.date.toDate();
-            if (transactionDate >= monthStart && transactionDate <= monthEnd) {
+            const transactionDate = t.date?.toDate();
+            if (transactionDate && transactionDate >= monthStart && transactionDate <= monthEnd) {
                 if (t.type === 'IN') {
                     acc.Entradas += t.value;
                 } else {
@@ -124,6 +199,11 @@ export default function FinancialPage() {
     });
   }, [transactions]);
 
+  const recentTransactions = useMemo(() => {
+      if(!transactions) return [];
+      return [...transactions].sort((a,b) => b.date?.toDate().getTime() - a.date?.toDate().getTime()).slice(0,5);
+  }, [transactions]);
+
 
   return (
     <div className="flex flex-col gap-8">
@@ -135,7 +215,7 @@ export default function FinancialPage() {
                 </p>
             </div>
             <div>
-                <Button>
+                <Button onClick={() => handleOpenDialog('transaction', null)}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     NOVO LANÇAMENTO
                 </Button>
@@ -148,7 +228,7 @@ export default function FinancialPage() {
             <ArrowUpCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${monthlyRevenue.toFixed(2)}</div>}
+            {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${monthlyRevenue.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">
               RECEITA DESTE MÊS
             </p>
@@ -160,7 +240,7 @@ export default function FinancialPage() {
             <ArrowDownCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-             {isLoading ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${monthlyExpenses.toFixed(2)}</div>}
+             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${monthlyExpenses.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">
               DESPESAS DESTE MÊS
             </p>
@@ -172,7 +252,7 @@ export default function FinancialPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-             {isLoading ? <Skeleton className="h-8 w-3/4"/> : <div className={`text-2xl font-bold ${monthlyNetProfit >= 0 ? 'text-green-500' : 'text-destructive'}`}>R${monthlyNetProfit.toFixed(2)}</div>}
+             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className={`text-2xl font-bold ${monthlyNetProfit >= 0 ? 'text-green-500' : 'text-destructive'}`}>R${monthlyNetProfit.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">
               LUCRO LÍQUIDO DESTE MÊS
             </p>
@@ -184,7 +264,7 @@ export default function FinancialPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-             {isLoading ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${totalBalance.toFixed(2)}</div>}
+             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${totalBalance.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">
               SALDO TOTAL EM CAIXA E BANCOS
             </p>
@@ -199,7 +279,7 @@ export default function FinancialPage() {
             <CardDescription>ENTRADAS E SAÍDAS NOS ÚLTIMOS 6 MESES.</CardDescription>
             </CardHeader>
             <CardContent>
-             {isLoading ? <Skeleton className="h-[300px] w-full"/> : (
+             {isLoading || !isMounted ? <Skeleton className="h-[300px] w-full"/> : (
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -245,35 +325,51 @@ export default function FinancialPage() {
                             <TableHead>DATA</TableHead>
                             <TableHead>TIPO</TableHead>
                             <TableHead className="text-right">VALOR</TableHead>
+                            <TableHead className="w-[80px] text-right">AÇÕES</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoading && Array.from({length: 5}).map((_, i) => (
+                        {(isLoading || !isMounted) && Array.from({length: 5}).map((_, i) => (
                             <TableRow key={i}>
                                 <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                                 <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                                 <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-10 w-10 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
-                        {!isLoading && transactions?.slice(0, 5).map((transaction) => (
+                        {isMounted && !isLoading && recentTransactions.map((transaction) => (
                             <TableRow key={transaction.id}>
                                 <TableCell>
                                     <div className="font-medium">{transaction.description}</div>
                                     <div className="text-xs text-muted-foreground">{transaction.category}</div>
                                 </TableCell>
-                                <TableCell>{format(transaction.date.toDate(), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                <TableCell>{transaction.date ? format(transaction.date.toDate(), "dd/MM/yyyy", { locale: ptBR }) : ''}</TableCell>
                                 <TableCell>
                                     <Badge variant={statusVariant[transaction.type]}>{statusText[transaction.type]}</Badge>
                                 </TableCell>
                                 <TableCell className={`text-right font-medium ${transaction.type === 'IN' ? 'text-green-500' : 'text-destructive'}`}>
                                     {transaction.type === 'OUT' && '-'}R${transaction.value.toFixed(2)}
                                 </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                                <span className="sr-only">AÇÕES</span>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleOpenDialog('transaction', transaction)} disabled={transaction.reference_type !== "MANUAL"}>EDITAR</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOpenDialog('delete', transaction)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={transaction.reference_type !== "MANUAL"}>EXCLUIR</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
                             </TableRow>
                         ))}
-                        {!isLoading && transactions?.length === 0 && (
+                        {isMounted && !isLoading && transactions?.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">Nenhuma transação encontrada.</TableCell>
+                                <TableCell colSpan={5} className="h-24 text-center">Nenhuma transação encontrada.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
@@ -281,6 +377,22 @@ export default function FinancialPage() {
             </CardContent>
         </Card>
       </div>
+
+      <FinancialTransactionDialog
+        isOpen={isTransactionDialogOpen}
+        onOpenChange={setIsTransactionDialogOpen}
+        transaction={selectedTransaction}
+        onSave={handleSaveTransaction}
+      />
+
+      <DeleteTransactionDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        transaction={selectedTransaction}
+        onDelete={handleDeleteTransaction}
+      />
     </div>
   )
 }
+
+    
