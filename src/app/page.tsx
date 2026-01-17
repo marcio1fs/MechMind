@@ -17,7 +17,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 
 export default function LoginPage() {
@@ -72,20 +72,16 @@ export default function LoginPage() {
 
       // Check if user document already exists, if not, create it
       const userDocRef = doc(firestore, "oficinas", "default_oficina", "users", newUser.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        const displayName = newUser.displayName || "Usuário";
-        const [firstName, ...lastName] = displayName.split(' ');
-        await setDoc(userDocRef, {
-          id: newUser.uid,
-          oficinaId: "default_oficina",
-          firstName: firstName || '',
-          lastName: lastName.join(' ') || '',
-          email: newUser.email,
-          role: "ADMIN",
-        });
-      }
+      const displayName = newUser.displayName || "Usuário";
+      const [firstName, ...lastName] = displayName.split(' ');
+      await setDoc(userDocRef, {
+        id: newUser.uid,
+        oficinaId: "default_oficina",
+        firstName: firstName || '',
+        lastName: lastName.join(' ') || '',
+        email: newUser.email,
+        role: "ADMIN",
+      }, { merge: true });
 
       toast({ title: 'SUCESSO', description: 'LOGIN COM O GOOGLE REALIZADO COM SUCESSO.' });
       router.replace('/dashboard'); // Direct redirect on success

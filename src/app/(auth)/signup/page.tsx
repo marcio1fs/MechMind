@@ -18,7 +18,7 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function SignupPage() {
   const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
@@ -97,22 +97,18 @@ export default function SignupPage() {
       const result = await signInWithPopup(auth, provider);
       const newUser = result.user;
 
-      // Check if user document already exists, if not, create it
+      // Ensure user document exists by merging
       const userDocRef = doc(firestore, "oficinas", "default_oficina", "users", newUser.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        const displayName = newUser.displayName || "Usuário";
-        const [firstName, ...lastName] = displayName.split(' ');
-        await setDoc(userDocRef, {
-          id: newUser.uid,
-          oficinaId: "default_oficina",
-          firstName: firstName || '',
-          lastName: lastName.join(' ') || '',
-          email: newUser.email,
-          role: "ADMIN",
-        });
-      }
+      const displayName = newUser.displayName || "Usuário";
+      const [firstName, ...lastName] = displayName.split(' ');
+      await setDoc(userDocRef, {
+        id: newUser.uid,
+        oficinaId: "default_oficina",
+        firstName: firstName || '',
+        lastName: lastName.join(' ') || '',
+        email: newUser.email,
+        role: "ADMIN",
+      }, { merge: true });
 
       toast({
         title: 'CONTA CRIADA!',
