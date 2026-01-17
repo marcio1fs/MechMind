@@ -199,12 +199,54 @@ export function OrderDialog({
     }, 0);
   }, [watchedServices]);
 
+  const formatCPF = (value: string) => {
+    if (!value) return "";
+    return value
+      .replace(/\D/g, "")
+      .slice(0, 11)
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  };
+
+  const formatCNPJ = (value: string) => {
+    if (!value) return "";
+    return value
+      .replace(/\D/g, "")
+      .slice(0, 14)
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  };
+
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    const cleaned = value.replace(/\D/g, "").slice(0, 11);
+    if (cleaned.length > 10) {
+      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+    }
+    return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  };
+  
+  const formatPlate = (value: string) => {
+      if (!value) return "";
+      return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+  }
+
   useEffect(() => {
     if (isOpen) {
       if (order) {
         form.reset({
           ...order,
           customerDocumentType: order.customerDocumentType || "CPF",
+          customerCpf: order.customerCpf ? formatCPF(order.customerCpf) : undefined,
+          customerCnpj: order.customerCnpj ? formatCNPJ(order.customerCnpj) : undefined,
+          customerPhone: order.customerPhone ? formatPhone(order.customerPhone) : undefined,
+          vehicle: {
+              ...order.vehicle,
+              plate: order.vehicle.plate ? formatPlate(order.vehicle.plate) : ""
+          },
           startDate: new Date(order.startDate),
           services: order.services || [],
           parts: order.parts || [],
@@ -240,9 +282,15 @@ export function OrderDialog({
   }, [partsTotal, servicesTotal, form]);
 
   const onSubmit = (data: OrderFormValues) => {
+    const payload = { 
+        ...data,
+        customerCpf: data.customerCpf?.replace(/\D/g, ""),
+        customerCnpj: data.customerCnpj?.replace(/\D/g, ""),
+        customerPhone: data.customerPhone?.replace(/\D/g, ""),
+    };
     const selectedMechanic = mechanics.find(m => m.id === data.mechanicId);
     onSave({
-      ...data,
+      ...payload,
       id: order?.id || `ORD-${Date.now()}`,
       mechanicName: selectedMechanic?.name,
       services: data.services || [],
@@ -386,7 +434,7 @@ export function OrderDialog({
                         <FormItem>
                         <FormLabel>CPF</FormLabel>
                         <FormControl>
-                            <Input placeholder="000.000.000-00" {...field} value={field.value ?? ""} disabled={isFinalizado} maxLength={14} />
+                            <Input placeholder="000.000.000-00" {...field} onChange={(e) => field.onChange(formatCPF(e.target.value))} value={field.value ?? ""} disabled={isFinalizado} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -400,7 +448,7 @@ export function OrderDialog({
                         <FormItem>
                         <FormLabel>CNPJ</FormLabel>
                         <FormControl>
-                            <Input placeholder="00.000.000/0000-00" {...field} value={field.value ?? ""} disabled={isFinalizado} maxLength={18} />
+                            <Input placeholder="00.000.000/0000-00" {...field} onChange={(e) => field.onChange(formatCNPJ(e.target.value))} value={field.value ?? ""} disabled={isFinalizado} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -414,7 +462,7 @@ export function OrderDialog({
                     <FormItem>
                     <FormLabel>TELEFONE/WHATSAPP</FormLabel>
                     <FormControl>
-                        <Input placeholder="5511999998888" {...field} value={field.value ?? ""} disabled={isFinalizado} maxLength={15} />
+                        <Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} value={field.value ?? ""} disabled={isFinalizado} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -481,7 +529,7 @@ export function OrderDialog({
                   <FormItem>
                     <FormLabel>PLACA</FormLabel>
                     <FormControl>
-                      <Input placeholder="EX: ABC1234" {...field} disabled={isFinalizado} maxLength={7}/>
+                      <Input placeholder="EX: ABC1234" {...field} onChange={(e) => field.onChange(formatPlate(e.target.value))} disabled={isFinalizado}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
