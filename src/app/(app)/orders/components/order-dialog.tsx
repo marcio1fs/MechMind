@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -54,8 +55,24 @@ import type { Mechanic } from "../../mechanics/page";
 const formSchema = z.object({
   id: z.string().optional(),
   customer: z.string().min(1, "O NOME DO CLIENTE É OBRIGATÓRIO."),
-  customerCpf: z.string().optional(),
-  customerPhone: z.string().optional(),
+  customerCpf: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val) return true; // Allow empty
+      const cleanVal = val.replace(/\D/g, '');
+      return cleanVal.length === 11;
+    }, {
+      message: "CPF INVÁLIDO. DEVE CONTER 11 DÍGITOS.",
+    }),
+  customerPhone: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val) return true; // Allow empty
+      const cleanVal = val.replace(/\D/g, '');
+      return cleanVal.length === 10 || cleanVal.length === 11;
+    }, {
+      message: "TELEFONE INVÁLIDO. DEVE CONTER 10 OU 11 DÍGITOS.",
+    }),
   vehicle: z.object({
     make: z.string().min(1, "A MARCA É OBRIGATÓRIA."),
     model: z.string().min(1, "O MODELO É OBRIGATÓRIO."),
@@ -63,7 +80,11 @@ const formSchema = z.object({
       .number()
       .min(1900, "ANO INVÁLIDO.")
       .max(new Date().getFullYear() + 1, "ANO INVÁLIDO."),
-    plate: z.string().min(1, "O NÚMERO DA PLACA É OBRIGATÓRIO.").toUpperCase(),
+    plate: z.string()
+        .min(7, "A PLACA DEVE TER 7 CARACTERES.")
+        .max(7, "A PLACA DEVE TER 7 CARACTERES.")
+        .regex(/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/i, "PLACA INVÁLIDA. USE O FORMATO ABC1234 OU ABC1D23.")
+        .transform(val => val.toUpperCase()),
     color: z.string().min(1, "A COR DO VEÍCULO É OBRIGATÓRIA."),
   }),
   mechanicId: z.string().optional(),
@@ -719,3 +740,5 @@ export function OrderDialog({
     </>
   );
 }
+
+    
