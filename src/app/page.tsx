@@ -41,9 +41,24 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      // Ensure user document exists to prevent loading deadlocks
+      const userDocRef = doc(firestore, "oficinas", "default_oficina", "users", newUser.uid);
+      const displayName = newUser.displayName || "Usuário";
+      const [firstName, ...lastName] = displayName.split(' ');
+      await setDoc(userDocRef, {
+        id: newUser.uid,
+        oficinaId: "default_oficina",
+        firstName: firstName || 'Novo',
+        lastName: lastName.join(' ') || 'Usuário',
+        email: newUser.email,
+        role: "ADMIN",
+      }, { merge: true });
+
       toast({ title: 'SUCESSO', description: 'LOGIN REALIZADO COM SUCESSO.' });
-      router.replace('/dashboard'); // Direct redirect on success
+      router.replace('/dashboard');
     } catch (error: any) {
       console.error(error);
       toast({

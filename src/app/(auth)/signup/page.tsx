@@ -51,15 +51,16 @@ export default function SignupPage() {
       await updateProfile(newUser, { displayName: name });
 
       // Create user document in Firestore
+      const userDocRef = doc(firestore, "oficinas", "default_oficina", "users", newUser.uid);
       const [firstName, ...lastName] = name.split(' ');
-      await setDoc(doc(firestore, "oficinas", "default_oficina", "users", newUser.uid), {
+      await setDoc(userDocRef, {
         id: newUser.uid,
         oficinaId: "default_oficina",
         firstName: firstName || '',
         lastName: lastName.join(' ') || '',
         email: newUser.email,
         role: "ADMIN", // First user becomes admin of their workshop
-      });
+      }, { merge: true });
 
       toast({
         title: 'CONTA CRIADA!',
