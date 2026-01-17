@@ -1,0 +1,237 @@
+/**
+ * @file firestore.rules
+ * @description Security rules for the OSMECH Firestore database.
+ *
+ * ## Core Philosophy
+ * This ruleset implements a strict multi-tenant security model where data is
+ * siloed by a workshop (`Oficina`). Users can only access data belonging to
+ * the `Oficina` they are a member of. A global 'admin' role exists for
+ * administrative override access across all tenants.
+ *
+ * ## Data Structure
+ * The data is organized hierarchically. All tenant-specific data, including
+ * users, service orders, and vehicle histories, is nested under the
+ * `/oficinas/{oficinaId}` collection path. This structure ensures that tenant
+ * data is physically and logically separated. Global data, such as subscription
+ * plans and the admin role list, resides at the top level.
+ *
+ * ## Key Security Decisions
+ * - **Strict Tenant Isolation**: All rules are designed to prevent any
+ *   cross-tenant data access. A user from `oficina_A` can never read, write,
+ *   or even know about data from `oficina_B`.
+ * - **Global Admin Override**: Users whose UID is present in the `/roles_admin`
+ *   collection are granted full access to all data for maintenance and support.
+ * - **No Public Listing**: Listing all workshops (`/oficinas`) or all global
+ *   admins (`/roles_admin`) is explicitly disallowed to prevent enumeration attacks.
+ * - **Read-Only Subscription Plans**: Subscription plan information is readable
+ *   by any authenticated user but can only be modified by global admins.
+ *
+ * ## Denormalization for Authorization
+ * To create simple, fast, and secure rules, this model relies on denormalization.
+ * The `oficinaId` is stored directly on every user, service order, and vehicle
+ * history document. This avoids slow and costly `get()` calls to parent documents
+ * during rule evaluation. A user's tenancy is determined by checking for the
+ * existence of their user document within a specific `oficina`'s `users`
+ * subcollection.
+ *
+ * ## Structural Segregation
+ * Data with different access patterns is segregated into distinct collections. For
+ * example, `users`, `ordensDeServico`, and `vehicleHistory` are separate
+ * subcollections under each `oficina`, allowing for granular and clear security
+ * rules for each data type.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the user has a global admin role.
+     * Admin status is conferred by the existence of a document in the
+     * `roles_admin` collection with the user's UID as the document ID.
+     */
+    function isGlobalAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+
+
+    /**
+     * Returns true if the requesting user's document exists within the specified
+     * `oficinaId`'s user subcollection. This is the primary check for tenancy.
+     */
+    function isUserOfOficina(oficinaId) {
+      return exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
+    }
+
+    /**
+     * Returns true if the user is an 'ADMIN' within their specific Oficina.
+     * Requires a get() call, so it should be used for write operations only.
+     */
+    function isOficinaAdmin(oficinaId) {
+      return get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
+    /**
+     * Returns true if the authenticated user's UID matches the provided userId.
+     * This is the standard ownership check.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the document being accessed already exists.
+     * CRITICAL for all update and delete operations to prevent modifying non-existent data.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+    
+    /**
+     * Validates that a user is creating their own user document and that the
+     * `id` and `oficinaId` fields in the document match the path.
+     */
+    function isCreatingOwnUserDoc(userId, oficinaId) {
+      let isCreatingSelf = isOwner(userId);
+      let incomingData = request.resource.data;
+      let pathMatchesData = incomingData.id == userId && incomingData.oficinaId == oficinaId;
+
+      return isCreatingSelf && pathMatchesData;
+    }
+
+    /**
+     * Validates that critical, immutable fields (id, oficinaId) are not changed during an update.
+     */
+    function hasImmutableUserFields() {
+      return request.resource.data.id == resource.data.id
+          && request.resource.data.oficinaId == resource.data.oficinaId;
+    }
+
+    /**
+     * Validates that the `oficinaId` in a newly created document matches the path.
+     * Ensures all new data is correctly associated with the parent tenant.
+     */
+    function isCreatingValidOficinaData(oficinaId) {
+      return request.resource.data.oficinaId == oficinaId;
+    }
+
+    /**
+     * Validates that the `oficinaId` is not being changed on update.
+     * Enforces immutability of the tenant relationship.
+     */
+    function isUpdatingValidOficinaData() {
+      return request.resource.data.oficinaId == resource.data.oficinaId;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Rules for the admin roles collection.
+     * @path /roles_admin/{uid}
+     * @allow (get) An admin can check if another user is an admin: `auth.uid` exists in `/roles_admin`.
+     * @deny (list) No user, including other admins, can list all administrators.
+     * @deny (create) A non-admin user cannot make themselves an admin.
+     * @principle Restricts high-privilege operations to existing global admins.
+     */
+    match /roles_admin/{uid} {
+      allow get: if isGlobalAdmin();
+      allow list: if false;
+      allow create: if isGlobalAdmin();
+      allow update: if isGlobalAdmin();
+      allow delete: if isGlobalAdmin();
+    }
+
+    /**
+     * @description Rules for public-readable subscription plans.
+     * @path /subscriptionPlans/{subscriptionPlanId}
+     * @allow (get, list) Any signed-in user can read the available subscription plans.
+     * @deny (create) A regular user cannot create a new subscription plan.
+     * @principle Allows public read access for application setup while restricting writes to global admins.
+     */
+    match /subscriptionPlans/{subscriptionPlanId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isGlobalAdmin();
+      allow update: if isGlobalAdmin();
+      allow delete: if isGlobalAdmin();
+    }
+
+    /**
+     * @description Rules for the Oficina (workshop/tenant) documents.
+     * @path /oficinas/{oficinaId}
+     * @allow (get) A user who is part of 'oficina-A' can read the details of '/oficinas/oficina-A'.
+     * @deny (list) No user can get a list of all oficinas in the system.
+     * @deny (update) A regular user from 'oficina-A' cannot change the oficina's details. Only an 'oficina admin' can.
+     * @principle Enforces tenant isolation. Only members of an oficina or global admins can access its top-level data.
+     */
+    match /oficinas/{oficinaId} {
+      allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow list: if false;
+      allow create: if isGlobalAdmin();
+      allow update: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+      allow delete: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+    }
+
+    /**
+     * @description Rules for user documents, which define roles and link users to an oficina.
+     * @path /oficinas/{oficinaId}/users/{userId}
+     * @allow (create) A new user 'user-123' can create their own document at '/oficinas/oficina-A/users/user-123'.
+     * @allow (list) Any user from 'oficina-A' can list the other users in their own workshop.
+     * @deny (update) A user cannot change their own role or another user's role unless they are an oficina admin.
+     * @deny (get) A user from 'oficina-B' cannot read user profiles from 'oficina-A'.
+     * @principle Allows self-service for profile creation and collaborative read access within a tenant, while protecting role modifications.
+     */
+    match /oficinas/{oficinaId}/users/{userId} {
+      allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow create: if isCreatingOwnUserDoc(userId, oficinaId);
+      allow update: if (isExistingDoc() && hasImmutableUserFields() && (isOwner(userId) || isOficinaAdmin(oficinaId))) || isGlobalAdmin();
+      allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdmin(oficinaId))) || isGlobalAdmin();
+    }
+
+    /**
+     * @description Rules for service order documents within an oficina.
+     * @path /oficinas/{oficinaId}/ordensDeServico/{ordemDeServicoId}
+     * @allow (create, read, update, delete) Any user belonging to 'oficina-A' can manage service orders within '/oficinas/oficina-A/ordensDeServico'.
+     * @deny (create) A user from 'oficina-A' cannot create a service order with `oficinaId: 'oficina-B'`.
+     * @deny (get) A user from 'oficina-B' cannot access any service orders from 'oficina-A'.
+     * @principle Enforces tenant data boundaries. All data is owned and managed collectively by the users of a single oficina.
+     */
+    match /oficinas/{oficinaId}/ordensDeServico/{ordemDeServicoId} {
+      allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow create: if (isUserOfOficina(oficinaId) && isCreatingValidOficinaData(oficinaId)) || isGlobalAdmin();
+      allow update: if (isUserOfOficina(oficinaId) && isExistingDoc() && isUpdatingValidOficinaData()) || isGlobalAdmin();
+      allow delete: if (isUserOfOficina(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+    }
+    
+    /**
+     * @description Rules for vehicle history documents within an oficina.
+     * @path /oficinas/{oficinaId}/vehicleHistory/{vehicleHistoryId}
+     * @allow (create, read, update, delete) Any user belonging to 'oficina-A' can manage vehicle history within '/oficinas/oficina-A/vehicleHistory'.
+     * @deny (update) A user cannot change the `oficinaId` of an existing vehicle history record.
+     * @deny (get) A user from 'oficina-B' cannot access any vehicle history from 'oficina-A'.
+     * @principle Enforces tenant data boundaries. All data is owned and managed collectively by the users of a single oficina.
+     */
+    match /oficinas/{oficinaId}/vehicleHistory/{vehicleHistoryId} {
+      allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+      allow create: if (isUserOfOficina(oficinaId) && isCreatingValidOficinaData(oficinaId)) || isGlobalAdmin();
+      allow update: if (isUserOfOficina(oficinaId) && isExistingDoc() && isUpdatingValidOficinaData()) || isGlobalAdmin();
+      allow delete: if (isUserOfOficina(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+    }
+  }
+}

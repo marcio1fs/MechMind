@@ -1,0 +1,337 @@
+{
+  "entities": {
+    "Oficina": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Oficina",
+      "type": "object",
+      "description": "Represents a mechanical workshop (Oficina).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Oficina entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the Oficina."
+        },
+        "cnpj": {
+          "type": "string",
+          "description": "CNPJ (Brazilian company identifier) of the Oficina."
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the Oficina."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the Oficina."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the Oficina.",
+          "format": "email"
+        },
+        "subscriptionPlanId": {
+          "type": "string",
+          "description": "Reference to SubscriptionPlan. (Relationship: SubscriptionPlan 1:N Oficina)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "cnpj",
+        "address",
+        "phone",
+        "email",
+        "subscriptionPlanId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "oficinaId": {
+          "type": "string",
+          "description": "Reference to Oficina. (Relationship: Oficina 1:N User).  Indicates which Oficina the user belongs to."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (e.g., ADMIN, OFICINA)."
+        }
+      },
+      "required": [
+        "id",
+        "oficinaId",
+        "firstName",
+        "lastName",
+        "email",
+        "role"
+      ]
+    },
+    "OrdemDeServico": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrdemDeServico",
+      "type": "object",
+      "description": "Represents a service order (Ordem de Serviço).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OrdemDeServico entity."
+        },
+        "oficinaId": {
+          "type": "string",
+          "description": "Reference to Oficina. (Relationship: Oficina 1:N OrdemDeServico). Indicates which Oficina the service order belongs to."
+        },
+        "clienteName": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "vehiclePlate": {
+          "type": "string",
+          "description": "Vehicle license plate number."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the service to be performed."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the service order (e.g., OPEN, IN_PROGRESS, COMPLETED)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Date and time when the service order was created.",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "Date and time when the service order was completed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "oficinaId",
+        "clienteName",
+        "vehiclePlate",
+        "description",
+        "status",
+        "createdAt"
+      ]
+    },
+    "SubscriptionPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubscriptionPlan",
+      "type": "object",
+      "description": "Represents a subscription plan (PRO, PRO+, PREMIUM).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SubscriptionPlan entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the subscription plan (e.g., PRO, PRO+, PREMIUM)."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the subscription plan per month."
+        },
+        "maxUsers": {
+          "type": "number",
+          "description": "Maximum number of users allowed for this plan."
+        },
+        "aiFeaturesEnabled": {
+          "type": "boolean",
+          "description": "Indicates whether AI features are enabled for this plan."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price",
+        "maxUsers",
+        "aiFeaturesEnabled"
+      ]
+    },
+    "VehicleHistory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VehicleHistory",
+      "type": "object",
+      "description": "Represents the historical service records of a vehicle.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the VehicleHistory entry."
+        },
+        "oficinaId": {
+          "type": "string",
+          "description": "Reference to Oficina. Indicates which Oficina this history belongs to."
+        },
+        "vehiclePlate": {
+          "type": "string",
+          "description": "License plate of the vehicle."
+        },
+        "ordemDeServicoIds": {
+          "type": "array",
+          "description": "References to OrdemDeServico. (Relationship: OrdemDeServico 1:N VehicleHistory). List of service order IDs related to this vehicle.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastServiceDate": {
+          "type": "string",
+          "description": "Date of the last service performed on the vehicle.",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes or observations about the vehicle's history."
+        }
+      },
+      "required": [
+        "id",
+        "oficinaId",
+        "vehiclePlate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/subscriptionPlans/{subscriptionPlanId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "Stores subscription plan details (PRO, PRO+, PREMIUM).",
+          "params": [
+            {
+              "name": "subscriptionPlanId",
+              "description": "Unique identifier for the subscription plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/oficinas/{oficinaId}",
+        "definition": {
+          "entityName": "Oficina",
+          "schema": {
+            "$ref": "#/backend/entities/Oficina"
+          },
+          "description": "Stores Oficina details.",
+          "params": [
+            {
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/oficinas/{oficinaId}/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user details. Includes denormalized 'oficinaId' for authorization independence.",
+          "params": [
+            {
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
+            },
+            {
+              "name": "userId",
+              "description": "Unique identifier for the User."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/oficinas/{oficinaId}/ordensDeServico/{ordemDeServicoId}",
+        "definition": {
+          "entityName": "OrdemDeServico",
+          "schema": {
+            "$ref": "#/backend/entities/OrdemDeServico"
+          },
+          "description": "Stores service order details. Includes denormalized 'oficinaId' for authorization independence.",
+          "params": [
+            {
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
+            },
+            {
+              "name": "ordemDeServicoId",
+              "description": "Unique identifier for the OrdemDeServico."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/oficinas/{oficinaId}/vehicleHistory/{vehicleHistoryId}",
+        "definition": {
+          "entityName": "VehicleHistory",
+          "schema": {
+            "$ref": "#/backend/entities/VehicleHistory"
+          },
+          "description": "Stores vehicle history details. Includes denormalized 'oficinaId' for authorization independence.",
+          "params": [
+            {
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
+            },
+            {
+              "name": "vehicleHistoryId",
+              "description": "Unique identifier for the VehicleHistory."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{uid}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores UIDs of admin users.  Existence of a document at this path grants admin privileges.",
+          "params": [
+            {
+              "name": "uid",
+              "description": "User ID of the admin."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable data model for the OSMECH application, focusing on Authorization Independence, Structural Segregation, Access Modeling, and Data Clarity. \n\n**Authorization Independence:** The structure achieves Authorization Independence by denormalizing the `oficinaId` field into the `users`, `ordensDeServico`, and `vehicleHistory` collections. This eliminates the need for `get()` calls to parent documents in security rules, enabling atomic operations (transactions/batches) and simplifying debugging.\n\n**Structural Segregation:** Data with different access needs is segregated into separate collections. For instance, user data is stored in `oficinas/{oficinaId}/users/{userId}`, service orders in `oficinas/{oficinaId}/ordensDeServico/{ordemDeServicoId}`, and vehicle history in `oficinas/{oficinaId}/vehicleHistory/{vehicleHistoryId}`, ensuring each collection has a homogeneous security posture.\n\n**Access Modeling:** The structure adheres to consistent patterns for authorization:\n\n*   **Path-Based Ownership:** User data (`/oficinas/{oficinaId}/users/{userId}`) is organized using hierarchical paths to ensure straightforward ownership-based security rules.\n*   **Membership Map (Not Applicable):** Since roles are defined in the user document, no membership map is used for collaborative access here.\n*   **Global Roles (DBAC):** While roles are stored on the user document directly, a dedicated collection for admin roles (`/roles_admin/{uid}`) is supported, enabling existence-based rules for admin privileges.\n\n**QAPs (Rules are not Filters):** The structure supports secure `list` operations by ensuring that authorization information is available within each document, preventing the need to filter based on external data.\n\n**Data Clarity and Predictability:** The structure employs explicit state modeling with the `status` field in `OrdemDeServico`, predictable schema, and radical consistency with semantic naming conventions (e.g., `oficinaId`, `userId`).\n\n*   **Subscription Plans:** Subscription plan details (`/subscriptionPlans/{subscriptionPlanId}`) are stored in a separate collection.  Oficinas reference these plans using the `subscriptionPlanId` field, supporting the SaaS model.\n"
+  }
+}
