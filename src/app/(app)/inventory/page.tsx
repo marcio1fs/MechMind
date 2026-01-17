@@ -24,7 +24,7 @@ import { StockMovementDialog } from "./components/stock-movement-dialog";
 import { DeleteItemDialog } from "./components/delete-item-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
 
 
@@ -57,10 +57,11 @@ const OFICINA_ID = "default_oficina";
 
 export default function InventoryPage() {
   const firestore = useFirestore();
+  const { profile } = useUser();
   const inventoryCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !profile) return null;
     return collection(firestore, "oficinas", OFICINA_ID, "inventory");
-  }, [firestore]);
+  }, [firestore, profile]);
 
   const { data: stockItems, isLoading } = useCollection<StockItem>(inventoryCollection);
   

@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MechanicDialog } from "./components/mechanic-dialog";
 import { DeleteMechanicDialog } from "./components/delete-mechanic-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, addDoc, setDoc, deleteDoc } from "firebase/firestore";
 
 // This type should align with the User entity in backend.json
@@ -42,10 +42,11 @@ const OFICINA_ID = "default_oficina";
 
 export default function MechanicsPage() {
   const firestore = useFirestore();
+  const { profile } = useUser();
   const mechanicsCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !profile) return null;
     return collection(firestore, "oficinas", OFICINA_ID, "users");
-  }, [firestore]);
+  }, [firestore, profile]);
 
   const { data: mechanics, isLoading } = useCollection<Mechanic>(mechanicsCollection);
 

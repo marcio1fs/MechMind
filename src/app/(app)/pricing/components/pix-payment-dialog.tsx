@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -32,14 +31,6 @@ export function PixPaymentDialog({ isOpen, onOpenChange, plan }: PixPaymentDialo
   const qrCodeImage = PlaceHolderImages.find((p) => p.id === "pix-qrcode");
 
   if (!plan) return null;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(PIX_KEY);
-    toast({
-      title: "Chave PIX copiada!",
-      description: "A chave PIX foi copiada para sua área de transferência.",
-    });
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -70,9 +61,6 @@ export function PixPaymentDialog({ isOpen, onOpenChange, plan }: PixPaymentDialo
                 <CardContent className="p-3">
                     <div className="flex items-center gap-2">
                         <Input value={PIX_KEY} readOnly className="font-mono"/>
-                        <Button variant="outline" size="icon" onClick={copyToClipboard}>
-                            <Copy className="h-4 w-4" />
-                        </Button>
                     </div>
                 </CardContent>
             </Card>

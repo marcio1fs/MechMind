@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mockVehicleMakes, type Mechanic, mockOrders } from "@/lib/mock-data";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection } from "firebase/firestore";
 import type { StockItem } from "../inventory/page";
 import type { Mechanic as FullMechanic } from "../mechanics/page";
@@ -107,17 +107,18 @@ const OFICINA_ID = "default_oficina";
 
 export default function OrdersPage() {
   const firestore = useFirestore();
+  const { profile } = useUser();
   
   const inventoryCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !profile) return null;
     return collection(firestore, "oficinas", OFICINA_ID, "inventory");
-  }, [firestore]);
+  }, [firestore, profile]);
   const { data: stockItems, isLoading: isLoadingStock } = useCollection<StockItem>(inventoryCollection);
 
   const mechanicsCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !profile) return null;
     return collection(firestore, "oficinas", OFICINA_ID, "users");
-  }, [firestore]);
+  }, [firestore, profile]);
   const { data: mechanicsData, isLoading: isLoadingMechanics } = useCollection<FullMechanic>(mechanicsCollection);
 
   const mechanics = useMemo(() => {
