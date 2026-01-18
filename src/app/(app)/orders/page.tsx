@@ -194,10 +194,10 @@ export default function OrdersPage() {
       toast({ variant: "destructive", title: "ERRO!", description: "A SESSÃO EXPIROU. FAÇA LOGIN NOVAMENTE." });
       return;
     }
-    const { id, ...data } = orderData;
-    
-    // Clean the data object to remove any 'undefined' fields before sending to Firestore
-    const dataToSave: { [key: string]: any } = { ...data };
+
+    const dataToSave: { [key: string]: any } = { ...orderData };
+    const orderId = orderData.id;
+    delete dataToSave.id;
     Object.keys(dataToSave).forEach(key => {
         if (dataToSave[key] === undefined) {
             delete dataToSave[key];
@@ -205,20 +205,60 @@ export default function OrdersPage() {
     });
 
     try {
-        if (id) {
-            await updateDoc(doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", id), dataToSave);
-            toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
-        } else {
-             const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
+        await runTransaction(firestore, async (transaction) => {
+            let oldParts: UsedPart[] = [];
+            
+            if (orderId) {
+                const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", orderId);
+                const orderDoc = await transaction.get(orderRef);
+                if (orderDoc.exists()) {
+                    oldParts = (orderDoc.data().parts as UsedPart[]) || [];
+                }
+            }
 
-            await runTransaction(firestore, async (transaction) => {
-                const counterDoc = await transaction.get(counterRef);
+            const newParts: UsedPart[] = (dataToSave.parts as UsedPart[]) || [];
+            
+            const stockChanges = new Map<string, number>();
+
+            oldParts.forEach(part => {
+                stockChanges.set(part.itemId, (stockChanges.get(part.itemId) || 0) + part.quantity);
+            });
+
+            newParts.forEach(part => {
+                stockChanges.set(part.itemId, (stockChanges.get(part.itemId) || 0) - part.quantity);
+            });
+
+            for (const [itemId, quantityChange] of stockChanges.entries()) {
+                if (quantityChange === 0) continue;
+
+                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
+                const stockItemDoc = await transaction.get(stockItemRef);
+
+                if (!stockItemDoc.exists()) {
+                    throw new Error(`A peça com ID "${itemId}" não foi encontrada no estoque.`);
+                }
+
+                const currentQuantity = stockItemDoc.data().quantity;
+                const newQuantity = currentQuantity + quantityChange;
+
+                if (newQuantity < 0) {
+                    const itemName = stockItemDoc.data().name;
+                    throw new Error(`Estoque insuficiente para a peça "${itemName}".`);
+                }
                 
+                transaction.update(stockItemRef, { quantity: newQuantity });
+            }
+
+            if (orderId) {
+                const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", orderId);
+                transaction.update(orderRef, dataToSave);
+            } else {
+                const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
+                const counterDoc = await transaction.get(counterRef);
                 let newCount = 1;
                 if (counterDoc.exists()) {
                     newCount = (counterDoc.data().lastId || 0) + 1;
                 }
-
                 const displayId = String(newCount).padStart(4, '0');
                 
                 const newDocRef = doc(ordersCollection);
@@ -230,14 +270,15 @@ export default function OrdersPage() {
                 });
                 
                 transaction.set(counterRef, { lastId: newCount }, { merge: true });
-            });
+            }
+        });
 
-            toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ADICIONADA COM SUCESSO." });
-        }
+        toast({ title: "SUCESSO!", description: "Ordem de Serviço salva e estoque atualizado com sucesso." });
         setIsOrderDialogOpen(false);
-    } catch (error) {
+
+    } catch (error: any) {
         console.error("Failed to save order:", error);
-        toast({ variant: "destructive", title: "ERRO!", description: `NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO. ${error}` });
+        toast({ variant: "destructive", title: "ERRO AO SALVAR!", description: `Não foi possível salvar a Ordem de Serviço: ${error.message}` });
     }
   };
 
@@ -246,11 +287,24 @@ export default function OrdersPage() {
         return;
     };
     try {
-        const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
-        await deleteDoc(orderRef);
-        toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO EXCLUÍDA COM SUCESSO." });
-    } catch (error) {
-        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR A ORDEM DE SERVIÇO." });
+        await runTransaction(firestore, async (transaction) => {
+            const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
+
+            for (const part of order.parts) {
+                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", part.itemId);
+                const stockItemDoc = await transaction.get(stockItemRef);
+                if (stockItemDoc.exists()) {
+                    const newQuantity = stockItemDoc.data().quantity + part.quantity;
+                    transaction.update(stockItemRef, { quantity: newQuantity });
+                }
+            }
+            
+            transaction.delete(orderRef);
+        });
+
+        toast({ title: "SUCESSO!", description: "Ordem de Serviço excluída e estoque restaurado." });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "ERRO!", description: `NÃO FOI POSSÍVEL EXCLUIR A ORDEM DE SERVIÇO: ${error.message}` });
     } finally {
         setSelectedOrder(null);
         setIsDeleteDialogOpen(false);
@@ -269,26 +323,6 @@ export default function OrdersPage() {
 
    try {
        await runTransaction(firestore, async (transaction) => {
-           // 1. Verify stock for all parts in the order and deduct them
-           for (const part of order.parts) {
-               const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", part.itemId);
-               const stockItemDoc = await transaction.get(stockItemRef);
-
-               if (!stockItemDoc.exists()) {
-                   throw new Error(`A peça "${part.name}" não foi encontrada no estoque.`);
-               }
-
-               const currentQuantity = stockItemDoc.data().quantity;
-               if (currentQuantity < part.quantity) {
-                   throw new Error(`Estoque insuficiente para a peça "${part.name}". Disponível: ${currentQuantity}, Necessário: ${part.quantity}.`);
-               }
-
-               // Deduct stock
-               const newQuantity = currentQuantity - part.quantity;
-               transaction.update(stockItemRef, { quantity: newQuantity });
-           }
-           
-           // 2. Update order status and totals
            transaction.update(orderRef, { 
                status: "FINALIZADO",
                paymentMethod: paymentMethod,
@@ -297,7 +331,6 @@ export default function OrdersPage() {
                discount: discountValue,
            });
 
-           // 3. Create financial transaction
            const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
            const newFinDocRef = doc(financialCollection);
            transaction.set(newFinDocRef, {
@@ -334,7 +367,7 @@ export default function OrdersPage() {
        setSelectedOrder(updatedOrder); 
        setIsReceiptDialogOpen(true);
    } catch (error: any) {
-       toast({ variant: "destructive", title: "ERRO AO REGISTRAR PAGAMENTO!", description: error.message || "NÃO FOI POSSÍVEL REGISTRAR O PAGAMENTO. Verifique o estoque das peças." });
+       toast({ variant: "destructive", title: "ERRO AO REGISTRAR PAGAMENTO!", description: error.message || "Não foi possível registrar o pagamento." });
    } finally {
        setIsPaymentDialogOpen(false);
    }
