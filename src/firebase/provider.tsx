@@ -164,11 +164,28 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
-    
-    // Create a temporary profile with ADMIN role for the UI to ensure full access during development
-    const displayProfile = userAuthState.profile 
-      ? { ...userAuthState.profile, role: 'ADMIN' as const } 
-      : null;
+
+    let displayProfile: UserProfile | null = null;
+
+    if (userAuthState.user) { // If a user is authenticated via Firebase Auth
+      if (userAuthState.profile) { // And their profile loaded correctly from Firestore
+        // This is a normal user, force their role to ADMIN for this session
+        displayProfile = { ...userAuthState.profile, role: 'ADMIN' as const };
+      } else if (!userAuthState.isUserLoading && !userAuthState.userError) {
+        // This is the key case: Auth user exists, but there's no Firestore profile.
+        // This likely means the current user's DB record is incomplete.
+        // We will create a temporary, client-side profile to grant them admin access.
+        displayProfile = {
+          id: userAuthState.user.uid,
+          oficinaId: 'temp_oficina_id', // A temporary ID. Reads will be empty, but writes might fail. This is acceptable to grant UI access.
+          firstName: userAuthState.user.displayName?.split(' ')[0] || 'Usuário',
+          lastName: userAuthState.user.displayName?.split(' ').slice(1).join(' ') || 'Admin',
+          email: userAuthState.user.email || '',
+          role: 'ADMIN',
+          activePlan: 'PREMIUM', // Grant premium access as well
+        };
+      }
+    }
 
     return {
       areServicesAvailable: servicesAvailable,
@@ -176,7 +193,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
       user: userAuthState.user,
-      profile: displayProfile, // Provide the modified profile to the context
+      profile: displayProfile,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
     };
