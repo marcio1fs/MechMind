@@ -309,7 +309,6 @@ export function OrderDialog({
         services: data.services || [],
         parts: data.parts || [],
       });
-      onOpenChange(false);
     } finally {
       setIsSaving(false);
     }
@@ -798,7 +797,7 @@ export function OrderDialog({
             
             <Separator className="my-4" />
             
-            <p className="text-base font-semibold text-foreground border-b pb-2">{status === 'PENDENTE' ? "PEÇAS E CUSTOS ESTIMADOS" : "PEÇAS E CUSTOS FINAIS"}</p>
+            <p className="text-base font-semibold text-foreground border-b pb-2">{status === 'PENDENTE' ? "PEÇAS E CUSTOS ESTIMADOS" : "PEças E CUSTOS FINAIS"}</p>
             <div className="grid gap-2">
               <p className="text-sm font-medium">{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</p>
               <div className="rounded-md border">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -159,12 +160,13 @@ export default function OrdersPage() {
     setIsMounted(true);
   }, []);
 
-  const handleOpenDialog = async (dialog: 'summary' | 'order' | 'delete' | 'payment', order: Order | null) => {
+  const handleOpenDialog = async (dialog: 'summary' | 'order' | 'delete' | 'payment' | 'receipt', order: Order | null) => {
     setSelectedOrder(order);
     if (dialog === 'summary' && order) await handleGenerateSummary(order);
     if (dialog === 'order') setIsOrderDialogOpen(true);
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
     if (dialog === 'payment') setIsPaymentDialogOpen(true);
+    if (dialog === 'receipt') setIsReceiptDialogOpen(true);
   };
 
   const handleGenerateSummary = async (order: Order) => {
@@ -189,11 +191,11 @@ export default function OrdersPage() {
 
   const handleSaveOrder = async (orderData: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => {
     if (!firestore || !ordersCollection || !profile) {
-        throw new Error("Firestore not initialized");
+      toast({ variant: "destructive", title: "ERRO!", description: "A SESSÃO EXPIROU. FAÇA LOGIN NOVAMENTE." });
+      return;
     }
     const { id, ...data } = orderData;
     
-    // Sanitize data to prevent Firestore errors with 'undefined' values.
     const dataToSave = {
         ...data,
         subtotal: data.subtotal === undefined ? null : data.subtotal,
@@ -233,8 +235,8 @@ export default function OrdersPage() {
         }
         setIsOrderDialogOpen(false);
     } catch (error) {
+        console.error("Failed to save order:", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO." });
-        throw error;
     }
   };
 
@@ -340,7 +342,13 @@ export default function OrdersPage() {
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
-    return orders.filter(order => {
+    return [...orders]
+      .sort((a, b) => {
+        const dateA = a.startDate instanceof Timestamp ? a.startDate.toDate() : a.startDate;
+        const dateB = b.startDate instanceof Timestamp ? b.startDate.toDate() : b.startDate;
+        return dateB.getTime() - dateA.getTime();
+      })
+      .filter(order => {
         const matchesSearch = 
             (order.displayId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -461,19 +469,26 @@ export default function OrdersPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem onSelect={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
-                                                    <DropdownMenuItem 
-                                                        onSelect={() => handleOpenDialog('payment', order)}
-                                                        disabled={order.status !== 'PRONTO PARA PAGAMENTO'}
-                                                    >
-                                                        <CreditCard className="mr-2 h-4 w-4" />
-                                                        REGISTRAR PAGAMENTO
-                                                    </DropdownMenuItem>
+                                                    {order.status === 'FINALIZADO' ? (
+                                                      <DropdownMenuItem onSelect={() => handleOpenDialog('receipt', order)}>
+                                                          <CheckCircle className="mr-2 h-4 w-4" />
+                                                          VER RECIBO
+                                                      </DropdownMenuItem>
+                                                    ) : (
+                                                      <DropdownMenuItem 
+                                                          onSelect={() => handleOpenDialog('payment', order)}
+                                                          disabled={order.status !== 'PRONTO PARA PAGAMENTO'}
+                                                      >
+                                                          <CreditCard className="mr-2 h-4 w-4" />
+                                                          REGISTRAR PAGAMENTO
+                                                      </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuItem onSelect={() => handleGenerateSummary(order)} disabled={!canUseAiSummary}>
                                                         <Sparkles className="mr-2 h-4 w-4" />
                                                         GERAR RESUMO {!canUseAiSummary && '(PRO+)'}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onSelect={() => { setIsDeleteDialogOpen(true); setSelectedOrder(order); }} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         ) : (
