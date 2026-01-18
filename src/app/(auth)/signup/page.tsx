@@ -69,7 +69,7 @@ export default function SignupPage() {
       });
       router.replace('/dashboard');
     } catch (error: any) {
-      console.error(error);
+      
       let description = 'NÃO FOI POSSÍVEL CRIAR SUA CONTA. TENTE NOVAMENTE.';
       if (error.code === 'auth/email-already-in-use') {
         description = 'ESTE E-MAIL JÁ ESTÁ EM USO. TENTE FAZER LOGIN.';
@@ -113,7 +113,7 @@ export default function SignupPage() {
       });
       router.replace('/dashboard');
     } catch (error: any) {
-      console.error(error);
+      
       toast({
         variant: 'destructive',
         title: 'ERRO NO CADASTRO COM O GOOGLE',

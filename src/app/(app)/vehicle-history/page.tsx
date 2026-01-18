@@ -104,7 +104,7 @@ export default function VehicleHistoryPage() {
         });
       }
     } catch (error) {
-      console.error("Error searching vehicle history: ", error);
+      
       toast({
         variant: "destructive",
         title: "Erro na Busca",

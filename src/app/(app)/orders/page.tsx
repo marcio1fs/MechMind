@@ -234,7 +234,7 @@ export default function OrdersPage() {
         }
         setIsOrderDialogOpen(false);
     } catch (error) {
-        console.error("Error saving order:", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO." });
         throw error;
     }
@@ -249,7 +249,7 @@ export default function OrdersPage() {
         await deleteDoc(orderRef);
         toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO EXCLUÍDA COM SUCESSO." });
     } catch (error) {
-        console.error("Error deleting order:", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR A ORDEM DE SERVIÇO." });
     } finally {
         setSelectedOrder(null);
@@ -316,7 +316,7 @@ export default function OrdersPage() {
         setSelectedOrder(updatedOrder); 
         setIsReceiptDialogOpen(true);
     } catch (error) {
-        console.error("Error confirming payment:", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL REGISTRAR O PAGAMENTO." });
         throw error;
     } finally {
@@ -544,5 +544,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
-    

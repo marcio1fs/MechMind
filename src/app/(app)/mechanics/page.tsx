@@ -92,7 +92,7 @@ export default function MechanicsPage() {
         toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
       }
     } catch (error) {
-        console.error("Error saving mechanic: ", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O MECÂNICO." });
         throw error;
     }
@@ -107,7 +107,7 @@ export default function MechanicsPage() {
         setSelectedMechanic(null);
         setIsDeleteDialogOpen(false);
     } catch (error) {
-        console.error("Error deleting mechanic: ", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O MECÂNICO." });
     }
   };

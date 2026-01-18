@@ -110,7 +110,7 @@ export default function InventoryPage() {
         }
         setIsItemDialogOpen(false);
     } catch (error) {
-        console.error("Error saving item: ", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O ITEM." });
         throw error;
     }
@@ -125,7 +125,7 @@ export default function InventoryPage() {
         await deleteDoc(itemRef);
         toast({ title: "SUCESSO!", description: "ITEM EXCLUÍDO COM SUCESSO." });
     } catch (error) {
-        console.error("Error deleting item: ", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O ITEM." });
         throw error;
     } finally {
@@ -153,7 +153,7 @@ export default function InventoryPage() {
         await updateDoc(itemRef, { quantity: newQuantity });
         toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ${quantity} UNIDADE(S) (${type}) REGISTRADA PARA ${item.name}.` });
     } catch (error) {
-        console.error("Error moving item: ", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL MOVIMENTAR O ITEM." });
         throw error;
     } finally {

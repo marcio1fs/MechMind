@@ -116,7 +116,7 @@ export default function FinancialPage() {
         }
         setIsTransactionDialogOpen(false);
     } catch (error) {
-        console.error("Error saving transaction: ", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O LANÇAMENTO." });
         throw error;
     }
@@ -135,7 +135,7 @@ export default function FinancialPage() {
             toast({ title: "SUCESSO!", description: "LANÇAMENTO EXCLUÍDO COM SUCESSO." });
         }
     } catch (error) {
-        console.error("Error deleting transaction: ", error);
+        
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O LANÇAMENTO." });
         throw error;
     } finally {
