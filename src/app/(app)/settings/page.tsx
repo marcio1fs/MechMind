@@ -152,7 +152,7 @@ export default function SettingsPage() {
           ) : (
             <>
               <div className="grid gap-2">
-                <Label>PROVEDOR DE API</Label>
+                <p className="text-sm font-medium text-foreground">PROVEDOR DE API</p>
                 <p className="text-sm text-muted-foreground">ATUALMENTE, OFERECEMOS SUPORTE À API DO TWILIO OU DA META PARA WHATSAPP CLOUD.</p>
               </div>
               <div className="grid gap-2">
