@@ -4,6 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 import {
   Table,
   TableBody,
@@ -31,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { getOrderSummary } from "./actions";
 import { type OrderSummaryOutput } from "@/ai/flows/order-summary-generation";
-import { Sparkles, Loader2, MoreHorizontal, PlusCircle, Search, CreditCard, CheckCircle } from "lucide-react";
+import { Sparkles, Loader2, MoreHorizontal, PlusCircle, Search, CreditCard, CheckCircle, Calendar as CalendarIcon } from "lucide-react";
 import { OrderDialog } from "./components/order-dialog";
 import { DeleteOrderDialog } from "./components/delete-order-dialog";
 import { PaymentDialog } from "./components/payment-dialog";
@@ -52,10 +53,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { mockVehicleMakes } from "@/lib/mock-data";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp, runTransaction, DocumentSnapshot } from "firebase/firestore";
+import { collection, doc, setDoc, updateDoc, Timestamp, runTransaction, DocumentSnapshot } from "firebase/firestore";
 import type { StockItem } from "../inventory/page";
 import type { Mechanic as FullMechanic } from "../mechanics/page";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, cn } from "@/lib/utils";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 
 export type UsedPart = {
@@ -167,6 +170,8 @@ export default function OrdersPage() {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Order["status"] | "TODOS">("TODOS");
+  const [mechanicFilter, setMechanicFilter] = useState<string>("TODOS");
+  const [date, setDate] = useState<DateRange | undefined>(undefined);
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -210,14 +215,15 @@ export default function OrdersPage() {
     }
 
     const orderId = orderData.id;
-    const { id, ...dataToSave } = orderData;
-    
+    const { id, ...data } = orderData;
+
     // Clean out undefined fields before sending to Firestore
-    Object.keys(dataToSave).forEach(key => {
-        if (dataToSave[key as keyof typeof dataToSave] === undefined) {
-            delete dataToSave[key as keyof typeof dataToSave];
+    const dataToSave: { [key: string]: any } = {};
+    for (const key in data) {
+        if ((data as any)[key] !== undefined) {
+            dataToSave[key] = (data as any)[key];
         }
-    });
+    }
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -225,21 +231,24 @@ export default function OrdersPage() {
             let oldParts: UsedPart[] = [];
             let counterDoc: DocumentSnapshot | null = null;
             
-            // Read existing order (if updating) to get old parts list
+            const stockChanges = new Map<string, number>();
+
+            // If updating, read existing order to get old parts list
             if (orderId) {
                 const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", orderId);
                 const orderDoc = await transaction.get(orderRef);
                 if (orderDoc.exists()) {
                     oldParts = (orderDoc.data().parts as UsedPart[]) || [];
                 }
-            } else {
-                // Read counter (if creating a new order)
+            }
+            
+            // Read counter only if creating a new order
+            if (!orderId) {
                 const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
                 counterDoc = await transaction.get(counterRef);
             }
 
             const newParts: UsedPart[] = (dataToSave.parts as UsedPart[]) || [];
-            const stockChanges = new Map<string, number>();
 
             // Calculate the change in quantity for each part
             oldParts.forEach(part => {
@@ -249,17 +258,19 @@ export default function OrdersPage() {
                 stockChanges.set(part.itemId, (stockChanges.get(part.itemId) || 0) - part.quantity);
             });
             
-            // Read all affected stock items in one batch
+            // Read all affected stock items in one go
             const stockItemDocs = new Map<string, DocumentSnapshot>();
-            const stockReads: Promise<void>[] = [];
-            for (const itemId of stockChanges.keys()) {
-                stockReads.push((async () => {
-                    const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
-                    const stockItemDoc = await transaction.get(stockItemRef);
-                    stockItemDocs.set(itemId, stockItemDoc);
-                })());
+            if (stockChanges.size > 0) {
+                const stockReads: Promise<void>[] = [];
+                for (const itemId of stockChanges.keys()) {
+                    stockReads.push((async () => {
+                        const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
+                        const stockItemDoc = await transaction.get(stockItemRef);
+                        stockItemDocs.set(itemId, stockItemDoc);
+                    })());
+                }
+                await Promise.all(stockReads);
             }
-            await Promise.all(stockReads);
 
             // --- PHASE 2: VALIDATION (In-memory) ---
             for (const [itemId, quantityChange] of stockChanges.entries()) {
@@ -272,9 +283,7 @@ export default function OrdersPage() {
                 }
 
                 const currentQuantity = stockItemDoc.data().quantity;
-                // A positive change means returning to stock, a negative change means taking from stock.
-                // We only need to check for sufficient stock when taking items.
-                if (quantityChange < 0 && currentQuantity < Math.abs(quantityChange)) {
+                if (currentQuantity + quantityChange < 0) {
                      const itemName = stockItemDoc.data().name;
                      throw new Error(`Estoque insuficiente para a peça "${itemName}". Disponível: ${currentQuantity}, Necessário: ${Math.abs(quantityChange)}.`);
                 }
@@ -287,7 +296,7 @@ export default function OrdersPage() {
                 if (quantityChange === 0) continue;
                 
                 const stockItemDoc = stockItemDocs.get(itemId)!;
-                const newQuantity = stockItemDoc.data()!.quantity - quantityChange;
+                const newQuantity = stockItemDoc.data()!.quantity + quantityChange;
                 const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
                 transaction.update(stockItemRef, { quantity: newQuantity });
             }
@@ -364,17 +373,6 @@ export default function OrdersPage() {
        await runTransaction(firestore, async (transaction) => {
            const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
 
-            // Verify stock before finalizing
-            for (const part of order.parts) {
-                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", part.itemId);
-                const stockItemDoc = await transaction.get(stockItemRef);
-                if (!stockItemDoc.exists()) {
-                     throw new Error(`A peça "${part.name}" não foi encontrada no estoque.`);
-                }
-                // Note: Stock has already been deducted when OS was saved.
-                // A check here could be for negative stock, but the primary deduction logic is in `handleSaveOrder`.
-            }
-
            const originalTotal = order.total;
            const finalTotal = originalTotal - discountValue;
 
@@ -395,7 +393,7 @@ export default function OrdersPage() {
                category: "ORDEM DE SERVIÇO",
                type: "IN",
                value: finalTotal,
-               date: serverTimestamp(),
+               date: Timestamp.now(),
                reference_id: order.id,
                reference_type: "OS",
            });
@@ -431,6 +429,8 @@ export default function OrdersPage() {
         return dateB.getTime() - dateA.getTime();
       })
       .filter(order => {
+        const orderDate = order.startDate instanceof Timestamp ? order.startDate.toDate() : order.startDate;
+
         const matchesSearch = 
             (order.displayId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -439,9 +439,18 @@ export default function OrdersPage() {
         
         const matchesStatus = statusFilter === 'TODOS' || order.status === statusFilter;
 
-        return matchesSearch && matchesStatus;
+        const matchesMechanic = mechanicFilter === 'TODOS' || order.mechanicId === mechanicFilter;
+
+        const matchesDate = (() => {
+            if (!date?.from) return true;
+            const from = new Date(date.from.setHours(0, 0, 0, 0));
+            const to = date.to ? new Date(date.to.setHours(23, 59, 59, 999)) : new Date(from.setHours(23, 59, 59, 999));
+            return orderDate >= from && orderDate <= to;
+        })();
+
+        return matchesSearch && matchesStatus && matchesMechanic && matchesDate;
     });
-  }, [orders, searchTerm, statusFilter]);
+  }, [orders, searchTerm, statusFilter, mechanicFilter, date]);
   
   const isLoading = isLoadingOrders || isLoadingStock || isLoadingMechanics || isLoadingWorkshop;
 
@@ -463,8 +472,8 @@ export default function OrdersPage() {
                 </Button>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="relative w-full max-w-sm">
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <div className="relative flex-grow sm:flex-grow-0 sm:w-full sm:max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="PESQUISAR POR OS, CLIENTE, VEÍCULO OU PLACA..." 
@@ -474,20 +483,82 @@ export default function OrdersPage() {
                         />
                     </div>
                     {isMounted ? (
-                        <Select value={statusFilter} onValueChange={(value: Order["status"] | "TODOS") => setStatusFilter(value)}>
-                            <SelectTrigger className="w-auto min-w-[180px]">
-                                <SelectValue placeholder="FILTRAR POR STATUS" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="TODOS">TODOS</SelectItem>
-                                <SelectItem value="PENDENTE">PENDENTE</SelectItem>
-                                <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
-                                <SelectItem value="PRONTO PARA PAGAMENTO">PRONTO PARA PAGAMENTO</SelectItem>
-                                <SelectItem value="FINALIZADO">FINALIZADO</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <>
+                            <Select value={statusFilter} onValueChange={(value: Order["status"] | "TODOS") => setStatusFilter(value)}>
+                                <SelectTrigger className="w-full sm:w-auto min-w-[180px]">
+                                    <SelectValue placeholder="FILTRAR POR STATUS" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="TODOS">TODOS OS STATUS</SelectItem>
+                                    <SelectItem value="PENDENTE">PENDENTE</SelectItem>
+                                    <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
+                                    <SelectItem value="PRONTO PARA PAGAMENTO">PRONTO PARA PAGAMENTO</SelectItem>
+                                    <SelectItem value="FINALIZADO">FINALIZADO</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={mechanicFilter} onValueChange={setMechanicFilter}>
+                                <SelectTrigger className="w-full sm:w-auto min-w-[180px]">
+                                    <SelectValue placeholder="FILTRAR POR MECÂNICO" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="TODOS">TODOS OS MECÂNICOS</SelectItem>
+                                    {mechanics.map(mechanic => (
+                                        <SelectItem key={mechanic.id} value={mechanic.id}>{mechanic.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal sm:w-auto min-w-[240px]",
+                                            !date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date?.from ? (
+                                            date.to ? (
+                                                <>
+                                                    {format(date.from, "LLL dd, y", { locale: ptBR })} -{" "}
+                                                    {format(date.to, "LLL dd, y", { locale: ptBR })}
+                                                </>
+                                            ) : (
+                                                format(date.from, "LLL dd, y", { locale: ptBR })
+                                            )
+                                        ) : (
+                                            <span>ESCOLHA UM PERÍODO</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={date?.from}
+                                        selected={date}
+                                        onSelect={setDate}
+                                        numberOfMonths={2}
+                                        locale={ptBR}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                            <Button variant="ghost" onClick={() => {
+                                setSearchTerm("");
+                                setStatusFilter("TODOS");
+                                setMechanicFilter("TODOS");
+                                setDate(undefined);
+                            }}>
+                                LIMPAR FILTROS
+                            </Button>
+                        </>
                     ) : (
-                        <Skeleton className="h-10 w-[180px]" />
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Skeleton className="h-10 w-full sm:w-[180px]" />
+                            <Skeleton className="h-10 w-full sm:w-[180px]" />
+                            <Skeleton className="h-10 w-full sm:w-[240px]" />
+                        </div>
                     )}
                 </div>
                 <div className="rounded-lg border">
