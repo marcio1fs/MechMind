@@ -52,6 +52,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AddPartDialog } from "./add-part-dialog";
 import type { StockItem } from "../../inventory/page";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -308,6 +309,7 @@ export function OrderDialog({
         services: data.services || [],
         parts: data.parts || [],
       });
+      onOpenChange(false);
     } finally {
       setIsSaving(false);
     }
@@ -408,13 +410,12 @@ export function OrderDialog({
                 </FormItem>
               )}
             />
-            <FormField
+             <FormField
               control={form.control}
               name="customerDocumentType"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>TIPO DE DOCUMENTO</FormLabel>
-                  <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
                       value={field.value}
@@ -423,18 +424,17 @@ export function OrderDialog({
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="CPF" />
+                          <RadioGroupItem value="CPF" id="cpf" />
                         </FormControl>
-                        <FormLabel className="font-normal">PESSOA FÍSICA (CPF)</FormLabel>
+                        <Label htmlFor="cpf" className="font-normal">PESSOA FÍSICA (CPF)</Label>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="CNPJ" />
+                          <RadioGroupItem value="CNPJ" id="cnpj" />
                         </FormControl>
-                        <FormLabel className="font-normal">PESSOA JURÍDICA (CNPJ)</FormLabel>
+                        <Label htmlFor="cnpj" className="font-normal">PESSOA JURÍDICA (CNPJ)</Label>
                       </FormItem>
                     </RadioGroup>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -490,7 +490,7 @@ export function OrderDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>MARCA</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isFinalizado}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isFinalizado} modal={false}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="SELECIONE A MONTADORA" />
@@ -614,7 +614,7 @@ export function OrderDialog({
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>MECÂNICO RESPONSÁVEL</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isFinalizado}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isFinalizado} modal={false}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="SELECIONE O MECÂNICO" />
@@ -644,6 +644,7 @@ export function OrderDialog({
                     defaultValue={field.value}
                     value={field.value}
                     disabled={isFinalizado}
+                    modal={false}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -797,7 +798,7 @@ export function OrderDialog({
             
             <Separator className="my-4" />
             
-            <h3 className="text-base font-semibold text-foreground border-b pb-2">{status === 'PENDENTE' ? "PEÇAS E CUSTOS ESTIMADOS" : "PEÇAS E CUSTOS FINAIS"}</h3>
+            <p className="text-base font-semibold text-foreground border-b pb-2">{status === 'PENDENTE' ? "PEÇAS E CUSTOS ESTIMADOS" : "PEÇAS E CUSTOS FINAIS"}</p>
             <div className="grid gap-2">
               <p className="text-sm font-medium">{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</p>
               <div className="rounded-md border">

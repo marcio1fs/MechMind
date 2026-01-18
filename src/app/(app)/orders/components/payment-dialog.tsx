@@ -42,11 +42,10 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
 
   useEffect(() => {
     if (isOpen) {
-      setDiscountPercent(0);
+      setDiscountPercent(order?.discount ? (order.discount / (order.subtotal || order.total)) * 100 : 0);
       setPaymentMethod(paymentMethods[0]);
-      setIsConfirming(false);
     }
-  }, [isOpen]);
+  }, [isOpen, order]);
 
   if (!order) return null;
 
@@ -73,6 +72,7 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
     setIsConfirming(true);
     try {
         await onConfirm(order, paymentMethod, discountValue);
+        onOpenChange(false);
     } catch (error) {
         // Error is handled in the parent component
     } finally {
@@ -100,7 +100,7 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
                     <span>R$ {formatNumber(order.total)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm text-destructive">
-                    <span className="text-destructive">DESCONTO ({discountPercent}%)</span>
+                    <span className="text-destructive">DESCONTO ({discountPercent.toFixed(2)}%)</span>
                     <span>-R$ {formatNumber(discountValue)}</span>
                 </div>
                  <div className="flex justify-between items-center font-bold text-lg border-t pt-2 mt-2">
@@ -111,7 +111,7 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="payment-method">FORMA DE PAGAMENTO</Label>
-                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <Select value={paymentMethod} onValueChange={setPaymentMethod} modal={false}>
                         <SelectTrigger id="payment-method">
                             <SelectValue placeholder="SELECIONE A FORMA DE PAGAMENTO" />
                         </SelectTrigger>
