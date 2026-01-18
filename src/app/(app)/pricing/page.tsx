@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check } from "lucide-react";
 import { PixPaymentDialog } from "./components/pix-payment-dialog";
 import { useUser } from "@/firebase";
+import { formatNumber } from "@/lib/utils";
 
 type Plan = {
     name: string;
@@ -102,7 +103,7 @@ export default function PricingPage() {
                             <CardHeader>
                                 <CardTitle>{plan.name}</CardTitle>
                                 <CardDescription>
-                                    <span className="text-4xl font-bold">R${plan.price.toFixed(2)}</span>
+                                    <span className="text-4xl font-bold">R${formatNumber(plan.price)}</span>
                                     <span className="text-muted-foreground">/mês</span>
                                 </CardDescription>
                             </CardHeader>

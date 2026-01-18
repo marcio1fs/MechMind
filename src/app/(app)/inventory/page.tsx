@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { formatNumber } from "@/lib/utils";
 
 
 // This type should align with the StockItem entity in backend.json
@@ -85,7 +86,9 @@ export default function InventoryPage() {
   };
   
   const handleSaveItem = async (itemData: any) => {
-    if (!firestore || !inventoryCollection) return;
+    if (!firestore || !inventoryCollection) {
+        throw new Error("Firestore not initialized");
+    }
     
     const { id, ...data } = itemData;
 
@@ -105,6 +108,7 @@ export default function InventoryPage() {
             });
             toast({ title: "SUCESSO!", description: "ITEM ADICIONADO COM SUCESSO." });
         }
+        setIsItemDialogOpen(false);
     } catch (error) {
         console.error("Error saving item: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O ITEM." });
@@ -113,21 +117,27 @@ export default function InventoryPage() {
   };
 
   const handleDeleteItem = async (item: StockItem) => {
-    if (!firestore) return;
+    if (!firestore) {
+        throw new Error("Firestore not initialized");
+    }
     try {
         const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
         await deleteDoc(itemRef);
         toast({ title: "SUCESSO!", description: "ITEM EXCLUÍDO COM SUCESSO." });
-        setSelectedItem(null);
-        setIsDeleteDialogOpen(false);
     } catch (error) {
         console.error("Error deleting item: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O ITEM." });
+        throw error;
+    } finally {
+        setSelectedItem(null);
+        setIsDeleteDialogOpen(false);
     }
   };
 
   const handleMoveItem = async (item: StockItem, type: "IN" | "OUT", quantity: number, reason?: string) => {
-     if (!firestore) return;
+     if (!firestore) {
+        throw new Error("Firestore not initialized");
+     }
 
     const newQuantity = type === 'IN' ? item.quantity + quantity : item.quantity - quantity;
     if (newQuantity < 0) {
@@ -142,11 +152,13 @@ export default function InventoryPage() {
         const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
         await updateDoc(itemRef, { quantity: newQuantity });
         toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ${quantity} UNIDADE(S) (${type}) REGISTRADA PARA ${item.name}.` });
-        setSelectedItem(null);
-        setIsMovementDialogOpen(false);
     } catch (error) {
         console.error("Error moving item: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL MOVIMENTAR O ITEM." });
+        throw error;
+    } finally {
+        setSelectedItem(null);
+        setIsMovementDialogOpen(false);
     }
   };
 
@@ -216,7 +228,7 @@ export default function InventoryPage() {
                         <TableCell>
                             <Badge variant={status.variant} className="capitalize">{status.text}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">R${item.sale_price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">R$ {formatNumber(item.sale_price)}</TableCell>
                         <TableCell className="text-right">
                             {isMounted ? (
                                 <DropdownMenu>

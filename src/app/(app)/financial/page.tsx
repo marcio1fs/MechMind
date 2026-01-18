@@ -35,6 +35,7 @@ import { collection, Timestamp, doc, addDoc, setDoc, deleteDoc } from "firebase/
 import { useToast } from "@/hooks/use-toast";
 import { FinancialTransactionDialog } from "./components/financial-transaction-dialog";
 import { DeleteTransactionDialog } from "./components/delete-transaction-dialog";
+import { formatNumber } from "@/lib/utils";
 
 
 export type FinancialTransaction = {
@@ -89,7 +90,9 @@ export default function FinancialPage() {
   };
 
   const handleSaveTransaction = async (transactionData: any) => {
-    if (!firestore || !financialCollection || !profile) return;
+    if (!firestore || !financialCollection || !profile) {
+        throw new Error("Firestore not initialized");
+    }
     
     const { id, ...data } = transactionData;
 
@@ -110,6 +113,7 @@ export default function FinancialPage() {
             });
             toast({ title: "SUCESSO!", description: "LANÇAMENTO ADICIONADO COM SUCESSO." });
         }
+        setIsTransactionDialogOpen(false);
     } catch (error) {
         console.error("Error saving transaction: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O LANÇAMENTO." });
@@ -118,20 +122,23 @@ export default function FinancialPage() {
   };
 
   const handleDeleteTransaction = async (transaction: FinancialTransaction) => {
-    if (!firestore) return;
+    if (!firestore) {
+        throw new Error("Firestore not initialized");
+    }
     try {
         if(transaction.reference_type !== "MANUAL"){
             toast({ variant: "destructive", title: "ERRO!", description: "LANÇAMENTOS AUTOMÁTICOS (OS, ESTOQUE) NÃO PODEM SER EXCLUÍDOS." });
-            setIsDeleteDialogOpen(false);
-            return;
+        } else {
+            const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", transaction.id);
+            await deleteDoc(transactionRef);
+            toast({ title: "SUCESSO!", description: "LANÇAMENTO EXCLUÍDO COM SUCESSO." });
         }
-        const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", transaction.id);
-        await deleteDoc(transactionRef);
-        toast({ title: "SUCESSO!", description: "LANÇAMENTO EXCLUÍDO COM SUCESSO." });
-        setIsDeleteDialogOpen(false);
     } catch (error) {
         console.error("Error deleting transaction: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O LANÇAMENTO." });
+        throw error;
+    } finally {
+        setIsDeleteDialogOpen(false);
     }
   };
 
@@ -230,7 +237,7 @@ export default function FinancialPage() {
             <ArrowUpCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${monthlyRevenue.toFixed(2)}</div>}
+            {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R$ {formatNumber(monthlyRevenue)}</div>}
             <p className="text-xs text-muted-foreground">
               RECEITA DESTE MÊS
             </p>
@@ -242,7 +249,7 @@ export default function FinancialPage() {
             <ArrowDownCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${monthlyExpenses.toFixed(2)}</div>}
+             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R$ {formatNumber(monthlyExpenses)}</div>}
             <p className="text-xs text-muted-foreground">
               DESPESAS DESTE MÊS
             </p>
@@ -254,7 +261,7 @@ export default function FinancialPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className={`text-2xl font-bold ${monthlyNetProfit >= 0 ? 'text-green-500' : 'text-destructive'}`}>R${monthlyNetProfit.toFixed(2)}</div>}
+             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className={`text-2xl font-bold ${monthlyNetProfit >= 0 ? 'text-green-500' : 'text-destructive'}`}>R$ {formatNumber(monthlyNetProfit)}</div>}
             <p className="text-xs text-muted-foreground">
               LUCRO LÍQUIDO DESTE MÊS
             </p>
@@ -266,7 +273,7 @@ export default function FinancialPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R${totalBalance.toFixed(2)}</div>}
+             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R$ {formatNumber(totalBalance)}</div>}
             <p className="text-xs text-muted-foreground">
               SALDO TOTAL EM CAIXA E BANCOS
             </p>
@@ -305,6 +312,7 @@ export default function FinancialPage() {
                                 backgroundColor: 'hsl(var(--background))',
                                 borderColor: 'hsl(var(--border))',
                             }}
+                            formatter={(value: number) => `R$ ${formatNumber(value)}`}
                         />
                         <Legend wrapperStyle={{fontSize: "0.75rem"}}/>
                         <Bar dataKey="Entradas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -351,7 +359,7 @@ export default function FinancialPage() {
                                     <Badge variant={statusVariant[transaction.type]}>{statusText[transaction.type]}</Badge>
                                 </TableCell>
                                 <TableCell className={`text-right font-medium ${transaction.type === 'IN' ? 'text-green-500' : 'text-destructive'}`}>
-                                    {transaction.type === 'OUT' && '-'}R${transaction.value.toFixed(2)}
+                                    {transaction.type === 'OUT' && '-'}R$ {formatNumber(transaction.value)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <DropdownMenu>

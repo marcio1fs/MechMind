@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -22,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Order } from "../page";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { formatNumber } from "@/lib/utils";
 
 interface PaymentDialogProps {
   isOpen: boolean;
@@ -71,7 +73,6 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
     setIsConfirming(true);
     try {
         await onConfirm(order, paymentMethod, discountValue);
-        onOpenChange(false);
     } catch (error) {
         // Error is handled in the parent component
     } finally {
@@ -96,15 +97,15 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
             <div className="space-y-2 rounded-md border p-4">
                 <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">VALOR ORIGINAL</span>
-                    <span>R${order.total.toFixed(2)}</span>
+                    <span>R$ {formatNumber(order.total)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm text-destructive">
                     <span className="text-destructive">DESCONTO ({discountPercent}%)</span>
-                    <span>-R${discountValue.toFixed(2)}</span>
+                    <span>-R$ {formatNumber(discountValue)}</span>
                 </div>
                  <div className="flex justify-between items-center font-bold text-lg border-t pt-2 mt-2">
                     <span>VALOR FINAL</span>
-                    <span>R${finalTotal.toFixed(2)}</span>
+                    <span>R$ {formatNumber(finalTotal)}</span>
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -128,7 +129,7 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
             </div>
         </div>
         <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>CANCELAR</Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isConfirming}>CANCELAR</Button>
             <Button onClick={handleConfirm} disabled={isConfirming}>
                 {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 CONFIRMAR PAGAMENTO

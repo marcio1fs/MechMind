@@ -55,6 +55,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebas
 import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp, runTransaction } from "firebase/firestore";
 import type { StockItem } from "../inventory/page";
 import type { Mechanic as FullMechanic } from "../mechanics/page";
+import { formatNumber } from "@/lib/utils";
 
 
 export type UsedPart = {
@@ -188,14 +189,16 @@ export default function OrdersPage() {
   };
 
   const handleSaveOrder = async (orderData: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => {
-    if (!firestore || !ordersCollection || !profile) return;
+    if (!firestore || !ordersCollection || !profile) {
+        throw new Error("Firestore not initialized");
+    }
     const { id, ...data } = orderData;
     
     // Sanitize data to prevent Firestore errors with 'undefined' values.
     const dataToSave = {
         ...data,
-        subtotal: data.subtotal ?? null,
-        discount: data.discount ?? null,
+        subtotal: data.subtotal === undefined ? null : data.subtotal,
+        discount: data.discount === undefined ? null : data.discount,
     };
 
     try {
@@ -229,6 +232,7 @@ export default function OrdersPage() {
 
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ADICIONADA COM SUCESSO." });
         }
+        setIsOrderDialogOpen(false);
     } catch (error) {
         console.error("Error saving order:", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO." });
@@ -237,7 +241,9 @@ export default function OrdersPage() {
   };
 
   const handleDeleteOrder = async (order: Order) => {
-    if (!firestore) return;
+    if (!firestore) {
+        throw new Error("Firestore not initialized");
+    };
     try {
         const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
         await deleteDoc(orderRef);
@@ -252,7 +258,9 @@ export default function OrdersPage() {
   };
 
   const handleConfirmPayment = async (order: Order, paymentMethod: string, discountValue: number) => {
-     if (!firestore || !profile) return;
+     if (!firestore || !profile) {
+        throw new Error("Firestore not initialized");
+     }
     
     const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
     const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
@@ -261,27 +269,29 @@ export default function OrdersPage() {
     const finalTotal = originalTotal - discountValue;
 
     try {
-        // Update order status and totals
-        await updateDoc(orderRef, { 
-            status: "FINALIZADO",
-            paymentMethod: paymentMethod,
-            total: finalTotal,
-            subtotal: originalTotal,
-            discount: discountValue > 0 ? discountValue : null,
-        });
+        await runTransaction(firestore, async (transaction) => {
+            // Update order status and totals
+            transaction.update(orderRef, { 
+                status: "FINALIZADO",
+                paymentMethod: paymentMethod,
+                total: finalTotal,
+                subtotal: originalTotal,
+                discount: discountValue > 0 ? discountValue : null,
+            });
 
-        // Create financial transaction
-        const newFinDocRef = doc(financialCollection);
-        await setDoc(newFinDocRef, {
-            id: newFinDocRef.id,
-            oficinaId: OFICINA_ID,
-            description: `PAGAMENTO OS #${order.displayId}`,
-            category: "ORDEM DE SERVIÇO",
-            type: "IN",
-            value: finalTotal,
-            date: serverTimestamp(),
-            reference_id: order.id,
-            reference_type: "OS",
+            // Create financial transaction
+            const newFinDocRef = doc(financialCollection);
+            transaction.set(newFinDocRef, {
+                id: newFinDocRef.id,
+                oficinaId: OFICINA_ID,
+                description: `PAGAMENTO OS #${order.displayId}`,
+                category: "ORDEM DE SERVIÇO",
+                type: "IN",
+                value: finalTotal,
+                date: serverTimestamp(),
+                reference_id: order.id,
+                reference_type: "OS",
+            });
         });
 
         toast({
@@ -291,10 +301,9 @@ export default function OrdersPage() {
         
         toast({
             title: "LANÇAMENTO FINANCEIRO CRIADO",
-            description: `Entrada de R$${finalTotal.toFixed(2)} registrada no módulo financeiro.`,
+            description: `Entrada de R$ ${formatNumber(finalTotal)} registrada no módulo financeiro.`,
         });
 
-        setIsPaymentDialogOpen(false);
         // Find the updated order data from the local state to show receipt
         const updatedOrder = { 
             ...order, 
@@ -310,6 +319,8 @@ export default function OrdersPage() {
         console.error("Error confirming payment:", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL REGISTRAR O PAGAMENTO." });
         throw error;
+    } finally {
+        setIsPaymentDialogOpen(false);
     }
   };
 
@@ -425,7 +436,7 @@ export default function OrdersPage() {
                                             {order.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="text-right">R${order.total.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">R$ {formatNumber(order.total)}</TableCell>
                                     <TableCell className="text-right">
                                         {isMounted ? (
                                             <DropdownMenu>

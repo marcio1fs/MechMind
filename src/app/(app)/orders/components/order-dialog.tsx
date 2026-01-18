@@ -10,7 +10,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -309,7 +309,6 @@ export function OrderDialog({
         services: data.services || [],
         parts: data.parts || [],
       });
-      onOpenChange(false);
     } finally {
       setIsSaving(false);
     }
@@ -769,7 +768,7 @@ export function OrderDialog({
                                                 )}
                                             />
                                         </TableCell>
-                                        <TableCell className="text-right font-medium">R${subtotal.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right font-medium">R$ {formatNumber(subtotal)}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => removeService(index)} disabled={isFinalizado}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -818,8 +817,8 @@ export function OrderDialog({
                               <TableRow key={`${part.itemId}-${index}`}>
                                   <TableCell>{part.name}</TableCell>
                                   <TableCell className="text-center">{part.quantity}</TableCell>
-                                  <TableCell className="text-right">R${part.sale_price.toFixed(2)}</TableCell>
-                                  <TableCell className="text-right">R${(part.quantity * part.sale_price).toFixed(2)}</TableCell>
+                                  <TableCell className="text-right">R$ {formatNumber(part.sale_price)}</TableCell>
+                                  <TableCell className="text-right">R$ {formatNumber(part.quantity * part.sale_price)}</TableCell>
                                   <TableCell>
                                       <Button variant="ghost" size="icon" onClick={() => handleRemovePart(index)} disabled={isFinalizado}>
                                           <Trash2 className="h-4 w-4 text-destructive" />

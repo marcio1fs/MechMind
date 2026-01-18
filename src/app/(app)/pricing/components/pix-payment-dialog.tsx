@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { formatNumber } from "@/lib/utils";
 
 interface PixPaymentDialogProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ export function PixPaymentDialog({ isOpen, onOpenChange, plan }: PixPaymentDialo
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-4">
-            <p className="text-center">Valor a pagar: <span className="font-bold text-xl">R${plan.price.toFixed(2)}</span></p>
+            <p className="text-center">Valor a pagar: <span className="font-bold text-xl">R$ {formatNumber(plan.price)}</span></p>
             
             {qrCodeImage && (
                 <Image

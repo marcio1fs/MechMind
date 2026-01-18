@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -15,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import React from "react";
+import { formatNumber } from "@/lib/utils";
 
 interface ReceiptDialogProps {
   isOpen: boolean;
@@ -34,11 +36,11 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
 
   const handleWhatsApp = () => {
       const servicesText = order.services && order.services.length > 0 
-        ? order.services.map(s => `- ${s.quantity}x ${s.description}: R$${(s.quantity * s.unitPrice).toFixed(2)}`).join('\n')
+        ? order.services.map(s => `- ${s.quantity}x ${s.description}: R$ ${formatNumber(s.quantity * s.unitPrice)}`).join('\n')
         : "Nenhum serviço realizado.";
 
       const partsText = order.parts && order.parts.length > 0
-        ? order.parts.map(p => `- ${p.quantity}x ${p.name}: R$${(p.quantity * p.sale_price).toFixed(2)}`).join('\n')
+        ? order.parts.map(p => `- ${p.quantity}x ${p.name}: R$ ${formatNumber(p.quantity * p.sale_price)}`).join('\n')
         : "Nenhuma peça utilizada.";
       
       const documentText = order.customerDocumentType === 'CNPJ' && order.customerCnpj 
@@ -58,11 +60,11 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
       message += `*Peças Utilizadas:*\n${partsText}\n\n`;
       
       if (hasDiscount && order.subtotal && order.discount) {
-          message += `*Subtotal:* R$${order.subtotal.toFixed(2)}\n`;
-          message += `*Desconto:* -R$${order.discount.toFixed(2)}\n`;
+          message += `*Subtotal:* R$ ${formatNumber(order.subtotal)}\n`;
+          message += `*Desconto:* -R$ ${formatNumber(order.discount)}\n`;
       }
 
-      message += `*Valor Total Pago:* R$${order.total.toFixed(2)}\n`;
+      message += `*Valor Total Pago:* R$ ${formatNumber(order.total)}\n`;
       if(order.paymentMethod) {
         message += `*Forma de Pagamento:* ${order.paymentMethod}\n\n`;
       }
@@ -122,7 +124,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
                 {order.services.length > 0 ? order.services.map((service, index) => (
                     <div key={`service-${index}`} className="flex justify-between items-center py-1">
                         <span>{service.quantity}x {service.description}</span>
-                        <span>R${(service.quantity * service.unitPrice).toFixed(2)}</span>
+                        <span>R$ {formatNumber(service.quantity * service.unitPrice)}</span>
                     </div>
                 )) : <p className="text-muted-foreground">Nenhum serviço realizado.</p>}
             </div>
@@ -134,7 +136,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
                 {order.parts.length > 0 ? order.parts.map((part, index) => (
                     <div key={`part-${index}`} className="flex justify-between items-center py-1">
                         <span>{part.quantity}x {part.name}</span>
-                        <span>R${(part.quantity * part.sale_price).toFixed(2)}</span>
+                        <span>R$ {formatNumber(part.quantity * part.sale_price)}</span>
                     </div>
                 )) : <p className="text-muted-foreground">Nenhuma peça utilizada.</p>}
             </div>
@@ -145,21 +147,21 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
                 <>
                     <div className="flex justify-between items-center text-muted-foreground">
                         <span>Subtotal</span>
-                        <span>R${order.subtotal.toFixed(2)}</span>
+                        <span>R$ {formatNumber(order.subtotal)}</span>
                     </div>
                     <div className="flex justify-between items-center text-muted-foreground">
                         <span>Desconto</span>
-                        <span className="text-destructive">-R${order.discount.toFixed(2)}</span>
+                        <span className="text-destructive">-R$ {formatNumber(order.discount)}</span>
                     </div>
                     <div className="flex justify-between items-center font-bold text-lg mt-2 pt-2 border-t">
                         <span>TOTAL PAGO</span>
-                        <span>R${order.total.toFixed(2)}</span>
+                        <span>R$ {formatNumber(order.total)}</span>
                     </div>
                 </>
             ) : (
                 <div className="flex justify-between items-center font-bold text-lg">
                     <span>TOTAL PAGO</span>
-                    <span>R${order.total.toFixed(2)}</span>
+                    <span>R$ {formatNumber(order.total)}</span>
                 </div>
             )}
 
@@ -176,5 +178,3 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
     </Dialog>
   );
 }
-
-    

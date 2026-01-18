@@ -17,6 +17,7 @@ import type { Order } from "../orders/page";
 import type { FinancialTransaction } from "../financial/page";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatNumber } from "@/lib/utils";
 
 const OFICINA_ID = "default_oficina";
 
@@ -119,7 +120,7 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">R${monthlyRevenue.toFixed(2)}</div>}
+            {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">R$ {formatNumber(monthlyRevenue)}</div>}
             <p className="text-xs text-muted-foreground">
               Receita total para o mês atual.
             </p>
