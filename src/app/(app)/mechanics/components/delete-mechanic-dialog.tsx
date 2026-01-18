@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,16 +12,28 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Mechanic } from "../page";
+import { Loader2 } from "lucide-react";
 
 interface DeleteMechanicDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   mechanic: Mechanic | null;
-  onDelete: (mechanic: Mechanic) => void;
+  onDelete: (mechanic: Mechanic) => Promise<void>;
 }
 
 export function DeleteMechanicDialog({ isOpen, onOpenChange, mechanic, onDelete }: DeleteMechanicDialogProps) {
+    const [isDeleting, setIsDeleting] = useState(false);
+
     if (!mechanic) return null;
+
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await onDelete(mechanic);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
@@ -32,11 +45,13 @@ export function DeleteMechanicDialog({ isOpen, onOpenChange, mechanic, onDelete 
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel>CANCELAR</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>CANCELAR</AlertDialogCancel>
             <AlertDialogAction
-                onClick={() => onDelete(mechanic)}
+                onClick={handleDelete}
+                disabled={isDeleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 EXCLUIR
             </AlertDialogAction>
             </AlertDialogFooter>

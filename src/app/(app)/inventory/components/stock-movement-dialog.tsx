@@ -24,7 +24,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { StockItem } from "../page";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   type: z.enum(["IN", "OUT"], { required_error: "Selecione o tipo de movimento." }),
@@ -38,10 +39,11 @@ interface StockMovementDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   item: StockItem | null;
-  onMove: (item: StockItem, type: "IN" | "OUT", quantity: number, reason?: string) => void;
+  onMove: (item: StockItem, type: "IN" | "OUT", quantity: number, reason?: string) => Promise<void>;
 }
 
 export function StockMovementDialog({ isOpen, onOpenChange, item, onMove }: StockMovementDialogProps) {
+  const [isMoving, setIsMoving] = useState(false);
   const form = useForm<StockMovementFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,13 +60,18 @@ export function StockMovementDialog({ isOpen, onOpenChange, item, onMove }: Stoc
         quantity: 1,
         reason: "",
       });
+      setIsMoving(false);
     }
   }, [isOpen, form]);
   
-  const onSubmit = (data: StockMovementFormValues) => {
+  const onSubmit = async (data: StockMovementFormValues) => {
     if (item) {
-        onMove(item, data.type, data.quantity, data.reason);
-        onOpenChange(false);
+        setIsMoving(true);
+        try {
+            await onMove(item, data.type, data.quantity, data.reason);
+        } finally {
+            setIsMoving(false);
+        }
     }
   };
 
@@ -136,7 +143,10 @@ export function StockMovementDialog({ isOpen, onOpenChange, item, onMove }: Stoc
               )}
             />
             <DialogFooter>
-              <Button type="submit">Confirmar Movimentação</Button>
+              <Button type="submit" disabled={isMoving}>
+                {isMoving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar Movimentação
+              </Button>
             </DialogFooter>
           </form>
         </Form>

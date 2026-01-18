@@ -21,12 +21,13 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { Order } from "../page";
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 interface PaymentDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   order: Order | null;
-  onConfirm: (order: Order, paymentMethod: string, discountValue: number) => void;
+  onConfirm: (order: Order, paymentMethod: string, discountValue: number) => Promise<void>;
 }
 
 const paymentMethods = ["DINHEIRO", "PIX", "CARTÃO DE CRÉDITO", "CARTÃO DE DÉBITO"];
@@ -34,12 +35,14 @@ const paymentMethods = ["DINHEIRO", "PIX", "CARTÃO DE CRÉDITO", "CARTÃO DE D�
 export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: PaymentDialogProps) {
   const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0]);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [isConfirming, setIsConfirming] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
       setDiscountPercent(0);
       setPaymentMethod(paymentMethods[0]);
+      setIsConfirming(false);
     }
   }, [isOpen]);
 
@@ -64,9 +67,16 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
   const discountValue = (order.total * discountPercent) / 100;
   const finalTotal = order.total - discountValue;
 
-  const handleConfirm = () => {
-    onConfirm(order, paymentMethod, discountValue);
-    onOpenChange(false);
+  const handleConfirm = async () => {
+    setIsConfirming(true);
+    try {
+        await onConfirm(order, paymentMethod, discountValue);
+        onOpenChange(false);
+    } catch (error) {
+        // Error is handled in the parent component
+    } finally {
+        setIsConfirming(false);
+    }
   };
 
   return (
@@ -119,7 +129,10 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
         </div>
         <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>CANCELAR</Button>
-            <Button onClick={handleConfirm}>CONFIRMAR PAGAMENTO</Button>
+            <Button onClick={handleConfirm} disabled={isConfirming}>
+                {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                CONFIRMAR PAGAMENTO
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
