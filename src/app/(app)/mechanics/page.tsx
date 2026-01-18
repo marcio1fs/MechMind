@@ -37,17 +37,13 @@ export type Mechanic = {
   role: string;
 };
 
-// A hardcoded oficinaId for demonstration purposes.
-// In a real multi-tenant app, this would come from the user's profile.
-const OFICINA_ID = "default_oficina";
-
 export default function MechanicsPage() {
   const firestore = useFirestore();
   const { profile } = useUser();
   const mechanicsCollection = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return collection(firestore, "oficinas", OFICINA_ID, "users");
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return collection(firestore, "oficinas", profile.oficinaId, "users");
+  }, [firestore, profile?.oficinaId]);
 
   const { data: mechanics, isLoading } = useCollection<Mechanic>(mechanicsCollection);
 
@@ -68,14 +64,14 @@ export default function MechanicsPage() {
   };
   
   const handleSaveMechanic = async (mechanicData: Omit<Mechanic, 'id' | 'oficinaId' | 'role'> & { id?: string }) => {
-    if (!firestore || !mechanicsCollection) return;
+    if (!firestore || !mechanicsCollection || !profile?.oficinaId) return;
 
     const { id, ...data } = mechanicData;
     
     try {
       if (id) {
         // Editing existing mechanic
-        const mechanicRef = doc(firestore, "oficinas", OFICINA_ID, "users", id);
+        const mechanicRef = doc(firestore, "oficinas", profile.oficinaId, "users", id);
         await setDoc(mechanicRef, data, { merge: true });
         toast({ title: "SUCESSO!", description: "MECÂNICO ATUALIZADO COM SUCESSO." });
       } else {
@@ -86,7 +82,7 @@ export default function MechanicsPage() {
         await setDoc(newDocRef, {
             ...data,
             id: newDocRef.id,
-            oficinaId: OFICINA_ID,
+            oficinaId: profile.oficinaId,
             role: "OFICINA", // Default role
         });
         toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
@@ -98,9 +94,9 @@ export default function MechanicsPage() {
   };
 
   const handleDeleteMechanic = async (mechanic: Mechanic) => {
-    if (!firestore) return;
+    if (!firestore || !profile?.oficinaId) return;
     try {
-        const mechanicRef = doc(firestore, "oficinas", OFICINA_ID, "users", mechanic.id);
+        const mechanicRef = doc(firestore, "oficinas", profile.oficinaId, "users", mechanic.id);
         await deleteDoc(mechanicRef);
         toast({ title: "SUCESSO!", description: "MECÂNICO EXCLUÍDO COM SUCESSO." });
         setSelectedMechanic(null);

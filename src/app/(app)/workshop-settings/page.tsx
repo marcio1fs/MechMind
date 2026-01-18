@@ -14,8 +14,6 @@ import { doc, setDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 
-const OFICINA_ID = "default_oficina";
-
 const formSchema = z.object({
     name: z.string().min(1, "O nome da oficina é obrigatório."),
     cnpj: z.string().refine(val => val.replace(/\D/g, '').length === 14, {
@@ -39,9 +37,9 @@ export default function WorkshopSettingsPage() {
     const { toast } = useToast();
 
     const workshopDocRef = useMemoFirebase(() => {
-        if (!firestore || !profile) return null;
-        return doc(firestore, "oficinas", OFICINA_ID);
-    }, [firestore, profile]);
+        if (!firestore || !profile?.oficinaId) return null;
+        return doc(firestore, "oficinas", profile.oficinaId);
+    }, [firestore, profile?.oficinaId]);
 
     const { data: workshopData, isLoading: isLoadingData } = useDoc<WorkshopFormValues>(workshopDocRef);
 
@@ -89,7 +87,7 @@ export default function WorkshopSettingsPage() {
     }, [workshopData, form]);
 
     const onSubmit = async (data: WorkshopFormValues) => {
-        if (!profile || !firestore) {
+        if (!profile?.oficinaId || !firestore) {
             toast({
                 variant: "destructive",
                 title: "Não autenticado",
@@ -111,7 +109,7 @@ export default function WorkshopSettingsPage() {
         try {
             const dataToSave = {
                 ...data,
-                id: OFICINA_ID,
+                id: profile.oficinaId,
                 cnpj: data.cnpj.replace(/\D/g, ''),
                 phone: data.phone.replace(/\D/g, ''),
             };

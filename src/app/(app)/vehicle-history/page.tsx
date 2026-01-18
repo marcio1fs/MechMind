@@ -34,9 +34,6 @@ function SubmitButton() {
   );
 }
 
-// A hardcoded oficinaId for demonstration purposes.
-const OFICINA_ID = "default_oficina";
-
 export default function VehicleHistoryPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -54,7 +51,7 @@ export default function VehicleHistoryPage() {
   };
 
   const handleSearchHistory = async () => {
-    if (!profile) {
+    if (!profile?.oficinaId) {
       toast({
         variant: "destructive",
         title: "Erro",
@@ -74,7 +71,7 @@ export default function VehicleHistoryPage() {
     setIsSearching(true);
     setHistoryText("");
     try {
-      const ordersRef = collection(firestore, "oficinas", OFICINA_ID, "ordensDeServico");
+      const ordersRef = collection(firestore, "oficinas", profile.oficinaId, "ordensDeServico");
       const q = query(
         ordersRef,
         where("vehicle.plate", "==", vehiclePlate),

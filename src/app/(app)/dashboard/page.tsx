@@ -19,22 +19,20 @@ import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from
 import { ptBR } from "date-fns/locale";
 import { formatNumber } from "@/lib/utils";
 
-const OFICINA_ID = "default_oficina";
-
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { profile } = useUser();
 
   const ordersCollection = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return collection(firestore, "oficinas", OFICINA_ID, "ordensDeServico");
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return collection(firestore, "oficinas", profile.oficinaId, "ordensDeServico");
+  }, [firestore, profile?.oficinaId]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
   
   const financialCollection = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return collection(firestore, "oficinas", profile.oficinaId, "financialTransactions");
+  }, [firestore, profile?.oficinaId]);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<FinancialTransaction>(financialCollection);
 
   const {

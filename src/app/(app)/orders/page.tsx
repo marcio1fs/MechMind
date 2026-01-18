@@ -120,34 +120,32 @@ const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outl
     "FINALIZADO": "default",
 }
 
-const OFICINA_ID = "default_oficina";
-
 export default function OrdersPage() {
   const firestore = useFirestore();
   const { profile } = useUser();
   
   const inventoryCollection = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return collection(firestore, "oficinas", OFICINA_ID, "inventory");
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return collection(firestore, "oficinas", profile.oficinaId, "inventory");
+  }, [firestore, profile?.oficinaId]);
   const { data: stockItems, isLoading: isLoadingStock } = useCollection<StockItem>(inventoryCollection);
 
   const mechanicsCollection = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return collection(firestore, "oficinas", OFICINA_ID, "users");
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return collection(firestore, "oficinas", profile.oficinaId, "users");
+  }, [firestore, profile?.oficinaId]);
   const { data: mechanicsData, isLoading: isLoadingMechanics } = useCollection<FullMechanic>(mechanicsCollection);
   
   const ordersCollection = useMemoFirebase(() => {
-      if (!firestore || !profile) return null;
-      return collection(firestore, "oficinas", OFICINA_ID, "ordensDeServico");
-  }, [firestore, profile]);
+      if (!firestore || !profile?.oficinaId) return null;
+      return collection(firestore, "oficinas", profile.oficinaId, "ordensDeServico");
+  }, [firestore, profile?.oficinaId]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
 
   const workshopDocRef = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return doc(firestore, "oficinas", OFICINA_ID);
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return doc(firestore, "oficinas", profile.oficinaId);
+  }, [firestore, profile?.oficinaId]);
   const { data: workshopData, isLoading: isLoadingWorkshop } = useDoc<WorkshopInfo>(workshopDocRef);
 
 
@@ -209,11 +207,12 @@ export default function OrdersPage() {
   };
 
   const handleSaveOrder = async (orderData: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => {
-    if (!firestore || !ordersCollection || !profile) {
+    if (!firestore || !ordersCollection || !profile?.oficinaId) {
       toast({ variant: "destructive", title: "ERRO!", description: "A SESSÃO EXPIROU. FAÇA LOGIN NOVAMENTE." });
       return;
     }
-
+    
+    const oficinaId = profile.oficinaId;
     const orderId = orderData.id;
     const { id, ...data } = orderData;
 
@@ -237,7 +236,7 @@ export default function OrdersPage() {
 
             // If updating, read existing order to get old parts list
             if (orderId) {
-                const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", orderId);
+                const orderRef = doc(firestore, "oficinas", oficinaId, "ordensDeServico", orderId);
                 const orderDoc = await transaction.get(orderRef);
                 if (orderDoc.exists()) {
                     oldParts = (orderDoc.data().parts as UsedPart[]) || [];
@@ -246,7 +245,7 @@ export default function OrdersPage() {
             
             // Read counter only if creating a new order
             if (!orderId) {
-                const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
+                const counterRef = doc(firestore, "oficinas", oficinaId, "counters", "ordensDeServico");
                 counterDoc = await transaction.get(counterRef);
             }
 
@@ -266,7 +265,7 @@ export default function OrdersPage() {
                 const stockReads: Promise<void>[] = [];
                 for (const itemId of stockChanges.keys()) {
                     stockReads.push((async () => {
-                        const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
+                        const stockItemRef = doc(firestore, "oficinas", oficinaId, "inventory", itemId);
                         const stockItemDoc = await transaction.get(stockItemRef);
                         stockItemDocs.set(itemId, stockItemDoc);
                     })());
@@ -307,16 +306,16 @@ export default function OrdersPage() {
                 
                 const stockItemDoc = stockItemDocs.get(itemId)!;
                 const newQuantity = stockItemDoc.data()!.quantity + quantityChange;
-                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
+                const stockItemRef = doc(firestore, "oficinas", oficinaId, "inventory", itemId);
                 transaction.update(stockItemRef, { quantity: newQuantity });
             }
 
             // Update or create order
             if (orderId) {
-                const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", orderId);
+                const orderRef = doc(firestore, "oficinas", oficinaId, "ordensDeServico", orderId);
                 transaction.update(orderRef, dataToSave);
             } else {
-                const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
+                const counterRef = doc(firestore, "oficinas", oficinaId, "counters", "ordensDeServico");
                 let newCount = 1;
                 if (counterDoc && counterDoc.exists()) {
                     newCount = (counterDoc.data().lastId || 0) + 1;
@@ -328,7 +327,7 @@ export default function OrdersPage() {
                     ...dataToSave,
                     id: newDocRef.id,
                     displayId: displayId,
-                    oficinaId: OFICINA_ID,
+                    oficinaId: oficinaId,
                 });
                 
                 transaction.set(counterRef, { lastId: newCount }, { merge: true });
@@ -356,15 +355,16 @@ export default function OrdersPage() {
   };
 
   const handleDeleteOrder = async (order: Order) => {
-    if (!firestore) {
+    if (!firestore || !profile?.oficinaId) {
         return;
     };
+    const oficinaId = profile.oficinaId;
     try {
         await runTransaction(firestore, async (transaction) => {
-            const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
+            const orderRef = doc(firestore, "oficinas", oficinaId, "ordensDeServico", order.id);
 
             for (const part of order.parts) {
-                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", part.itemId);
+                const stockItemRef = doc(firestore, "oficinas", oficinaId, "inventory", part.itemId);
                 const stockItemDoc = await transaction.get(stockItemRef);
                 if (stockItemDoc.exists()) {
                     const newQuantity = stockItemDoc.data().quantity + part.quantity;
@@ -385,13 +385,13 @@ export default function OrdersPage() {
   };
 
   const handleConfirmPayment = async (order: Order, paymentMethod: string, discountValue: number) => {
-    if (!firestore || !profile) {
+    if (!firestore || !profile?.oficinaId) {
        return;
     }
-   
+   const oficinaId = profile.oficinaId;
    try {
        await runTransaction(firestore, async (transaction) => {
-           const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
+           const orderRef = doc(firestore, "oficinas", oficinaId, "ordensDeServico", order.id);
 
            const originalTotal = order.total;
            const finalTotal = originalTotal - discountValue;
@@ -404,11 +404,11 @@ export default function OrdersPage() {
                discount: discountValue,
            });
 
-           const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
+           const financialCollection = collection(firestore, "oficinas", oficinaId, "financialTransactions");
            const newFinDocRef = doc(financialCollection);
            transaction.set(newFinDocRef, {
                id: newFinDocRef.id,
-               oficinaId: OFICINA_ID,
+               oficinaId: oficinaId,
                description: `PAGAMENTO OS #${order.displayId}`,
                category: "ORDEM DE SERVIÇO",
                type: "IN",

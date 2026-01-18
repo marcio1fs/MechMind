@@ -14,7 +14,6 @@ import { getSubscriptionDetails, type SubscriptionDetails } from "@/lib/subscrip
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const OFICINA_ID = "default_oficina";
 const CONFIG_ID = "whatsapp";
 
 export default function SettingsPage() {
@@ -28,13 +27,13 @@ export default function SettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        if (!profile || !firestore) return;
+        if (!profile?.oficinaId || !firestore) return;
 
         if (profile.role === 'ADMIN') {
             const fetchConfig = async () => {
                 setIsConfigLoading(true);
                 try {
-                    const configRef = doc(firestore, "oficinas", OFICINA_ID, "config", CONFIG_ID);
+                    const configRef = doc(firestore, "oficinas", profile.oficinaId, "config", CONFIG_ID);
                     const docSnap = await getDoc(configRef);
                     if (docSnap.exists()) {
                         const data = docSnap.data();
@@ -58,7 +57,7 @@ export default function SettingsPage() {
     }, [profile, firestore, toast]);
 
     const handleSave = async () => {
-        if (!profile || !firestore) {
+        if (!profile?.oficinaId || !firestore) {
             toast({
                 variant: "destructive",
                 title: "Não autenticado",
@@ -78,7 +77,7 @@ export default function SettingsPage() {
 
         setIsSaving(true);
         try {
-            const configRef = doc(firestore, "oficinas", OFICINA_ID, "config", CONFIG_ID);
+            const configRef = doc(firestore, "oficinas", profile.oficinaId, "config", CONFIG_ID);
             await setDoc(configRef, { apiKey, senderNumber }, { merge: true });
             toast({
                 title: "Configurações Salvas",

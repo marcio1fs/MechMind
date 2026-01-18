@@ -53,17 +53,14 @@ function getStatus(quantity: number, min_quantity: number): { text: string; vari
   return { text: "EM ESTOQUE", variant: "default" };
 }
 
-// A hardcoded oficinaId for demonstration purposes.
-const OFICINA_ID = "default_oficina";
-
 
 export default function InventoryPage() {
   const firestore = useFirestore();
   const { profile } = useUser();
   const inventoryCollection = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return collection(firestore, "oficinas", OFICINA_ID, "inventory");
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return collection(firestore, "oficinas", profile.oficinaId, "inventory");
+  }, [firestore, profile?.oficinaId]);
 
   const { data: stockItems, isLoading } = useCollection<StockItem>(inventoryCollection);
   
@@ -95,8 +92,8 @@ export default function InventoryPage() {
   };
   
   const handleSaveItem = async (itemData: any) => {
-    if (!firestore || !inventoryCollection) {
-        throw new Error("Firestore not initialized");
+    if (!firestore || !inventoryCollection || !profile?.oficinaId) {
+        throw new Error("Firestore not initialized or user not associated with an oficina.");
     }
     
     const { id, ...data } = itemData;
@@ -104,7 +101,7 @@ export default function InventoryPage() {
     try {
         if (id) {
             // Editing existing item
-            const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", id);
+            const itemRef = doc(firestore, "oficinas", profile.oficinaId, "inventory", id);
             await setDoc(itemRef, data, { merge: true });
             toast({ title: "SUCESSO!", description: "ITEM ATUALIZADO COM SUCESSO." });
         } else {
@@ -113,7 +110,7 @@ export default function InventoryPage() {
             await setDoc(newDocRef, {
                 ...data,
                 id: newDocRef.id,
-                oficinaId: OFICINA_ID,
+                oficinaId: profile.oficinaId,
             });
             toast({ title: "SUCESSO!", description: "ITEM ADICIONADO COM SUCESSO." });
         }
@@ -136,11 +133,11 @@ export default function InventoryPage() {
   };
 
   const handleDeleteItem = async (item: StockItem) => {
-    if (!firestore) {
+    if (!firestore || !profile?.oficinaId) {
         return;
     }
     try {
-        const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
+        const itemRef = doc(firestore, "oficinas", profile.oficinaId, "inventory", item.id);
         await deleteDoc(itemRef);
         toast({ title: "SUCESSO!", description: "ITEM EXCLUÍDO COM SUCESSO." });
     } catch (error) {
@@ -152,7 +149,7 @@ export default function InventoryPage() {
   };
 
   const handleMoveItem = async (item: StockItem, type: "IN" | "OUT", quantity: number, reason?: string) => {
-     if (!firestore) {
+     if (!firestore || !profile?.oficinaId) {
         toast({ variant: "destructive", title: "ERRO!", description: "CONEXÃO COM O BANCO DE DADOS FALHOU." });
         return;
      }
@@ -161,7 +158,7 @@ export default function InventoryPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
+            const itemRef = doc(firestore, "oficinas", profile.oficinaId, "inventory", item.id);
             const itemDoc = await transaction.get(itemRef);
             
             if (!itemDoc.exists()) {
@@ -185,7 +182,7 @@ export default function InventoryPage() {
             transaction.update(itemRef, { quantity: newQuantity });
 
             // Create financial transaction
-            const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
+            const financialCollection = collection(firestore, "oficinas", profile.oficinaId, "financialTransactions");
             const newFinDocRef = doc(financialCollection);
             const costOfMovement = quantity * item.cost_price;
 
@@ -202,7 +199,7 @@ export default function InventoryPage() {
 
             transaction.set(newFinDocRef, {
                id: newFinDocRef.id,
-               oficinaId: OFICINA_ID,
+               oficinaId: profile.oficinaId,
                description: reason ? `${description} (${reason})` : description,
                category: category,
                type: "OUT", // Both acquisition and loss are expenses

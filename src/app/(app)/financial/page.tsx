@@ -72,8 +72,6 @@ const statusText: { [key in FinancialTransaction["type"]]: string } = {
     "OUT": "SAÍDA"
 }
 
-const OFICINA_ID = "default_oficina";
-
 
 export default function FinancialPage() {
   const firestore = useFirestore();
@@ -81,9 +79,9 @@ export default function FinancialPage() {
   const { toast } = useToast();
 
   const financialCollection = useMemoFirebase(() => {
-    if (!firestore || !profile) return null;
-    return collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
-  }, [firestore, profile]);
+    if (!firestore || !profile?.oficinaId) return null;
+    return collection(firestore, "oficinas", profile.oficinaId, "financialTransactions");
+  }, [firestore, profile?.oficinaId]);
 
   const { data: transactions, isLoading } = useCollection<FinancialTransaction>(financialCollection);
 
@@ -107,8 +105,8 @@ export default function FinancialPage() {
   };
 
   const handleSaveTransaction = async (transactionData: any) => {
-    if (!firestore || !financialCollection || !profile) {
-        throw new Error("Firestore not initialized");
+    if (!firestore || !financialCollection || !profile?.oficinaId) {
+        throw new Error("Firestore not initialized or user not associated with an oficina.");
     }
     
     const dataToSave: { [key: string]: any } = { ...transactionData };
@@ -125,7 +123,7 @@ export default function FinancialPage() {
     try {
         if (transactionId) {
             // Editing existing transaction
-            const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", transactionId);
+            const transactionRef = doc(firestore, "oficinas", profile.oficinaId, "financialTransactions", transactionId);
             await setDoc(transactionRef, dataToSave, { merge: true });
             toast({ title: "SUCESSO!", description: "LANÇAMENTO ATUALIZADO COM SUCESSO." });
         } else {
@@ -134,7 +132,7 @@ export default function FinancialPage() {
             await setDoc(newDocRef, {
                 ...dataToSave,
                 id: newDocRef.id,
-                oficinaId: OFICINA_ID,
+                oficinaId: profile.oficinaId,
                 reference_type: "MANUAL",
             });
             toast({ title: "SUCESSO!", description: "LANÇAMENTO ADICIONADO COM SUCESSO." });
@@ -147,14 +145,14 @@ export default function FinancialPage() {
   };
 
   const handleDeleteTransaction = async (transaction: FinancialTransaction) => {
-    if (!firestore) {
+    if (!firestore || !profile?.oficinaId) {
         return;
     }
     try {
         if(transaction.reference_type !== "MANUAL"){
             toast({ variant: "destructive", title: "AÇÃO BLOQUEADA", description: "Lançamentos automáticos (gerados por OS ou Estoque) não podem ser excluídos para manter a integridade dos dados." });
         } else {
-            const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", transaction.id);
+            const transactionRef = doc(firestore, "oficinas", profile.oficinaId, "financialTransactions", transaction.id);
             await deleteDoc(transactionRef);
             toast({ title: "SUCESSO!", description: "LANÇAMENTO EXCLUÍDO COM SUCESSO." });
         }
