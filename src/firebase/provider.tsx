@@ -6,6 +6,8 @@ import { Firestore, doc, onSnapshot, getDoc, setDoc, DocumentSnapshot, DocumentD
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { getUserPlan } from '@/lib/subscription';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // Define the shape of the user profile based on the User entity.
 type UserProfile = {
@@ -148,42 +150,50 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             }
 
             // --- LISTEN TO PROFILE ---
-            // Now that we have the profileDocRef for either a new or existing user
             profileUnsubscribe = onSnapshot(profileDocRef, 
                 (snapshot) => {
                     if (snapshot.exists()) {
                         const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
                         const activePlan = getUserPlan(profileData);
                         
-                        // Ensure the role is ADMIN for the user, update DB if necessary
                         if (profileData.role !== 'ADMIN') {
                            setDoc(profileDocRef, { role: 'ADMIN' }, { merge: true }).catch(err => {
-                                console.error("Failed to auto-promote user to ADMIN:", err);
+                                const contextualError = new FirestorePermissionError({
+                                    operation: 'update',
+                                    path: profileDocRef.path,
+                                    requestResourceData: { role: 'ADMIN', reason: 'Auto-promotion to admin' },
+                                });
+                                errorEmitter.emit('permission-error', contextualError);
                            });
-                           profileData.role = 'ADMIN'; // Optimistic update for UI
+                           profileData.role = 'ADMIN';
                         }
 
                         const finalProfile = { ...profileData, activePlan };
                         
                         setUserAuthState({ user: firebaseUser, profile: finalProfile, isUserLoading: false, userError: null });
                     } else {
-                        // This indicates a problem, like the profile doc was deleted after creation/lookup
                         throw new Error(`Profile document not found at path: ${profileDocRef.path}`);
                     }
                 },
-                (error) => { // Error handler for the snapshot listener
+                (error) => {
                     console.error("Error listening to profile:", error);
                     setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
                 }
             );
 
         } catch (error: any) {
-            console.error("Error in auth state change handling:", error);
-            setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
+            const contextualError = new FirestorePermissionError({
+                operation: 'write',
+                path: `[BATCH_WRITE]/users/${firebaseUser.uid}`,
+                requestResourceData: {
+                    description: "A batch write failed during initial user and workshop setup. This typically indicates a security rule violation for one of a series of documents.",
+                }
+            });
+            errorEmitter.emit('permission-error', contextualError);
+            setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: contextualError });
         }
       },
       (error) => {
-        // Error with the auth listener itself
         setUserAuthState({ user: null, profile: null, isUserLoading: false, userError: error });
       }
     );
