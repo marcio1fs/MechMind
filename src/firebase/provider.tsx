@@ -155,19 +155,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                     if (snapshot.exists()) {
                         const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
                         const activePlan = getUserPlan(profileData);
-                        
-                        if (profileData.role !== 'ADMIN') {
-                           setDoc(profileDocRef, { role: 'ADMIN' }, { merge: true }).catch(err => {
-                                const contextualError = new FirestorePermissionError({
-                                    operation: 'update',
-                                    path: profileDocRef.path,
-                                    requestResourceData: { role: 'ADMIN', reason: 'Auto-promotion to admin' },
-                                });
-                                errorEmitter.emit('permission-error', contextualError);
-                           });
-                           profileData.role = 'ADMIN';
-                        }
-
                         const finalProfile = { ...profileData, activePlan };
                         
                         setUserAuthState({ user: firebaseUser, profile: finalProfile, isUserLoading: false, userError: null });
