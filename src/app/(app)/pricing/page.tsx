@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { PixPaymentDialog } from "./components/pix-payment-dialog";
 import { useUser } from "@/firebase";
 import { formatNumber } from "@/lib/utils";
+import { getSubscriptionDetails } from "@/lib/subscription";
 
 type Plan = {
     name: string;
@@ -63,34 +64,41 @@ export default function PricingPage() {
         setIsPixDialogOpen(true);
     };
 
-    const getTrialInfo = () => {
-        if (!profile || !profile.createdAt) return null;
+    const subscriptionDetails = useMemo(() => {
+        return getSubscriptionDetails(profile);
+    }, [profile]);
+
+    const TrialInfoBanner = () => {
+        if (!profile) return null;
+
+        if (subscriptionDetails.status === 'AVALIAÇÃO') {
+            return (
+                <div className="text-center p-4 rounded-md bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200">
+                    <p className="font-medium">
+                        Você está em um período de avaliação do plano {subscriptionDetails.plan}. Restam {subscriptionDetails.daysRemaining} dias.
+                    </p>
+                </div>
+            );
+        }
+
+        if (subscriptionDetails.status === 'AVALIAÇÃO EXPIRADA') {
+             return (
+                <div className="text-center p-4 rounded-md bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200">
+                    <p className="font-medium">
+                        Seu período de avaliação terminou. Para continuar a usar os recursos avançados, por favor, escolha um plano.
+                    </p>
+                </div>
+            );
+        }
         
-        const now = new Date();
-        const signUpDate = profile.createdAt.toDate();
-        const daysSinceSignUp = Math.floor((now.getTime() - signUpDate.getTime()) / (1000 * 3600 * 24));
-        const daysLeftInTrial = 30 - daysSinceSignUp;
-
-        if (daysLeftInTrial <= 0) {
-            return {
-                message: `Seu período de avaliação de 30 dias terminou. Para continuar a usar os recursos avançados, por favor, escolha um plano.`
-            };
-        }
-
-        return {
-            message: `Você está no seu período de avaliação. Plano atual: ${profile.activePlan}. Dias restantes: ${daysLeftInTrial}.`
-        }
+        return null;
     }
-    const trialInfo = getTrialInfo();
+
 
     return (
         <>
             <div className="flex flex-col gap-8">
-                {trialInfo && (
-                    <div className="text-center p-4 rounded-md bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200">
-                        <p className="font-medium">{trialInfo.message}</p>
-                    </div>
-                )}
+                <TrialInfoBanner />
                 <div className="text-center">
                     <h1 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Escolha Seu Plano</h1>
                     <p className="mt-2 text-muted-foreground">

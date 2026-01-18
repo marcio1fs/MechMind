@@ -9,49 +9,51 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { getSubscriptionDetails, type SubscriptionDetails } from "@/lib/subscription";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const OFICINA_ID = "default_oficina";
 const CONFIG_ID = "whatsapp";
 
 export default function SettingsPage() {
     const firestore = useFirestore();
-    const { profile } = useUser();
+    const { profile, isUserLoading } = useUser();
     const { toast } = useToast();
 
     const [apiKey, setApiKey] = useState("");
     const [senderNumber, setSenderNumber] = useState("");
-    const [isLoading, setIsLoading] = useState(true);
+    const [isConfigLoading, setIsConfigLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (!profile || !firestore) return;
 
-        const fetchConfig = async () => {
-            setIsLoading(true);
-            try {
-                const configRef = doc(firestore, "oficinas", OFICINA_ID, "config", CONFIG_ID);
-                const docSnap = await getDoc(configRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    setApiKey(data.apiKey || "");
-                    setSenderNumber(data.senderNumber || "");
-                }
-            } catch (error) {
-                toast({
-                    variant: "destructive",
-                    title: "Erro ao carregar configurações",
-                    description: "Não foi possível carregar as configurações de integração.",
-                });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         if (profile.role === 'ADMIN') {
+            const fetchConfig = async () => {
+                setIsConfigLoading(true);
+                try {
+                    const configRef = doc(firestore, "oficinas", OFICINA_ID, "config", CONFIG_ID);
+                    const docSnap = await getDoc(configRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setApiKey(data.apiKey || "");
+                        setSenderNumber(data.senderNumber || "");
+                    }
+                } catch (error) {
+                    toast({
+                        variant: "destructive",
+                        title: "Erro ao carregar configurações",
+                        description: "Não foi possível carregar as configurações de integração.",
+                    });
+                } finally {
+                    setIsConfigLoading(false);
+                }
+            };
             fetchConfig();
         } else {
-            setIsLoading(false);
+            setIsConfigLoading(false);
         }
     }, [profile, firestore, toast]);
 
@@ -95,31 +97,23 @@ export default function SettingsPage() {
 
     const isReadOnly = profile?.role !== 'ADMIN';
 
-    const getSubscriptionInfo = () => {
-      if (!profile) return { currentPlan: "Carregando...", renewalDate: "..." };
-
-      if (profile.createdAt) {
-        const signUpDate = profile.createdAt.toDate();
-        const daysSinceSignUp = Math.floor((new Date().getTime() - signUpDate.getTime()) / (1000 * 3600 * 24));
-        
-        if (daysSinceSignUp > 30) {
-            return { currentPlan: 'AVALIAÇÃO TERMINOU', renewalDate: 'Seu período de avaliação terminou. Assine um plano.' };
+    const subscriptionDetails = useMemo(() => {
+        return getSubscriptionDetails(profile);
+    }, [profile]);
+    
+    const getStatusVariant = (status: SubscriptionDetails['status']) => {
+        switch (status) {
+            case 'AVALIAÇÃO':
+                return 'default';
+            case 'AVALIAÇÃO EXPIRADA':
+                return 'destructive';
+            case 'ASSINATURA ATIVA':
+                return 'default';
+            default:
+                return 'secondary';
         }
-        
-        const trialEndDate = new Date(signUpDate);
-        trialEndDate.setDate(trialEndDate.getDate() + 30);
-
-        return {
-            currentPlan: `AVALIAÇÃO - ${profile.activePlan}`,
-            renewalDate: `Sua avaliação termina em ${trialEndDate.toLocaleDateString('pt-BR')}.`
-        };
-      }
-      
-      // Fallback for users without a creation date (e.g., pre-trial system)
-      return { currentPlan: "PRO", renewalDate: "Por favor, escolha um plano para obter os recursos mais recentes." };
     };
 
-    const subscriptionInfo = getSubscriptionInfo();
 
   return (
     <div className="grid gap-8">
@@ -141,7 +135,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {isLoading ? (
+          {isUserLoading || (isConfigLoading && profile?.role === 'ADMIN') ? (
             <div className="space-y-4">
                 <div className="h-10 w-1/2 rounded-md bg-muted animate-pulse"></div>
                 <div className="h-10 w-full rounded-md bg-muted animate-pulse"></div>
@@ -155,18 +149,18 @@ export default function SettingsPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="whatsapp-api-key">SUA CHAVE DE API (API Key)</Label>
-                <Input id="whatsapp-api-key" placeholder={isReadOnly ? "Apenas administradores podem ver/editar" : "Cole sua chave de API aqui"} className="normal-case placeholder:normal-case" value={apiKey} onChange={(e) => setApiKey(e.target.value)} disabled={isSaving || isLoading || isReadOnly} />
+                <Input id="whatsapp-api-key" placeholder={isReadOnly ? "Apenas administradores podem ver/editar" : "Cole sua chave de API aqui"} className="normal-case placeholder:normal-case" value={apiKey} onChange={(e) => setApiKey(e.target.value)} disabled={isSaving || isConfigLoading || isReadOnly} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="whatsapp-sender-number">SEU NÚMERO DE TELEFONE DO REMETENTE</Label>
-                <Input id="whatsapp-sender-number" placeholder={isReadOnly ? "Apenas administradores podem ver/editar" : "ex: +5511999998888"} value={senderNumber} onChange={(e) => setSenderNumber(e.target.value)} disabled={isSaving || isLoading || isReadOnly} />
+                <Input id="whatsapp-sender-number" placeholder={isReadOnly ? "Apenas administradores podem ver/editar" : "ex: +5511999998888"} value={senderNumber} onChange={(e) => setSenderNumber(e.target.value)} disabled={isSaving || isConfigLoading || isReadOnly} />
               </div>
             </>
           )}
         </CardContent>
         {!isReadOnly && (
             <CardFooter className="border-t px-6 py-4">
-                <Button onClick={handleSave} disabled={isSaving || isLoading}>
+                <Button onClick={handleSave} disabled={isSaving || isConfigLoading}>
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     SALVAR E CONECTAR
                 </Button>
@@ -182,15 +176,29 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="font-semibold">PLANO ATUAL: {subscriptionInfo.currentPlan}</p>
-                    <p className="text-sm text-muted-foreground">{subscriptionInfo.renewalDate}</p>
+            {isUserLoading ? (
+                <Skeleton className="h-12 w-full" />
+            ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <p className="font-semibold">PLANO ATUAL: {subscriptionDetails.plan}</p>
+                            <Badge variant={getStatusVariant(subscriptionDetails.status)}>{subscriptionDetails.status}</Badge>
+                        </div>
+                        {subscriptionDetails.status === 'AVALIAÇÃO' && subscriptionDetails.trialEndDate && (
+                            <p className="text-sm text-muted-foreground">
+                                Sua avaliação termina em {subscriptionDetails.daysRemaining} dias ({subscriptionDetails.trialEndDate.toLocaleDateString('pt-BR')}).
+                            </p>
+                        )}
+                        {subscriptionDetails.status === 'AVALIAÇÃO EXPIRADA' && (
+                            <p className="text-sm text-muted-foreground">Sua avaliação terminou. Assine um plano para continuar a usar os recursos premium.</p>
+                        )}
+                    </div>
+                    <Button variant="outline" asChild>
+                        <Link href="/pricing">MUDAR DE PLANO</Link>
+                    </Button>
                 </div>
-                <Button variant="outline" asChild>
-                    <Link href="/pricing">VER PLANOS</Link>
-                </Button>
-            </div>
+            )}
         </CardContent>
       </Card>
     </div>

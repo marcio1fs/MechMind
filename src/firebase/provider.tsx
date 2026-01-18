@@ -5,7 +5,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, onSnapshot, DocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { getActivePlan } from '@/lib/subscription';
+import { getUserPlan } from '@/lib/subscription';
 
 // Define the shape of the user profile based on the User entity.
 type UserProfile = {
@@ -102,7 +102,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             (snapshot: DocumentSnapshot<DocumentData>) => {
               if (snapshot.exists()) {
                 const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
-                const activePlan = getActivePlan(profileData.createdAt);
+                const activePlan = getUserPlan(profileData);
 
                 setUserAuthState({
                   user: firebaseUser,
