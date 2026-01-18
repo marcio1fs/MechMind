@@ -19,6 +19,7 @@ import {
   Package,
   UserCog,
   DollarSign,
+  Building,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -33,6 +34,7 @@ const menuItems = [
   { href: "/vehicle-history", label: "HISTÓRICO DO VEÍCULO", icon: History },
   { href: "/inventory", label: "ESTOQUE", icon: Package },
   { href: "/mechanics", label: "MECÂNICOS", icon: UserCog },
+  { href: "/workshop-settings", label: "DADOS DA OFICINA", icon: Building },
   { href: "/financial", label: "FINANCEIRO", icon: DollarSign },
   { href: "/pricing", label: "PLANOS", icon: CreditCard },
   { href: "/settings", label: "CONFIGURAÇÕES", icon: Settings },

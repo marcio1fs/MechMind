@@ -29,6 +29,7 @@ const pathTitles: { [key: string]: string } = {
     "/inventory": "ESTOQUE",
     "/mechanics": "MECÂNICOS",
     "/financial": "FINANCEIRO",
+    "/workshop-settings": "DADOS DA OFICINA",
     "/pricing": "PLANOS",
     "/settings": "CONFIGURAÇÕES",
 };
