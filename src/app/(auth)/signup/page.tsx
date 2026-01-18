@@ -129,7 +129,7 @@ export default function SignupPage() {
       });
       router.replace('/dashboard');
     } catch (error: any) {
-      console.error("Google Signup Error: ", error);
+      console.error("Google Signup Error: ", error.message);
       toast({
         variant: 'destructive',
         title: 'ERRO NO CADASTRO COM O GOOGLE',

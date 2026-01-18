@@ -348,7 +348,7 @@ export default function OrdersPage() {
         setIsOrderDialogOpen(false);
 
     } catch (error: any) {
-        console.error("Failed to save order:", error);
+        console.error("Failed to save order:", error.message);
         toast({ variant: "destructive", title: "ERRO AO SALVAR!", description: `Não foi possível salvar a Ordem de Serviço: ${error.message}` });
         throw error;
     }
