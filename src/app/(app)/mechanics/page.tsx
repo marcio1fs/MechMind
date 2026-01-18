@@ -173,8 +173,8 @@ export default function MechanicsPage() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleOpenDialog('mechanic', mechanic)}>EDITAR</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleOpenDialog('delete', mechanic)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => handleOpenDialog('mechanic', mechanic)}>EDITAR</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => handleOpenDialog('delete', mechanic)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             ) : (

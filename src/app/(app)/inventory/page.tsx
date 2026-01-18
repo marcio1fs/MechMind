@@ -117,7 +117,7 @@ export default function InventoryPage() {
 
   const handleDeleteItem = async (item: StockItem) => {
     if (!firestore) {
-        throw new Error("Firestore not initialized");
+        return;
     }
     try {
         const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
@@ -125,7 +125,6 @@ export default function InventoryPage() {
         toast({ title: "SUCESSO!", description: "ITEM EXCLUÍDO COM SUCESSO." });
     } catch (error) {
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O ITEM." });
-        throw error;
     } finally {
         setSelectedItem(null);
         setIsDeleteDialogOpen(false);
@@ -134,7 +133,7 @@ export default function InventoryPage() {
 
   const handleMoveItem = async (item: StockItem, type: "IN" | "OUT", quantity: number, reason?: string) => {
      if (!firestore) {
-        throw new Error("Firestore not initialized");
+        return;
      }
 
     const newQuantity = type === 'IN' ? item.quantity + quantity : item.quantity - quantity;
@@ -152,7 +151,6 @@ export default function InventoryPage() {
         toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ${quantity} UNIDADE(S) (${type}) REGISTRADA PARA ${item.name}.` });
     } catch (error) {
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL MOVIMENTAR O ITEM." });
-        throw error;
     } finally {
         setSelectedItem(null);
         setIsMovementDialogOpen(false);
@@ -236,9 +234,9 @@ export default function InventoryPage() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleOpenDialog('item', item)}>EDITAR</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleOpenDialog('movement', item)}>MOVIMENTAR</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleOpenDialog('delete', item)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => handleOpenDialog('item', item)}>EDITAR</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => handleOpenDialog('movement', item)}>MOVIMENTAR</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => handleOpenDialog('delete', item)} className="text-destructive focus:text-destructive focus:bg-destructive/10">EXCLUIR</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             ) : (

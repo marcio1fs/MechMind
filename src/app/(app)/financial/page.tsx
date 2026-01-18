@@ -123,7 +123,7 @@ export default function FinancialPage() {
 
   const handleDeleteTransaction = async (transaction: FinancialTransaction) => {
     if (!firestore) {
-        throw new Error("Firestore not initialized");
+        return;
     }
     try {
         if(transaction.reference_type !== "MANUAL"){
@@ -135,7 +135,6 @@ export default function FinancialPage() {
         }
     } catch (error) {
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O LANÇAMENTO." });
-        throw error;
     } finally {
         setIsDeleteDialogOpen(false);
     }
@@ -384,8 +383,8 @@ export default function FinancialPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleOpenDialog('transaction', transaction)} disabled={transaction.reference_type !== "MANUAL"}>EDITAR</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleOpenDialog('delete', transaction)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={transaction.reference_type !== "MANUAL"}>EXCLUIR</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handleOpenDialog('transaction', transaction)} disabled={transaction.reference_type !== "MANUAL"}>EDITAR</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handleOpenDialog('delete', transaction)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={transaction.reference_type !== "MANUAL"}>EXCLUIR</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>

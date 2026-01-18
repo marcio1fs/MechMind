@@ -241,7 +241,7 @@ export default function OrdersPage() {
 
   const handleDeleteOrder = async (order: Order) => {
     if (!firestore) {
-        throw new Error("Firestore not initialized");
+        return;
     };
     try {
         const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
@@ -257,7 +257,7 @@ export default function OrdersPage() {
 
   const handleConfirmPayment = async (order: Order, paymentMethod: string, discountValue: number) => {
      if (!firestore || !profile) {
-        throw new Error("Firestore not initialized");
+        return;
      }
     
     const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
@@ -444,20 +444,20 @@ export default function OrdersPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
                                                     <DropdownMenuItem 
-                                                        onClick={() => handleOpenDialog('payment', order)}
+                                                        onSelect={() => handleOpenDialog('payment', order)}
                                                         disabled={order.status !== 'PRONTO PARA PAGAMENTO'}
                                                     >
                                                         <CreditCard className="mr-2 h-4 w-4" />
                                                         REGISTRAR PAGAMENTO
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)} disabled={!canUseAiSummary}>
+                                                    <DropdownMenuItem onSelect={() => handleOpenDialog('summary', order)} disabled={!canUseAiSummary}>
                                                         <Sparkles className="mr-2 h-4 w-4" />
                                                         GERAR RESUMO {!canUseAiSummary && '(PRO+)'}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => { setIsDeleteDialogOpen(true); setSelectedOrder(order); }} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => { setIsDeleteDialogOpen(true); setSelectedOrder(order); }} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         ) : (
