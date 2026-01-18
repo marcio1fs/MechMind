@@ -189,15 +189,23 @@ export default function OrdersPage() {
   const handleSaveOrder = async (orderData: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => {
     if (!firestore || !ordersCollection || !profile) return;
     const { id, ...data } = orderData;
+    
+    // Sanitize data to prevent Firestore errors with 'undefined' values.
+    const dataToSave = {
+        ...data,
+        subtotal: data.subtotal ?? null,
+        discount: data.discount ?? null,
+    };
+
     try {
         if (id) {
             const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", id);
-            await setDoc(orderRef, data, { merge: true });
+            await setDoc(orderRef, dataToSave, { merge: true });
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
         } else {
             const newDocRef = doc(ordersCollection);
             await setDoc(newDocRef, {
-                ...data,
+                ...dataToSave,
                 id: newDocRef.id,
                 oficinaId: OFICINA_ID,
             });
