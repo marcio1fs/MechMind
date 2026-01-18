@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -256,70 +255,87 @@ export default function OrdersPage() {
   };
 
   const handleConfirmPayment = async (order: Order, paymentMethod: string, discountValue: number) => {
-     if (!firestore || !profile) {
-        return;
-     }
-    
-    const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
-    const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
-
-    const originalTotal = order.total;
-    const finalTotal = originalTotal - discountValue;
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            // Update order status and totals
-            transaction.update(orderRef, { 
-                status: "FINALIZADO",
-                paymentMethod: paymentMethod,
-                total: finalTotal,
-                subtotal: originalTotal,
-                discount: discountValue > 0 ? discountValue : null,
-            });
-
-            // Create financial transaction
-            const newFinDocRef = doc(financialCollection);
-            transaction.set(newFinDocRef, {
-                id: newFinDocRef.id,
-                oficinaId: OFICINA_ID,
-                description: `PAGAMENTO OS #${order.displayId}`,
-                category: "ORDEM DE SERVIÇO",
-                type: "IN",
-                value: finalTotal,
-                date: serverTimestamp(),
-                reference_id: order.id,
-                reference_type: "OS",
-            });
-        });
-
-        toast({
-            title: "PAGAMENTO REGISTRADO!",
-            description: `O pagamento para a OS #${order.displayId} foi registrado com sucesso.`,
-        });
-        
-        toast({
-            title: "LANÇAMENTO FINANCEIRO CRIADO",
-            description: `Entrada de R$ ${formatNumber(finalTotal)} registrada no módulo financeiro.`,
-        });
-
-        // Find the updated order data from the local state to show receipt
-        const updatedOrder = { 
-            ...order, 
-            status: "FINALIZADO" as const, 
-            paymentMethod,
-            total: finalTotal,
-            subtotal: originalTotal,
-            discount: discountValue,
-        };
-        setSelectedOrder(updatedOrder); 
-        setIsReceiptDialogOpen(true);
-    } catch (error) {
-        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL REGISTRAR O PAGAMENTO." });
-        throw error;
-    } finally {
-        setIsPaymentDialogOpen(false);
+    if (!firestore || !profile) {
+       return;
     }
-  };
+   
+   const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
+   
+   const originalTotal = order.total;
+   const finalTotal = originalTotal - discountValue;
+
+   try {
+       await runTransaction(firestore, async (transaction) => {
+           // 1. Verify stock for all parts in the order and deduct them
+           for (const part of order.parts) {
+               const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", part.itemId);
+               const stockItemDoc = await transaction.get(stockItemRef);
+
+               if (!stockItemDoc.exists()) {
+                   throw new Error(`A peça "${part.name}" não foi encontrada no estoque.`);
+               }
+
+               const currentQuantity = stockItemDoc.data().quantity;
+               if (currentQuantity < part.quantity) {
+                   throw new Error(`Estoque insuficiente para a peça "${part.name}". Disponível: ${currentQuantity}, Necessário: ${part.quantity}.`);
+               }
+
+               // Deduct stock
+               const newQuantity = currentQuantity - part.quantity;
+               transaction.update(stockItemRef, { quantity: newQuantity });
+           }
+           
+           // 2. Update order status and totals
+           transaction.update(orderRef, { 
+               status: "FINALIZADO",
+               paymentMethod: paymentMethod,
+               total: finalTotal,
+               subtotal: originalTotal,
+               discount: discountValue,
+           });
+
+           // 3. Create financial transaction
+           const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
+           const newFinDocRef = doc(financialCollection);
+           transaction.set(newFinDocRef, {
+               id: newFinDocRef.id,
+               oficinaId: OFICINA_ID,
+               description: `PAGAMENTO OS #${order.displayId}`,
+               category: "ORDEM DE SERVIÇO",
+               type: "IN",
+               value: finalTotal,
+               date: serverTimestamp(),
+               reference_id: order.id,
+               reference_type: "OS",
+           });
+       });
+
+       toast({
+           title: "PAGAMENTO REGISTRADO!",
+           description: `O pagamento para a OS #${order.displayId} foi registrado com sucesso.`,
+       });
+       
+       toast({
+           title: "LANÇAMENTO FINANCEIRO CRIADO",
+           description: `Entrada de R$ ${formatNumber(finalTotal)} registrada no módulo financeiro.`,
+       });
+
+       const updatedOrder = { 
+           ...order, 
+           status: "FINALIZADO" as const, 
+           paymentMethod,
+           total: finalTotal,
+           subtotal: originalTotal,
+           discount: discountValue,
+       };
+       setSelectedOrder(updatedOrder); 
+       setIsReceiptDialogOpen(true);
+   } catch (error: any) {
+       toast({ variant: "destructive", title: "ERRO AO REGISTRAR PAGAMENTO!", description: error.message || "NÃO FOI POSSÍVEL REGISTRAR O PAGAMENTO. Verifique o estoque das peças." });
+   } finally {
+       setIsPaymentDialogOpen(false);
+   }
+ };
 
 
   const filteredOrders = useMemo(() => {
@@ -452,7 +468,7 @@ export default function OrdersPage() {
                                                         <CreditCard className="mr-2 h-4 w-4" />
                                                         REGISTRAR PAGAMENTO
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onSelect={() => handleOpenDialog('summary', order)} disabled={!canUseAiSummary}>
+                                                    <DropdownMenuItem onSelect={() => handleGenerateSummary(order)} disabled={!canUseAiSummary}>
                                                         <Sparkles className="mr-2 h-4 w-4" />
                                                         GERAR RESUMO {!canUseAiSummary && '(PRO+)'}
                                                     </DropdownMenuItem>
