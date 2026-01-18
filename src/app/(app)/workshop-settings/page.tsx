@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, setDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
+import AccessDenied from '@/components/access-denied';
 
 const formSchema = z.object({
     name: z.string().min(1, "O nome da oficina é obrigatório."),
@@ -33,7 +34,7 @@ type WorkshopFormValues = z.infer<typeof formSchema>;
 
 export default function WorkshopSettingsPage() {
     const firestore = useFirestore();
-    const { profile } = useUser();
+    const { profile, isUserLoading } = useUser();
     const { toast } = useToast();
 
     const workshopDocRef = useMemoFirebase(() => {
@@ -133,6 +134,18 @@ export default function WorkshopSettingsPage() {
     };
     
     const isReadOnly = profile?.role !== 'ADMIN';
+
+    if (isUserLoading) {
+        return (
+            <div className="flex h-64 w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    if (profile && profile.role !== 'ADMIN') {
+        return <AccessDenied />;
+    }
 
     return (
         <div className="flex flex-col gap-8">

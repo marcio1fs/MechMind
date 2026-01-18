@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   SidebarContent,
   SidebarHeader,
@@ -23,21 +24,21 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
-const menuItems = [
-  { href: "/dashboard", label: "PAINEL", icon: LayoutDashboard },
-  { href: "/diagnostics", label: "DIAGNÓSTICOS", icon: Wrench },
-  { href: "/orders", label: "ORDENS DE SERVIÇO", icon: ClipboardList },
-  { href: "/vehicle-history", label: "HISTÓRICO DO VEÍCULO", icon: History },
-  { href: "/inventory", label: "ESTOQUE", icon: Package },
-  { href: "/mechanics", label: "MECÂNICOS", icon: UserCog },
-  { href: "/workshop-settings", label: "DADOS DA OFICINA", icon: Building },
-  { href: "/financial", label: "FINANCEIRO", icon: DollarSign },
-  { href: "/pricing", label: "PLANOS", icon: CreditCard },
-  { href: "/settings", label: "CONFIGURAÇÕES", icon: Settings },
+const allMenuItems = [
+  { href: "/dashboard", label: "PAINEL", icon: LayoutDashboard, roles: ['ADMIN', 'OFICINA'] },
+  { href: "/diagnostics", label: "DIAGNÓSTICOS", icon: Wrench, roles: ['ADMIN', 'OFICINA'] },
+  { href: "/orders", label: "ORDENS DE SERVIÇO", icon: ClipboardList, roles: ['ADMIN', 'OFICINA'] },
+  { href: "/vehicle-history", label: "HISTÓRICO DO VEÍCULO", icon: History, roles: ['ADMIN', 'OFICINA'] },
+  { href: "/inventory", label: "ESTOQUE", icon: Package, roles: ['ADMIN', 'OFICINA'] },
+  { href: "/mechanics", label: "MECÂNICOS", icon: UserCog, roles: ['ADMIN'] },
+  { href: "/workshop-settings", label: "DADOS DA OFICINA", icon: Building, roles: ['ADMIN'] },
+  { href: "/financial", label: "FINANCEIRO", icon: DollarSign, roles: ['ADMIN'] },
+  { href: "/pricing", label: "PLANOS", icon: CreditCard, roles: ['ADMIN'] },
+  { href: "/settings", label: "CONFIGURAÇÕES", icon: Settings, roles: ['ADMIN'] },
 ];
 
 export default function AppSidebar() {
@@ -45,6 +46,14 @@ export default function AppSidebar() {
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
+  const { profile } = useUser();
+
+  const menuItems = useMemo(() => {
+    if (!profile?.role) return [];
+    // A fallback for users that might not have a role defined yet
+    const userRole = profile.role || 'OFICINA';
+    return allMenuItems.filter(item => item.roles.includes(userRole));
+  }, [profile?.role]);
 
   const handleLogout = async () => {
     try {

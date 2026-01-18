@@ -40,7 +40,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowDownCircle, ArrowUpCircle, DollarSign, PlusCircle, TrendingUp, MoreHorizontal, Search, Calendar as CalendarIcon } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, PlusCircle, TrendingUp, MoreHorizontal, Search, Calendar as CalendarIcon, Loader2 } from "lucide-react"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
 import { startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
@@ -49,6 +49,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FinancialTransactionDialog } from "./components/financial-transaction-dialog";
 import { DeleteTransactionDialog } from "./components/delete-transaction-dialog";
 import { formatNumber, cn } from "@/lib/utils";
+import AccessDenied from "@/components/access-denied";
 
 
 export type FinancialTransaction = {
@@ -75,7 +76,7 @@ const statusText: { [key in FinancialTransaction["type"]]: string } = {
 
 export default function FinancialPage() {
   const firestore = useFirestore();
-  const { profile } = useUser();
+  const { profile, isUserLoading } = useUser();
   const { toast } = useToast();
 
   const financialCollection = useMemoFirebase(() => {
@@ -256,6 +257,18 @@ export default function FinancialPage() {
   }, [transactions, searchTerm, typeFilter, date]);
 
   const canSeeCashflow = profile?.activePlan === 'PRO+' || profile?.activePlan === 'PREMIUM';
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-64 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (profile && profile.role !== 'ADMIN') {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="flex flex-col gap-8">

@@ -13,6 +13,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getSubscriptionDetails, type SubscriptionDetails } from "@/lib/subscription";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import AccessDenied from "@/components/access-denied";
 
 const CONFIG_ID = "whatsapp";
 
@@ -113,6 +114,17 @@ export default function SettingsPage() {
         }
     };
 
+    if (isUserLoading) {
+      return (
+        <div className="flex h-64 w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+    }
+
+    if (profile && profile.role !== 'ADMIN') {
+      return <AccessDenied />;
+    }
 
   return (
     <div className="grid gap-8">

@@ -3,11 +3,12 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { PixPaymentDialog } from "./components/pix-payment-dialog";
 import { useUser } from "@/firebase";
 import { formatNumber } from "@/lib/utils";
 import { getSubscriptionDetails } from "@/lib/subscription";
+import AccessDenied from "@/components/access-denied";
 
 type Plan = {
     name: string;
@@ -57,7 +58,7 @@ const plans: Plan[] = [
 export default function PricingPage() {
     const [isPixDialogOpen, setIsPixDialogOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-    const { profile } = useUser();
+    const { profile, isUserLoading } = useUser();
 
     const handleChoosePlan = (plan: Plan) => {
         setSelectedPlan(plan);
@@ -94,6 +95,17 @@ export default function PricingPage() {
         return null;
     }
 
+    if (isUserLoading) {
+        return (
+            <div className="flex h-64 w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    if (profile && profile.role !== 'ADMIN') {
+        return <AccessDenied />;
+    }
 
     return (
         <>

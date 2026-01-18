@@ -18,13 +18,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MechanicDialog } from "./components/mechanic-dialog";
 import { DeleteMechanicDialog } from "./components/delete-mechanic-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, setDoc, deleteDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import AccessDenied from "@/components/access-denied";
+
 
 // This type should align with the User entity in backend.json
 export type Mechanic = {
@@ -40,7 +42,7 @@ export type Mechanic = {
 
 export default function MechanicsPage() {
   const firestore = useFirestore();
-  const { profile } = useUser();
+  const { profile, isUserLoading } = useUser();
   const mechanicsCollection = useMemoFirebase(() => {
     if (!firestore || !profile?.oficinaId) return null;
     return collection(firestore, "oficinas", profile.oficinaId, "users");
@@ -107,6 +109,18 @@ export default function MechanicsPage() {
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O MECÂNICO." });
     }
   };
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-64 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (profile && profile.role !== 'ADMIN') {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="flex flex-col gap-8">
