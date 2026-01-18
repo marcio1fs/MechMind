@@ -3,6 +3,9 @@
 
 import { useMemo, useState, useEffect } from "react"
 import Link from "next/link";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 import {
   Card,
   CardContent,
@@ -24,19 +27,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowDownCircle, ArrowUpCircle, DollarSign, PlusCircle, TrendingUp, MoreHorizontal } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, PlusCircle, TrendingUp, MoreHorizontal, Search, Calendar as CalendarIcon } from "lucide-react"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns"
-import { ptBR } from "date-fns/locale"
+import { startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, Timestamp, doc, setDoc, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast";
 import { FinancialTransactionDialog } from "./components/financial-transaction-dialog";
 import { DeleteTransactionDialog } from "./components/delete-transaction-dialog";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, cn } from "@/lib/utils";
 
 
 export type FinancialTransaction = {
@@ -79,6 +91,10 @@ export default function FinancialPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"TODOS" | "IN" | "OUT">("TODOS");
+  const [date, setDate] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     setIsMounted(true);
@@ -215,10 +231,31 @@ export default function FinancialPage() {
     });
   }, [transactions]);
 
-  const recentTransactions = useMemo(() => {
-      if(!transactions) return [];
-      return [...transactions].sort((a,b) => b.date?.toDate().getTime() - a.date?.toDate().getTime()).slice(0,5);
-  }, [transactions]);
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+    return [...transactions]
+      .filter(transaction => {
+        const transactionDate = transaction.date?.toDate();
+        if (!transactionDate) return false;
+
+        const matchesSearch = searchTerm
+            ? transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
+            : true;
+        
+        const matchesType = typeFilter === 'TODOS' || transaction.type === typeFilter;
+
+        const matchesDate = (() => {
+            if (!date?.from) return true;
+            const from = new Date(date.from.setHours(0, 0, 0, 0));
+            const to = date.to ? new Date(date.to.setHours(23, 59, 59, 999)) : new Date(from.setHours(23, 59, 59, 999));
+            return transactionDate >= from && transactionDate <= to;
+        })();
+
+        return matchesSearch && matchesType && matchesDate;
+    })
+    .sort((a, b) => b.date?.toDate().getTime() - a.date?.toDate().getTime());
+  }, [transactions, searchTerm, typeFilter, date]);
 
   const canSeeCashflow = profile?.activePlan === 'PRO+' || profile?.activePlan === 'PREMIUM';
 
@@ -289,7 +326,7 @@ export default function FinancialPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <Card>
             <CardHeader>
             <CardTitle>FLUXO DE CAIXA MENSAL</CardTitle>
@@ -346,66 +383,142 @@ export default function FinancialPage() {
         </Card>
         <Card>
             <CardHeader>
-                <CardTitle>ÚLTIMAS TRANSAÇÕES</CardTitle>
-                <CardDescription>AS 5 TRANSAÇÕES MAIS RECENTES.</CardDescription>
+                <CardTitle>HISTÓRICO DE TRANSAÇÕES</CardTitle>
+                <CardDescription>PESQUISE E FILTRE TODOS OS LANÇAMENTOS FINANCEIROS.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>DESCRIÇÃO</TableHead>
-                            <TableHead>DATA</TableHead>
-                            <TableHead>TIPO</TableHead>
-                            <TableHead className="text-right">VALOR</TableHead>
-                            <TableHead className="w-[80px] text-right">AÇÕES</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {(isLoading || !isMounted) && Array.from({length: 5}).map((_, i) => (
-                            <TableRow key={i}>
-                                <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-10 w-10 ml-auto" /></TableCell>
-                            </TableRow>
-                        ))}
-                        {isMounted && !isLoading && recentTransactions.map((transaction) => (
-                            <TableRow key={transaction.id}>
-                                <TableCell>
-                                    <div className="font-medium">{transaction.description}</div>
-                                    <div className="text-xs text-muted-foreground">{transaction.category}</div>
-                                </TableCell>
-                                <TableCell>{transaction.date ? format(transaction.date.toDate(), "dd/MM/yyyy", { locale: ptBR }) : ''}</TableCell>
-                                <TableCell>
-                                    <Badge variant={statusVariant[transaction.type]}>{statusText[transaction.type]}</Badge>
-                                </TableCell>
-                                <TableCell className={`text-right font-medium ${transaction.type === 'IN' ? 'text-green-500' : 'text-destructive'}`}>
-                                    {transaction.type === 'OUT' && '-'}R$ {formatNumber(transaction.value)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                                <span className="sr-only">AÇÕES</span>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onSelect={() => handleOpenDialog('transaction', transaction)} disabled={transaction.reference_type !== "MANUAL"}>EDITAR</DropdownMenuItem>
-                                            <DropdownMenuItem onSelect={() => handleOpenDialog('delete', transaction)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={transaction.reference_type !== "MANUAL"}>EXCLUIR</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                        {isMounted && !isLoading && transactions?.length === 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <div className="relative flex-grow sm:flex-grow-0 sm:w-full sm:max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="PESQUISAR POR DESCRIÇÃO OU CATEGORIA..." 
+                            className="pl-9"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                     {isMounted ? (
+                        <>
+                            <Select value={typeFilter} onValueChange={(value: "TODOS" | "IN" | "OUT") => setTypeFilter(value)}>
+                                <SelectTrigger className="w-full sm:w-auto min-w-[180px]">
+                                    <SelectValue placeholder="FILTRAR POR TIPO" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="TODOS">TODOS OS TIPOS</SelectItem>
+                                    <SelectItem value="IN">ENTRADAS</SelectItem>
+                                    <SelectItem value="OUT">SAÍDAS</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal sm:w-auto min-w-[240px]",
+                                            !date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date?.from ? (
+                                            date.to ? (
+                                                <>
+                                                    {format(date.from, "LLL dd, y", { locale: ptBR })} -{" "}
+                                                    {format(date.to, "LLL dd, y", { locale: ptBR })}
+                                                </>
+                                            ) : (
+                                                format(date.from, "LLL dd, y", { locale: ptBR })
+                                            )
+                                        ) : (
+                                            <span>ESCOLHA UM PERÍODO</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={date?.from}
+                                        selected={date}
+                                        onSelect={setDate}
+                                        numberOfMonths={2}
+                                        locale={ptBR}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                            <Button variant="ghost" onClick={() => {
+                                setSearchTerm("");
+                                setTypeFilter("TODOS");
+                                setDate(undefined);
+                            }}>
+                                LIMPAR FILTROS
+                            </Button>
+                        </>
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Skeleton className="h-10 w-full sm:w-[180px]" />
+                            <Skeleton className="h-10 w-full sm:w-[240px]" />
+                        </div>
+                    )}
+                </div>
+                <div className="rounded-lg border">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">Nenhuma transação encontrada.</TableCell>
+                                <TableHead>DESCRIÇÃO</TableHead>
+                                <TableHead>DATA</TableHead>
+                                <TableHead>TIPO</TableHead>
+                                <TableHead className="text-right">VALOR</TableHead>
+                                <TableHead className="w-[80px] text-right">AÇÕES</TableHead>
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading && Array.from({length: 5}).map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                                    <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    <TableCell className="text-right"><Skeleton className="h-10 w-10 ml-auto" /></TableCell>
+                                </TableRow>
+                            ))}
+                            {!isLoading && filteredTransactions.map((transaction) => (
+                                <TableRow key={transaction.id}>
+                                    <TableCell>
+                                        <div className="font-medium">{transaction.description}</div>
+                                        <div className="text-xs text-muted-foreground">{transaction.category}</div>
+                                    </TableCell>
+                                    <TableCell>{transaction.date ? format(transaction.date.toDate(), "dd/MM/yyyy", { locale: ptBR }) : ''}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={statusVariant[transaction.type]}>{statusText[transaction.type]}</Badge>
+                                    </TableCell>
+                                    <TableCell className={`text-right font-medium ${transaction.type === 'IN' ? 'text-green-500' : 'text-destructive'}`}>
+                                        {transaction.type === 'OUT' && '-'}R$ {formatNumber(transaction.value)}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" disabled={!isMounted}>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    <span className="sr-only">AÇÕES</span>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onSelect={() => handleOpenDialog('transaction', transaction)} disabled={transaction.reference_type !== "MANUAL"}>EDITAR</DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => handleOpenDialog('delete', transaction)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={transaction.reference_type !== "MANUAL"}>EXCLUIR</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {!isLoading && filteredTransactions?.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">Nenhuma transação encontrada para os filtros selecionados.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
       </div>
