@@ -241,9 +241,9 @@ export function OrderDialog({
         form.reset({
           ...order,
           customerDocumentType: order.customerDocumentType || "CPF",
-          customerCpf: order.customerCpf ? formatCPF(order.customerCpf) : undefined,
-          customerCnpj: order.customerCnpj ? formatCNPJ(order.customerCnpj) : undefined,
-          customerPhone: order.customerPhone ? formatPhone(order.customerPhone) : undefined,
+          customerCpf: order.customerCpf ? formatCPF(order.customerCpf) : "",
+          customerCnpj: order.customerCnpj ? formatCNPJ(order.customerCnpj) : "",
+          customerPhone: order.customerPhone ? formatPhone(order.customerPhone) : "",
           vehicle: {
               ...order.vehicle,
               plate: order.vehicle.plate ? formatPlate(order.vehicle.plate) : ""
