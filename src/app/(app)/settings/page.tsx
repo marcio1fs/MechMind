@@ -38,7 +38,6 @@ export default function SettingsPage() {
                     setSenderNumber(data.senderNumber || "");
                 }
             } catch (error) {
-                
                 toast({
                     variant: "destructive",
                     title: "Erro ao carregar configurações",
@@ -84,7 +83,6 @@ export default function SettingsPage() {
                 description: "Suas configurações de integração com o WhatsApp foram salvas.",
             });
         } catch (error) {
-            
             toast({
                 variant: "destructive",
                 title: "Erro ao Salvar",

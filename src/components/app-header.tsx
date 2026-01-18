@@ -58,7 +58,6 @@ export default function AppHeader() {
       toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });
       router.push('/');
     } catch (error) {
-      console.error("Erro no logout do cabeçalho:", error);
       toast({ variant: 'destructive', title: 'ERRO NO LOGOUT', description: 'NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.' });
     }
   };

@@ -104,7 +104,6 @@ export default function VehicleHistoryPage() {
         });
       }
     } catch (error) {
-      
       toast({
         variant: "destructive",
         title: "Erro na Busca",

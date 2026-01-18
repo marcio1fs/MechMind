@@ -125,15 +125,15 @@ export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, 
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="IN" />
+                          <RadioGroupItem value="IN" id="type-in" />
                         </FormControl>
-                        <FormLabel className="font-normal">ENTRADA</FormLabel>
+                        <FormLabel htmlFor="type-in" className="font-normal">ENTRADA</FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="OUT" />
+                          <RadioGroupItem value="OUT" id="type-out" />
                         </FormControl>
-                        <FormLabel className="font-normal">SAÍDA</FormLabel>
+                        <FormLabel htmlFor="type-out" className="font-normal">SAÍDA</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>

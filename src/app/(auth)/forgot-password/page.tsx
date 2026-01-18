@@ -36,7 +36,6 @@ export default function ForgotPasswordPage() {
           'SE EXISTIR UMA CONTA COM ESTE E-MAIL, UM LINK DE REDEFINIÇÃO DE SENHA FOI ENVIADO.',
       });
     } catch (error: any) {
-      
       // We show a generic message for security reasons
       toast({
         title: 'E-MAIL ENVIADO',

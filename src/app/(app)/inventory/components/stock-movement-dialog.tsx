@@ -104,15 +104,15 @@ export function StockMovementDialog({ isOpen, onOpenChange, item, onMove }: Stoc
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="OUT" />
+                          <RadioGroupItem value="OUT" id="move-out"/>
                         </FormControl>
-                        <FormLabel className="font-normal">Saída</FormLabel>
+                        <FormLabel htmlFor="move-out" className="font-normal">Saída</FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="IN" />
+                          <RadioGroupItem value="IN" id="move-in" />
                         </FormControl>
-                        <FormLabel className="font-normal">Entrada</FormLabel>
+                        <FormLabel htmlFor="move-in" className="font-normal">Entrada</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>

@@ -60,7 +60,6 @@ export default function LoginPage() {
       toast({ title: 'SUCESSO', description: 'LOGIN REALIZADO COM SUCESSO.' });
       router.replace('/dashboard');
     } catch (error: any) {
-      
       toast({
         variant: 'destructive',
         title: 'ERRO NO LOGIN',
@@ -94,7 +93,6 @@ export default function LoginPage() {
       toast({ title: 'SUCESSO', description: 'LOGIN COM O GOOGLE REALIZADO COM SUCESSO.' });
       router.replace('/dashboard'); // Direct redirect on success
     } catch (error: any) {
-      
       toast({
         variant: 'destructive',
         title: 'ERRO NO LOGIN COM O GOOGLE',

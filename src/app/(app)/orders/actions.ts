@@ -68,7 +68,6 @@ export async function getAIDiagnosisForOrder(
     });
     return { data: result };
   } catch (error) {
-    
     return {
       message: "Ocorreu um erro ao obter o diagnóstico. Por favor, tente novamente.",
     };
