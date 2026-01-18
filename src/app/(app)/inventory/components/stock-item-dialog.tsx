@@ -156,13 +156,11 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
                     <FormItem>
                     <FormLabel>Categoria</FormLabel>
                     <FormControl>
-                        <>
-                           <Input placeholder="Ex: Motor" {...field} list="stock-categories" />
-                           <datalist id="stock-categories">
-                                {stockCategories.map(category => <option key={category} value={category} />)}
-                           </datalist>
-                        </>
+                       <Input placeholder="Ex: Motor" {...field} list="stock-categories" />
                     </FormControl>
+                    <datalist id="stock-categories">
+                        {stockCategories.map(category => <option key={category} value={category} />)}
+                    </datalist>
                     <FormMessage />
                     </FormItem>
                 )}
