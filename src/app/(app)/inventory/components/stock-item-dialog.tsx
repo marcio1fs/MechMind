@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -45,6 +44,25 @@ interface StockItemDialogProps {
   item: StockItem | null;
   onSave: (item: StockItemFormValues) => Promise<void>;
 }
+
+const stockCategories = [
+  "ACESSÓRIOS",
+  "AR CONDICIONADO",
+  "ARREFECIMENTO",
+  "CARROCERIA",
+  "ELÉTRICA",
+  "FILTROS",
+  "FREIOS",
+  "IGNIÇÃO",
+  "INJEÇÃO ELETRÔNICA",
+  "MOTOR",
+  "ÓLEOS E FLUIDOS",
+  "PNEUS E RODAS",
+  "SEGURANÇA",
+  "SUSPENSÃO",
+  "TRANSMISSÃO",
+  "OUTROS",
+];
 
 export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockItemDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
@@ -138,7 +156,12 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
                     <FormItem>
                     <FormLabel>Categoria</FormLabel>
                     <FormControl>
-                        <Input placeholder="Ex: Motor" {...field} />
+                        <>
+                           <Input placeholder="Ex: Motor" {...field} list="stock-categories" />
+                           <datalist id="stock-categories">
+                                {stockCategories.map(category => <option key={category} value={category} />)}
+                           </datalist>
+                        </>
                     </FormControl>
                     <FormMessage />
                     </FormItem>
