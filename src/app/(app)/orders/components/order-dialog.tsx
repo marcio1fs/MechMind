@@ -418,22 +418,18 @@ export function OrderDialog({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                       className="flex space-x-4"
                       disabled={isFinalizado}
                     >
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="CPF" id="cpf" />
-                        </FormControl>
-                        <Label htmlFor="cpf" className="font-normal">PESSOA FÍSICA (CPF)</Label>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="CNPJ" id="cnpj" />
-                        </FormControl>
-                        <Label htmlFor="cnpj" className="font-normal">PESSOA JURÍDICA (CNPJ)</Label>
-                      </FormItem>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="CPF" id="doc-cpf" />
+                        <Label htmlFor="doc-cpf" className="font-normal">PESSOA FÍSICA (CPF)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="CNPJ" id="doc-cnpj" />
+                        <Label htmlFor="doc-cnpj" className="font-normal">PESSOA JURÍDICA (CNPJ)</Label>
+                      </div>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
@@ -722,7 +718,7 @@ export function OrderDialog({
               />
             </div>
             <div className="grid gap-2">
-                <Label>{status === 'PENDENTE' ? "SERVIÇOS PLANEJADOS" : "SERVIÇOS REALIZADOS"}</Label>
+                <p className="text-sm font-medium">{status === 'PENDENTE' ? "SERVIÇOS PLANEJADOS" : "SERVIÇOS REALIZADOS"}</p>
                 <div className="rounded-md border">
                     <Table>
                         <TableHeader>
@@ -800,7 +796,7 @@ export function OrderDialog({
             
             <h3 className="text-base font-semibold text-foreground border-b pb-2">{status === 'PENDENTE' ? "PEÇAS E CUSTOS ESTIMADOS" : "PEÇAS E CUSTOS FINAIS"}</h3>
             <div className="grid gap-2">
-              <Label>{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</Label>
+              <p className="text-sm font-medium">{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</p>
               <div className="rounded-md border">
                   <Table>
                       <TableHeader>
@@ -875,5 +871,3 @@ export function OrderDialog({
     </>
   );
 }
-
-    

@@ -36,6 +36,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Timestamp } from "firebase/firestore";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -92,7 +93,6 @@ export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, 
     setIsSaving(true);
     try {
       await onSave(data);
-      onOpenChange(false);
     } catch (error) {
       // Error is handled and toasted in the parent component
     } finally {
@@ -120,22 +120,20 @@ export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, 
                   <FormLabel>TIPO DE LANÇAMENTO</FormLabel>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                      }}
+                      value={field.value}
                       className="flex space-x-4"
                     >
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="IN" />
-                        </FormControl>
-                        <FormLabel className="font-normal">ENTRADA</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="OUT" />
-                        </FormControl>
-                        <FormLabel className="font-normal">SAÍDA</FormLabel>
-                      </FormItem>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="IN" id="type-in" />
+                        <Label htmlFor="type-in" className="font-normal">ENTRADA</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="OUT" id="type-out" />
+                        <Label htmlFor="type-out" className="font-normal">SAÍDA</Label>
+                      </div>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
