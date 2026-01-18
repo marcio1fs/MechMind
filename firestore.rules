@@ -90,7 +90,8 @@ service cloud.firestore {
      * This is safer for cross-oficina admin checks.
      */
     function isOficinaAdminForPath(oficinaId) {
-       return get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid)).data.role == 'ADMIN';
+       let userProfile = get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
+       return userProfile != null && userProfile.data.role == 'ADMIN';
     }
 
 
