@@ -226,7 +226,9 @@ service cloud.firestore {
     match /oficinas/{oficinaId}/users/{userId} {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
-      allow create: if isCreatingOwnUserDoc(userId, oficinaId) || (isOficinaAdminForPath(oficinaId) && isCreatingValidOficinaData(oficinaId));
+      allow create: if isCreatingValidOficinaData(oficinaId) 
+                      && request.resource.data.id == userId 
+                      && (isOwner(userId) || isOficinaAdminForPath(oficinaId));
       allow update: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId)) && hasImmutableUserFields()) || isGlobalAdmin();
       allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
     }
