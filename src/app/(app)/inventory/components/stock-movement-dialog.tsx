@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -26,7 +27,6 @@ import {
 import type { StockItem } from "../page";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   type: z.enum(["IN", "OUT"], { required_error: "Selecione o tipo de movimento." }),
@@ -102,14 +102,18 @@ export function StockMovementDialog({ isOpen, onOpenChange, item, onMove }: Stoc
                       value={field.value}
                       className="flex space-x-4"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="OUT" id="move-out" />
-                        <Label htmlFor="move-out" className="font-normal">Saída</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="IN" id="move-in" />
-                        <Label htmlFor="move-in" className="font-normal">Entrada</Label>
-                      </div>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="OUT" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Saída</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="IN" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Entrada</FormLabel>
+                      </FormItem>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />

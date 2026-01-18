@@ -31,7 +31,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -422,14 +421,18 @@ export function OrderDialog({
                       className="flex space-x-4"
                       disabled={isFinalizado}
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="CPF" id="doc-cpf" />
-                        <Label htmlFor="doc-cpf" className="font-normal">PESSOA FÍSICA (CPF)</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="CNPJ" id="doc-cnpj" />
-                        <Label htmlFor="doc-cnpj" className="font-normal">PESSOA JURÍDICA (CNPJ)</Label>
-                      </div>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="CPF" />
+                        </FormControl>
+                        <FormLabel className="font-normal">PESSOA FÍSICA (CPF)</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="CNPJ" />
+                        </FormControl>
+                        <FormLabel className="font-normal">PESSOA JURÍDICA (CNPJ)</FormLabel>
+                      </FormItem>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />

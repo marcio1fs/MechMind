@@ -36,7 +36,6 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Timestamp } from "firebase/firestore";
-import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -120,20 +119,22 @@ export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, 
                   <FormLabel>TIPO DE LANÇAMENTO</FormLabel>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                      }}
+                      onValueChange={field.onChange}
                       value={field.value}
                       className="flex space-x-4"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="IN" id="type-in" />
-                        <Label htmlFor="type-in" className="font-normal">ENTRADA</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="OUT" id="type-out" />
-                        <Label htmlFor="type-out" className="font-normal">SAÍDA</Label>
-                      </div>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="IN" />
+                        </FormControl>
+                        <FormLabel className="font-normal">ENTRADA</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="OUT" />
+                        </FormControl>
+                        <FormLabel className="font-normal">SAÍDA</FormLabel>
+                      </FormItem>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
