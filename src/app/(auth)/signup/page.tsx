@@ -18,7 +18,7 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function SignupPage() {
   const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
@@ -60,6 +60,7 @@ export default function SignupPage() {
         lastName: lastName.join(' ') || '',
         email: newUser.email,
         role: "ADMIN", // First user becomes admin of their workshop
+        createdAt: serverTimestamp(),
       }, { merge: true });
 
       toast({
@@ -103,6 +104,7 @@ export default function SignupPage() {
         lastName: lastName.join(' ') || '',
         email: newUser.email,
         role: "ADMIN",
+        createdAt: serverTimestamp(),
       }, { merge: true });
 
       toast({

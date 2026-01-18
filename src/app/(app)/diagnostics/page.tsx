@@ -17,6 +17,8 @@ import { getAIDiagnosis } from "./actions";
 import { Progress } from "@/components/ui/progress";
 import { Bot, AlertCircle, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/firebase";
+import UpgradePlan from "@/components/upgrade-plan";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -30,6 +32,7 @@ function SubmitButton() {
 
 export default function DiagnosticsPage() {
   const { toast } = useToast();
+  const { profile } = useUser();
   const initialState = { message: null, data: null };
   const [state, dispatch] = useActionState(getAIDiagnosis, initialState);
 
@@ -42,6 +45,10 @@ export default function DiagnosticsPage() {
       });
     }
   }, [state, toast]);
+
+  if (profile && profile.activePlan !== 'PREMIUM') {
+    return <UpgradePlan requiredPlan="PREMIUM" />;
+  }
 
   return (
     <div className="grid gap-8">

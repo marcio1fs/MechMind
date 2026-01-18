@@ -2,9 +2,10 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, onSnapshot, DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { Firestore, doc, onSnapshot, DocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { getActivePlan } from '@/lib/subscription';
 
 // Define the shape of the user profile based on the User entity.
 type UserProfile = {
@@ -15,6 +16,8 @@ type UserProfile = {
   email: string;
   role: string;
   specialty?: string;
+  createdAt?: Timestamp;
+  activePlan?: 'PREMIUM' | 'PRO+' | 'PRO';
 };
 
 interface UserAuthState {
@@ -98,9 +101,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             profileDocRef,
             (snapshot: DocumentSnapshot<DocumentData>) => {
               if (snapshot.exists()) {
+                const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
+                const activePlan = getActivePlan(profileData.createdAt);
+
                 setUserAuthState({
                   user: firebaseUser,
-                  profile: { id: snapshot.id, ...snapshot.data() } as UserProfile,
+                  profile: { ...profileData, activePlan },
                   isUserLoading: false,
                   userError: null,
                 });

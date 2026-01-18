@@ -22,6 +22,7 @@ import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Order } from "../orders/page";
+import UpgradePlan from "@/components/upgrade-plan";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -123,6 +124,10 @@ export default function VehicleHistoryPage() {
       });
     }
   }, [state, toast]);
+
+  if (profile && profile.activePlan !== 'PREMIUM') {
+    return <UpgradePlan requiredPlan="PREMIUM" />;
+  }
 
   return (
     <div className="grid gap-8">
@@ -241,5 +246,3 @@ export default function VehicleHistoryPage() {
     </div>
   );
 }
-
-    

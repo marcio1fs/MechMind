@@ -159,9 +159,9 @@ export default function OrdersPage() {
     setIsMounted(true);
   }, []);
 
-  const handleOpenDialog = (dialog: 'summary' | 'order' | 'delete' | 'payment', order: Order | null) => {
+  const handleOpenDialog = async (dialog: 'summary' | 'order' | 'delete' | 'payment', order: Order | null) => {
     setSelectedOrder(order);
-    if (dialog === 'summary' && order) handleGenerateSummary(order);
+    if (dialog === 'summary' && order) await handleGenerateSummary(order);
     if (dialog === 'order') setIsOrderDialogOpen(true);
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
     if (dialog === 'payment') setIsPaymentDialogOpen(true);
@@ -242,11 +242,12 @@ export default function OrdersPage() {
         const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
         await deleteDoc(orderRef);
         toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO EXCLUÍDA COM SUCESSO." });
-        setSelectedOrder(null);
-        setIsDeleteDialogOpen(false);
     } catch (error) {
         console.error("Error deleting order:", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR A ORDEM DE SERVIÇO." });
+    } finally {
+        setSelectedOrder(null);
+        setIsDeleteDialogOpen(false);
     }
   };
 
@@ -295,21 +296,20 @@ export default function OrdersPage() {
 
         setIsPaymentDialogOpen(false);
         // Find the updated order data from the local state to show receipt
-        const updatedOrder = orders?.find(o => o.id === order.id);
-        if (updatedOrder) {
-            setSelectedOrder({ 
-                ...updatedOrder, 
-                status: "FINALIZADO", 
-                paymentMethod,
-                total: finalTotal,
-                subtotal: originalTotal,
-                discount: discountValue,
-            }); 
-        }
+        const updatedOrder = { 
+            ...order, 
+            status: "FINALIZADO" as const, 
+            paymentMethod,
+            total: finalTotal,
+            subtotal: originalTotal,
+            discount: discountValue,
+        };
+        setSelectedOrder(updatedOrder); 
         setIsReceiptDialogOpen(true);
     } catch (error) {
         console.error("Error confirming payment:", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL REGISTRAR O PAGAMENTO." });
+        throw error;
     }
   };
 
@@ -330,6 +330,8 @@ export default function OrdersPage() {
   }, [orders, searchTerm, statusFilter]);
   
   const isLoading = isLoadingOrders || isLoadingStock || isLoadingMechanics;
+
+  const canUseAiSummary = profile?.activePlan === 'PRO+' || profile?.activePlan === 'PREMIUM';
 
   return (
     <div className="flex flex-col gap-6">
@@ -442,12 +444,12 @@ export default function OrdersPage() {
                                                         <CreditCard className="mr-2 h-4 w-4" />
                                                         REGISTRAR PAGAMENTO
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)}>
+                                                    <DropdownMenuItem onClick={() => handleOpenDialog('summary', order)} disabled={!canUseAiSummary}>
                                                         <Sparkles className="mr-2 h-4 w-4" />
-                                                        GERAR RESUMO
+                                                        GERAR RESUMO {!canUseAiSummary && '(PRO+)'}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleOpenDialog('delete', order)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => { setIsDeleteDialogOpen(true); setSelectedOrder(order); }} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={order.status === 'FINALIZADO'}>EXCLUIR</DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         ) : (
@@ -531,5 +533,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
-    

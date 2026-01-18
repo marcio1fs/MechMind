@@ -97,6 +97,32 @@ export default function SettingsPage() {
 
     const isReadOnly = profile?.role !== 'ADMIN';
 
+    const getSubscriptionInfo = () => {
+      if (!profile) return { currentPlan: "Carregando...", renewalDate: "..." };
+
+      if (profile.createdAt) {
+        const signUpDate = profile.createdAt.toDate();
+        const daysSinceSignUp = Math.floor((new Date().getTime() - signUpDate.getTime()) / (1000 * 3600 * 24));
+        
+        if (daysSinceSignUp > 30) {
+            return { currentPlan: 'AVALIAÇÃO TERMINOU', renewalDate: 'Seu período de avaliação terminou. Assine um plano.' };
+        }
+        
+        const trialEndDate = new Date(signUpDate);
+        trialEndDate.setDate(trialEndDate.getDate() + 30);
+
+        return {
+            currentPlan: `AVALIAÇÃO - ${profile.activePlan}`,
+            renewalDate: `Sua avaliação termina em ${trialEndDate.toLocaleDateString('pt-BR')}.`
+        };
+      }
+      
+      // Fallback for users without a creation date (e.g., pre-trial system)
+      return { currentPlan: "PRO", renewalDate: "Por favor, escolha um plano para obter os recursos mais recentes." };
+    };
+
+    const subscriptionInfo = getSubscriptionInfo();
+
   return (
     <div className="grid gap-8">
       <div>
@@ -160,8 +186,8 @@ export default function SettingsPage() {
         <CardContent>
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="font-semibold">PLANO ATUAL: PRO+</p>
-                    <p className="text-sm text-muted-foreground">SEU PLANO SERÁ RENOVADO EM 30 DE JULHO DE 2024.</p>
+                    <p className="font-semibold">PLANO ATUAL: {subscriptionInfo.currentPlan}</p>
+                    <p className="text-sm text-muted-foreground">{subscriptionInfo.renewalDate}</p>
                 </div>
                 <Button variant="outline" asChild>
                     <Link href="/pricing">VER PLANOS</Link>

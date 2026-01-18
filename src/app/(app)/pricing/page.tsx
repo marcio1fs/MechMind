@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { PixPaymentDialog } from "./components/pix-payment-dialog";
+import { useUser } from "@/firebase";
 
 type Plan = {
     name: string;
@@ -54,15 +55,41 @@ const plans: Plan[] = [
 export default function PricingPage() {
     const [isPixDialogOpen, setIsPixDialogOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+    const { profile } = useUser();
 
     const handleChoosePlan = (plan: Plan) => {
         setSelectedPlan(plan);
         setIsPixDialogOpen(true);
     };
 
+    const getTrialInfo = () => {
+        if (!profile || !profile.createdAt) return null;
+        
+        const now = new Date();
+        const signUpDate = profile.createdAt.toDate();
+        const daysSinceSignUp = Math.floor((now.getTime() - signUpDate.getTime()) / (1000 * 3600 * 24));
+        const daysLeftInTrial = 30 - daysSinceSignUp;
+
+        if (daysLeftInTrial <= 0) {
+            return {
+                message: `Seu período de avaliação de 30 dias terminou. Para continuar a usar os recursos avançados, por favor, escolha um plano.`
+            };
+        }
+
+        return {
+            message: `Você está no seu período de avaliação. Plano atual: ${profile.activePlan}. Dias restantes: ${daysLeftInTrial}.`
+        }
+    }
+    const trialInfo = getTrialInfo();
+
     return (
         <>
             <div className="flex flex-col gap-8">
+                {trialInfo && (
+                    <div className="text-center p-4 rounded-md bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200">
+                        <p className="font-medium">{trialInfo.message}</p>
+                    </div>
+                )}
                 <div className="text-center">
                     <h1 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Escolha Seu Plano</h1>
                     <p className="mt-2 text-muted-foreground">
