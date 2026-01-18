@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -196,16 +195,10 @@ export default function OrdersPage() {
     }
     const { id, ...data } = orderData;
     
-    const dataToSave = {
-        ...data,
-        subtotal: data.subtotal === undefined ? null : data.subtotal,
-        discount: data.discount === undefined ? null : data.discount,
-    };
-
     try {
         if (id) {
             const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", id);
-            await setDoc(orderRef, dataToSave, { merge: true });
+            await updateDoc(orderRef, data);
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
         } else {
              const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
@@ -222,7 +215,7 @@ export default function OrdersPage() {
                 
                 const newDocRef = doc(ordersCollection);
                 transaction.set(newDocRef, {
-                    ...dataToSave,
+                    ...data,
                     id: newDocRef.id,
                     displayId: displayId,
                     oficinaId: OFICINA_ID,
