@@ -129,7 +129,7 @@ service cloud.firestore {
     function hasImmutableUserFields() {
       // This rule ensures that a user cannot change their own 'id' or 'oficinaId'.
       // An admin might be able to change roles, but not the core identifiers.
-      return !('id' in request.resource.data) && !('oficinaId' in request.resource.data);
+      return request.resource.data.id == resource.data.id && request.resource.data.oficinaId == resource.data.oficinaId;
     }
 
     /**
@@ -214,7 +214,7 @@ service cloud.firestore {
     match /oficinas/{oficinaId} {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if false;
-      allow create: if isSignedIn() && isCreatingValidOficinaDoc(oficinaId); // Only an authenticated user can create a workshop
+      allow create: if isSignedIn() && isCreatingValidOficinaDoc(oficinaId); // Any signed-in user can create a new workshop.
       allow update: if (isOficinaAdminForPath(oficinaId) && isExistingDoc() && hasImmutableOficinaFields()) || isGlobalAdmin();
       allow delete: if (isOficinaAdminForPath(oficinaId) && isExistingDoc()) || isGlobalAdmin();
     }
@@ -226,9 +226,14 @@ service cloud.firestore {
     match /oficinas/{oficinaId}/users/{userId} {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
-      allow create: if isCreatingValidOficinaData(oficinaId) 
-                      && request.resource.data.id == userId 
-                      && (isOwner(userId) || isOficinaAdminForPath(oficinaId));
+      allow create: if isCreatingValidOficinaData(oficinaId) && request.resource.data.id == userId && (
+                    // Scenario 1: New user signup. The `oficina` doc does not exist before this batch write.
+                    // This is the only time a user can create their own profile.
+                    (isOwner(userId) && !exists(/databases/$(database)/documents/oficinas/$(oficinaId)))
+                    ||
+                    // Scenario 2: An existing admin adds a new user to an existing oficina.
+                    (exists(/databases/$(database)/documents/oficinas/$(oficinaId)) && isOficinaAdminForPath(oficinaId))
+                  );
       allow update: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId)) && hasImmutableUserFields()) || isGlobalAdmin();
       allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
     }
