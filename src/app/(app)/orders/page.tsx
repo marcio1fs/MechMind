@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mockVehicleMakes } from "@/lib/mock-data";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp, runTransaction } from "firebase/firestore";
 import type { StockItem } from "../inventory/page";
 import type { Mechanic as FullMechanic } from "../mechanics/page";
@@ -102,6 +102,14 @@ export type Order = {
   paymentMethod?: string;
 };
 
+type WorkshopInfo = {
+    name: string;
+    address: string;
+    phone: string;
+    cnpj: string;
+    email: string;
+}
+
 const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outline" } = {
     "PRONTO PARA PAGAMENTO": "default",
     "EM ANDAMENTO": "secondary",
@@ -132,6 +140,12 @@ export default function OrdersPage() {
       return collection(firestore, "oficinas", OFICINA_ID, "ordensDeServico");
   }, [firestore, profile]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
+
+  const workshopDocRef = useMemoFirebase(() => {
+    if (!firestore || !profile) return null;
+    return doc(firestore, "oficinas", OFICINA_ID);
+  }, [firestore, profile]);
+  const { data: workshopData, isLoading: isLoadingWorkshop } = useDoc<WorkshopInfo>(workshopDocRef);
 
 
   const mechanics = useMemo(() => {
@@ -197,12 +211,14 @@ export default function OrdersPage() {
 
     const dataToSave: { [key: string]: any } = { ...orderData };
     const orderId = orderData.id;
-    delete dataToSave.id;
+    
+    // Clean out undefined fields before sending to Firestore
     Object.keys(dataToSave).forEach(key => {
         if (dataToSave[key] === undefined) {
             delete dataToSave[key];
         }
     });
+    delete dataToSave.id;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -279,6 +295,7 @@ export default function OrdersPage() {
     } catch (error: any) {
         console.error("Failed to save order:", error);
         toast({ variant: "destructive", title: "ERRO AO SALVAR!", description: `Não foi possível salvar a Ordem de Serviço: ${error.message}` });
+        throw error;
     }
   };
 
@@ -316,13 +333,22 @@ export default function OrdersPage() {
        return;
     }
    
-   const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
-   
-   const originalTotal = order.total;
-   const finalTotal = originalTotal - discountValue;
-
    try {
        await runTransaction(firestore, async (transaction) => {
+           const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
+
+            // Verify stock before finalizing
+            for (const part of order.parts) {
+                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", part.itemId);
+                const stockItemDoc = await transaction.get(stockItemRef);
+                if (!stockItemDoc.exists() || stockItemDoc.data().quantity < part.quantity) {
+                    throw new Error(`Estoque insuficiente para a peça "${part.name}".`);
+                }
+            }
+
+           const originalTotal = order.total;
+           const finalTotal = originalTotal - discountValue;
+
            transaction.update(orderRef, { 
                status: "FINALIZADO",
                paymentMethod: paymentMethod,
@@ -351,23 +377,16 @@ export default function OrdersPage() {
            description: `O pagamento para a OS #${order.displayId} foi registrado com sucesso.`,
        });
        
-       toast({
-           title: "LANÇAMENTO FINANCEIRO CRIADO",
-           description: `Entrada de R$ ${formatNumber(finalTotal)} registrada no módulo financeiro.`,
-       });
-
        const updatedOrder = { 
            ...order, 
            status: "FINALIZADO" as const, 
            paymentMethod,
-           total: finalTotal,
-           subtotal: originalTotal,
-           discount: discountValue,
        };
        setSelectedOrder(updatedOrder); 
        setIsReceiptDialogOpen(true);
    } catch (error: any) {
        toast({ variant: "destructive", title: "ERRO AO REGISTRAR PAGAMENTO!", description: error.message || "Não foi possível registrar o pagamento." });
+       throw error;
    } finally {
        setIsPaymentDialogOpen(false);
    }
@@ -395,7 +414,7 @@ export default function OrdersPage() {
     });
   }, [orders, searchTerm, statusFilter]);
   
-  const isLoading = isLoadingOrders || isLoadingStock || isLoadingMechanics;
+  const isLoading = isLoadingOrders || isLoadingStock || isLoadingMechanics || isLoadingWorkshop;
 
   const canUseAiSummary = profile?.activePlan === 'PRO+' || profile?.activePlan === 'PREMIUM';
 
@@ -602,9 +621,8 @@ export default function OrdersPage() {
         isOpen={isReceiptDialogOpen}
         onOpenChange={setIsReceiptDialogOpen}
         order={selectedOrder}
+        workshop={workshopData}
       />
     </div>
   );
 }
-
-    

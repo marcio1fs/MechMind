@@ -10,7 +10,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, formatNumber, formatCPF, formatCNPJ, formatPhone, formatPlate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -201,41 +201,6 @@ export function OrderDialog({
         return acc + (qty * price);
     }, 0);
   }, [watchedServices]);
-
-  const formatCPF = (value: string) => {
-    if (!value) return "";
-    return value
-      .replace(/\D/g, "")
-      .slice(0, 11)
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-  };
-
-  const formatCNPJ = (value: string) => {
-    if (!value) return "";
-    return value
-      .replace(/\D/g, "")
-      .slice(0, 14)
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-  };
-
-  const formatPhone = (value: string) => {
-    if (!value) return "";
-    const cleaned = value.replace(/\D/g, "").slice(0, 11);
-    if (cleaned.length > 10) {
-      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
-    }
-    return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
-  };
-  
-  const formatPlate = (value: string) => {
-      if (!value) return "";
-      return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
-  }
 
   useEffect(() => {
     if (isOpen) {
