@@ -116,12 +116,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                     const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
                     const activePlan = getUserPlan(profileData);
 
-                    // Força o papel de administrador para o usuário atual para garantir acesso total.
-                    const adminProfile = { ...profileData, role: 'ADMIN' as const, activePlan };
-
+                    // Set the real profile data from Firestore
                     setUserAuthState({
                       user: firebaseUser,
-                      profile: adminProfile,
+                      profile: { ...profileData, activePlan },
                       isUserLoading: false,
                       userError: null,
                     });
@@ -166,13 +164,19 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
+    
+    // Create a temporary profile with ADMIN role for the UI to ensure full access during development
+    const displayProfile = userAuthState.profile 
+      ? { ...userAuthState.profile, role: 'ADMIN' as const } 
+      : null;
+
     return {
       areServicesAvailable: servicesAvailable,
       firebaseApp: servicesAvailable ? firebaseApp : null,
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
       user: userAuthState.user,
-      profile: userAuthState.profile,
+      profile: displayProfile, // Provide the modified profile to the context
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
     };
