@@ -126,8 +126,8 @@ service cloud.firestore {
      * Validates that critical, immutable fields (id, oficinaId) are not changed during an update.
      */
     function hasImmutableUserFields() {
-      // For an update, you can't change the id or the oficinaId.
-      // This is checked by ensuring these fields are not present in the write request data.
+      // This rule ensures that a user cannot change their own 'id' or 'oficinaId'.
+      // An admin might be able to change roles, but not the core identifiers.
       return !('id' in request.resource.data) && !('oficinaId' in request.resource.data);
     }
 
@@ -213,7 +213,7 @@ service cloud.firestore {
     match /oficinas/{oficinaId} {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if false;
-      allow create: if isOwner(request.auth.uid) && isCreatingValidOficinaDoc(oficinaId); // Only the user creating their oficina can create this doc
+      allow create: if isSignedIn() && isCreatingValidOficinaDoc(oficinaId); // Only an authenticated user can create a workshop
       allow update: if (isOficinaAdminForPath(oficinaId) && isExistingDoc() && hasImmutableOficinaFields()) || isGlobalAdmin();
       allow delete: if (isOficinaAdminForPath(oficinaId) && isExistingDoc()) || isGlobalAdmin();
     }
@@ -226,7 +226,7 @@ service cloud.firestore {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow create: if isCreatingOwnUserDoc(userId, oficinaId) || (isOficinaAdminForPath(oficinaId) && isCreatingValidOficinaData(oficinaId));
-      allow update: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
+      allow update: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId)) && hasImmutableUserFields()) || isGlobalAdmin();
       allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
     }
 
