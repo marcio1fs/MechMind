@@ -126,9 +126,10 @@ export default function InventoryPage() {
         }
 
         setIsItemDialogOpen(false);
-    } catch (error) {
-        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O ITEM." });
-        throw error;
+    } catch (error: any) {
+        const errorMessage = error.message || "NÃO FOI POSSÍVEL SALVAR O ITEM.";
+        toast({ variant: "destructive", title: "ERRO!", description: errorMessage });
+        throw new Error(errorMessage);
     }
   };
 

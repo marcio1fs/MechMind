@@ -139,9 +139,10 @@ export default function FinancialPage() {
             toast({ title: "SUCESSO!", description: "LANÇAMENTO ADICIONADO COM SUCESSO." });
         }
         setIsTransactionDialogOpen(false);
-    } catch (error) {
-        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O LANÇAMENTO." });
-        throw error;
+    } catch (error: any) {
+        const errorMessage = error.message || "NÃO FOI POSSÍVEL SALVAR O LANÇAMENTO.";
+        toast({ variant: "destructive", title: "ERRO!", description: errorMessage });
+        throw new Error(errorMessage);
     }
   };
 

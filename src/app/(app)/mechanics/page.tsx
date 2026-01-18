@@ -91,9 +91,10 @@ export default function MechanicsPage() {
         });
         toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
       }
-    } catch (error) {
-        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O MECÂNICO." });
-        throw error;
+    } catch (error: any) {
+        const errorMessage = error.message || "NÃO FOI POSSÍVEL SALVAR O MECÂNICO.";
+        toast({ variant: "destructive", title: "ERRO!", description: errorMessage });
+        throw new Error(errorMessage);
     }
   };
 

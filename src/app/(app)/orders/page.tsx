@@ -348,9 +348,9 @@ export default function OrdersPage() {
         setIsOrderDialogOpen(false);
 
     } catch (error: any) {
-        console.error("Failed to save order:", error.message);
-        toast({ variant: "destructive", title: "ERRO AO SALVAR!", description: `Não foi possível salvar a Ordem de Serviço: ${error.message}` });
-        throw error;
+        const errorMessage = error.message || "Não foi possível salvar a Ordem de Serviço.";
+        toast({ variant: "destructive", title: "ERRO AO SALVAR!", description: `Não foi possível salvar a Ordem de Serviço: ${errorMessage}` });
+        throw new Error(errorMessage);
     }
   };
 
@@ -432,8 +432,9 @@ export default function OrdersPage() {
        setSelectedOrder(updatedOrder); 
        setIsReceiptDialogOpen(true);
    } catch (error: any) {
-       toast({ variant: "destructive", title: "ERRO AO REGISTRAR PAGAMENTO!", description: error.message || "Não foi possível registrar o pagamento." });
-       throw error;
+       const errorMessage = error.message || "Não foi possível registrar o pagamento.";
+       toast({ variant: "destructive", title: "ERRO AO REGISTRAR PAGAMENTO!", description: errorMessage });
+       throw new Error(errorMessage);
    } finally {
        setIsPaymentDialogOpen(false);
    }
