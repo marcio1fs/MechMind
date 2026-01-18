@@ -224,6 +224,8 @@ export default function OrdersPage() {
             dataToSave[key] = (data as any)[key];
         }
     }
+    
+    const itemsWithLowStock: { name: string, quantity: number }[] = [];
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -272,7 +274,7 @@ export default function OrdersPage() {
                 await Promise.all(stockReads);
             }
 
-            // --- PHASE 2: VALIDATION (In-memory) ---
+            // --- PHASE 2: VALIDATION (In-memory) & LOW STOCK CHECK ---
             for (const [itemId, quantityChange] of stockChanges.entries()) {
                 if (quantityChange === 0) continue;
 
@@ -281,11 +283,19 @@ export default function OrdersPage() {
                 if (!stockItemDoc || !stockItemDoc.exists()) {
                     throw new Error(`A peça com ID "${itemId}" não foi encontrada no estoque.`);
                 }
+                
+                const currentData = stockItemDoc.data();
+                const currentQuantity = currentData.quantity;
+                const newQuantity = currentQuantity + quantityChange;
 
-                const currentQuantity = stockItemDoc.data().quantity;
-                if (currentQuantity + quantityChange < 0) {
-                     const itemName = stockItemDoc.data().name;
+                if (newQuantity < 0) {
+                     const itemName = currentData.name;
                      throw new Error(`Estoque insuficiente para a peça "${itemName}". Disponível: ${currentQuantity}, Necessário: ${Math.abs(quantityChange)}.`);
+                }
+
+                // Low stock check
+                if (quantityChange < 0 && newQuantity > 0 && newQuantity <= currentData.min_quantity) {
+                    itemsWithLowStock.push({ name: currentData.name, quantity: newQuantity });
                 }
             }
             
@@ -326,6 +336,16 @@ export default function OrdersPage() {
         });
 
         toast({ title: "SUCESSO!", description: "Ordem de Serviço salva e estoque atualizado com sucesso." });
+        
+        // Show toasts for low stock items after successful transaction
+        itemsWithLowStock.forEach(item => {
+            toast({
+                variant: "default",
+                title: "ALERTA DE ESTOQUE BAIXO",
+                description: `O item "${item.name}" está com apenas ${item.quantity} unidades.`,
+            });
+        });
+        
         setIsOrderDialogOpen(false);
 
     } catch (error: any) {

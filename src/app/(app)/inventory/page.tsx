@@ -117,6 +117,17 @@ export default function InventoryPage() {
             });
             toast({ title: "SUCESSO!", description: "ITEM ADICIONADO COM SUCESSO." });
         }
+
+        // Check for low stock after saving
+        const { quantity, min_quantity, name } = itemData;
+        if (quantity > 0 && quantity <= min_quantity) {
+            toast({
+                variant: "default",
+                title: "ALERTA DE ESTOQUE BAIXO",
+                description: `O item "${name}" foi salvo com estoque baixo (${quantity} unidades). Considere fazer um novo pedido.`,
+            });
+        }
+
         setIsItemDialogOpen(false);
     } catch (error) {
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O ITEM." });
@@ -146,6 +157,8 @@ export default function InventoryPage() {
         return;
      }
 
+    let lowStockAlert: { name: string, quantity: number } | null = null;
+
     try {
         await runTransaction(firestore, async (transaction) => {
             const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
@@ -155,11 +168,17 @@ export default function InventoryPage() {
                 throw new Error("O ITEM NÃO EXISTE MAIS NO ESTOQUE.");
             }
 
-            const currentQuantity = itemDoc.data().quantity;
+            const currentData = itemDoc.data();
+            const currentQuantity = currentData.quantity;
             const newQuantity = type === 'IN' ? currentQuantity + quantity : currentQuantity - quantity;
             
             if (newQuantity < 0) {
                 throw new Error("A SAÍDA NÃO PODE SER MAIOR QUE A QUANTIDADE DISPONÍVEL.");
+            }
+            
+            // Check for low stock on stock removal
+            if (type === 'OUT' && newQuantity > 0 && newQuantity <= currentData.min_quantity) {
+                lowStockAlert = { name: currentData.name, quantity: newQuantity };
             }
 
             // Update inventory quantity
@@ -195,6 +214,15 @@ export default function InventoryPage() {
         });
 
         toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ESTOQUE E LANÇAMENTO FINANCEIRO REGISTRADOS.` });
+        
+        if (lowStockAlert) {
+            toast({
+                variant: "default",
+                title: "ALERTA DE ESTOQUE BAIXO",
+                description: `O item "${lowStockAlert.name}" está com apenas ${lowStockAlert.quantity} unidades. Considere fazer um novo pedido.`,
+            });
+        }
+
     } catch (error: any) {
         toast({ variant: "destructive", title: "ERRO NA TRANSAÇÃO!", description: error.message || "NÃO FOI POSSÍVEL COMPLETAR A OPERAÇÃO." });
     } finally {
