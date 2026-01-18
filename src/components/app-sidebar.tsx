@@ -45,7 +45,6 @@ export default function AppSidebar() {
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    console.log("Tentando fazer logout a partir da barra lateral...");
     try {
       await signOut(auth);
       toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });

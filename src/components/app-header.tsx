@@ -53,7 +53,6 @@ export default function AppHeader() {
   }, []);
   
   const handleLogout = async () => {
-    console.log("Tentando fazer logout a partir do cabeçalho...");
     try {
       await signOut(auth);
       toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });
