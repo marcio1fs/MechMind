@@ -60,17 +60,13 @@ export default function LoginPage() {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      // On successful login, the onAuthStateChanged listener in FirebaseProvider
-      // will handle fetching the user profile. A new user signing in with Google
-      // for the first time should go through the /signup flow.
       toast({ title: 'SUCESSO', description: 'LOGIN COM O GOOGLE REALIZADO COM SUCESSO.' });
       router.replace('/dashboard');
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'ERRO NO LOGIN COM O GOOGLE',
-        description:
-          'NÃO FOI POSSÍVEL FAZER O LOGIN COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
+        description: error.message || 'NÃO FOI POSSÍVEL FAZER O LOGIN COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
       });
     } finally {
       setIsGoogleLoading(false);

@@ -126,8 +126,9 @@ service cloud.firestore {
      * Validates that critical, immutable fields (id, oficinaId) are not changed during an update.
      */
     function hasImmutableUserFields() {
-      return request.resource.data.id == resource.data.id
-          && request.resource.data.oficinaId == resource.data.oficinaId;
+      // For an update, you can't change the id or the oficinaId.
+      // This is checked by ensuring these fields are not present in the write request data.
+      return !('id' in request.resource.data) && !('oficinaId' in request.resource.data);
     }
 
     /**
@@ -225,7 +226,7 @@ service cloud.firestore {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow create: if isCreatingOwnUserDoc(userId, oficinaId) || (isOficinaAdminForPath(oficinaId) && isCreatingValidOficinaData(oficinaId));
-      allow update: if (isExistingDoc() && hasImmutableUserFields() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
+      allow update: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
       allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
     }
 

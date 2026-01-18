@@ -80,9 +80,6 @@ export default function SignupPage() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       
-      // The onAuthStateChanged listener in FirebaseProvider will now handle
-      // creating the workshop and user documents for the new user.
-
       toast({
         title: 'CONTA CRIADA!',
         description: 'SUA CONTA E SUA OFICINA FORAM CRIADAS COM SUCESSO.',
@@ -92,8 +89,7 @@ export default function SignupPage() {
       toast({
         variant: 'destructive',
         title: 'ERRO NO CADASTRO COM O GOOGLE',
-        description:
-          'NÃO FOI POSSÍVEL SE CADASTRAR COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
+        description: error.message || 'NÃO FOI POSSÍVEL SE CADASTRAR COM O GOOGLE. POR FAVOR, TENTE NOVAMENTE.',
       });
     } finally {
       setIsGoogleLoading(false);

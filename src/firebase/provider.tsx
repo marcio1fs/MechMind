@@ -95,91 +95,91 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           profileUnsubscribe = undefined;
         }
 
-        if (firebaseUser) {
-          try {
+        if (!firebaseUser) {
+          setUserAuthState({ user: null, profile: null, isUserLoading: false, userError: null });
+          return;
+        }
+
+        try {
             const userMappingRef = doc(firestore, "users", firebaseUser.uid);
             const mappingDoc = await getDoc(userMappingRef);
+
             let oficinaId;
+            let profileDocRef;
 
-            if (mappingDoc.exists()) {
-              oficinaId = mappingDoc.data().oficinaId;
-              if (!oficinaId) {
-                throw new Error("Oficina ID is missing in user mapping.");
-              }
+            if (mappingDoc.exists() && mappingDoc.data()?.oficinaId) {
+                // --- EXISTING USER ---
+                oficinaId = mappingDoc.data().oficinaId;
+                profileDocRef = doc(firestore, "oficinas", oficinaId, "users", firebaseUser.uid);
             } else {
-              // User mapping doesn't exist. This is a NEW USER.
-              // Create all necessary documents for them in a single transaction.
-              const batch = writeBatch(firestore);
-              const oficinasCol = collection(firestore, "oficinas");
-              const newOficinaRef = doc(oficinasCol);
+                // --- NEW USER ---
+                const batch = writeBatch(firestore);
+                
+                // 1. Create Oficina
+                const newOficinaRef = doc(collection(firestore, "oficinas"));
+                oficinaId = newOficinaRef.id;
+                const displayName = firebaseUser.displayName || "Novo Usuário";
+                batch.set(newOficinaRef, {
+                    id: oficinaId,
+                    name: `Oficina de ${displayName}`,
+                    email: firebaseUser.email || "", // Ensure email is not null
+                    cnpj: "",
+                    address: "",
+                    phone: "",
+                });
 
-              const displayName = firebaseUser.displayName || "Novo Usuário";
-              
-              batch.set(newOficinaRef, {
-                  id: newOficinaRef.id,
-                  name: `Oficina de ${displayName}`,
-                  cnpj: "",
-                  address: "",
-                  phone: "",
-                  email: firebaseUser.email,
-              });
+                // 2. Create User Profile inside Oficina
+                profileDocRef = doc(firestore, "oficinas", oficinaId, "users", firebaseUser.uid);
+                const [firstName, ...lastNameParts] = displayName.split(' ');
+                batch.set(profileDocRef, {
+                    id: firebaseUser.uid,
+                    oficinaId: oficinaId,
+                    firstName: firstName || "Usuário",
+                    lastName: lastNameParts.join(' ') || "Anônimo",
+                    email: firebaseUser.email || "", // Ensure email is not null
+                    role: "ADMIN", // New users are ADMINs of their workshop
+                    createdAt: serverTimestamp(),
+                });
 
-              const [firstName, ...lastName] = displayName.split(' ');
-              const userDocRef = doc(firestore, "oficinas", newOficinaRef.id, "users", firebaseUser.uid);
-              batch.set(userDocRef, {
-                id: firebaseUser.uid,
-                oficinaId: newOficinaRef.id,
-                firstName: firstName || '',
-                lastName: lastName.join(' ') || '',
-                email: firebaseUser.email,
-                role: "ADMIN",
-                createdAt: serverTimestamp(),
-              });
-
-              batch.set(userMappingRef, { oficinaId: newOficinaRef.id });
-              
-              await batch.commit();
-              oficinaId = newOficinaRef.id; // Use the new oficinaId for the profile listener
+                // 3. Create User-to-Oficina mapping
+                batch.set(userMappingRef, { oficinaId: oficinaId });
+                
+                await batch.commit();
             }
 
-            // Now that we have the oficinaId (either existing or newly created), listen to the user profile
-            const profileDocRef = doc(firestore, "oficinas", oficinaId, "users", firebaseUser.uid);
-            profileUnsubscribe = onSnapshot(
-              profileDocRef,
-              (snapshot: DocumentSnapshot<DocumentData>) => {
-                if (snapshot.exists()) {
-                  const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
-                  
-                  if (profileData.role !== 'ADMIN') {
-                      setDoc(profileDocRef, { role: 'ADMIN' }, { merge: true }).catch(err => {
-                          console.error("Failed to update user role to ADMIN:", err.message);
-                      });
-                  }
+            // --- LISTEN TO PROFILE ---
+            // Now that we have the profileDocRef for either a new or existing user
+            profileUnsubscribe = onSnapshot(profileDocRef, 
+                (snapshot) => {
+                    if (snapshot.exists()) {
+                        const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
+                        const activePlan = getUserPlan(profileData);
+                        
+                        // Ensure the role is ADMIN for the user, update DB if necessary
+                        if (profileData.role !== 'ADMIN') {
+                           setDoc(profileDocRef, { role: 'ADMIN' }, { merge: true }).catch(err => {
+                                console.error("Failed to auto-promote user to ADMIN:", err);
+                           });
+                           profileData.role = 'ADMIN'; // Optimistic update for UI
+                        }
 
-                  const activePlan = getUserPlan(profileData);
-                  const finalProfile = { ...profileData, activePlan, role: 'ADMIN' as const }; 
-
-                  setUserAuthState({
-                    user: firebaseUser,
-                    profile: finalProfile,
-                    isUserLoading: false,
-                    userError: null,
-                  });
-                } else {
-                   // This should now be a very rare case, only if the batch write above fails partially.
-                   setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: new Error("User profile document not found after creation attempt.") });
+                        const finalProfile = { ...profileData, activePlan };
+                        
+                        setUserAuthState({ user: firebaseUser, profile: finalProfile, isUserLoading: false, userError: null });
+                    } else {
+                        // This indicates a problem, like the profile doc was deleted after creation/lookup
+                        throw new Error(`Profile document not found at path: ${profileDocRef.path}`);
+                    }
+                },
+                (error) => { // Error handler for the snapshot listener
+                    console.error("Error listening to profile:", error);
+                    setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
                 }
-              },
-              (error) => {
-                setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
-              }
             );
-          } catch(error: any) {
-             setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
-          }
-        } else {
-          // User is not authenticated, clear all user and profile state.
-          setUserAuthState({ user: null, profile: null, isUserLoading: false, userError: null });
+
+        } catch (error: any) {
+            console.error("Error in auth state change handling:", error);
+            setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
         }
       },
       (error) => {
