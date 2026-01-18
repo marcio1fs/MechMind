@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -195,10 +196,17 @@ export default function OrdersPage() {
     }
     const { id, ...data } = orderData;
     
+    // Clean the data object to remove any 'undefined' fields before sending to Firestore
+    const dataToSave: { [key: string]: any } = { ...data };
+    Object.keys(dataToSave).forEach(key => {
+        if (dataToSave[key] === undefined) {
+            delete dataToSave[key];
+        }
+    });
+
     try {
         if (id) {
-            const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", id);
-            await updateDoc(orderRef, data);
+            await updateDoc(doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", id), dataToSave);
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
         } else {
              const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
@@ -215,7 +223,7 @@ export default function OrdersPage() {
                 
                 const newDocRef = doc(ordersCollection);
                 transaction.set(newDocRef, {
-                    ...data,
+                    ...dataToSave,
                     id: newDocRef.id,
                     displayId: displayId,
                     oficinaId: OFICINA_ID,
@@ -229,7 +237,7 @@ export default function OrdersPage() {
         setIsOrderDialogOpen(false);
     } catch (error) {
         console.error("Failed to save order:", error);
-        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO." });
+        toast({ variant: "destructive", title: "ERRO!", description: `NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO. ${error}` });
     }
   };
 
@@ -565,3 +573,5 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+    
