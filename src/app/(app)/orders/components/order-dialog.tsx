@@ -297,9 +297,9 @@ export function OrderDialog({
     try {
       const payload = { 
           ...data,
-          customerCpf: data.customerCpf?.replace(/\D/g, ""),
-          customerCnpj: data.customerCnpj?.replace(/\D/g, ""),
-          customerPhone: data.customerPhone?.replace(/\D/g, ""),
+          customerCpf: data.customerCpf ? data.customerCpf.replace(/\D/g, "") : "",
+          customerCnpj: data.customerCnpj ? data.customerCnpj.replace(/\D/g, "") : "",
+          customerPhone: data.customerPhone ? data.customerPhone.replace(/\D/g, "") : "",
       };
       const selectedMechanic = mechanics.find(m => m.id === data.mechanicId);
       
@@ -723,7 +723,7 @@ export function OrderDialog({
               />
             </div>
             <div className="grid gap-2">
-                <FormLabel>{status === 'PENDENTE' ? "SERVIÇOS PLANEJADOS" : "SERVIÇOS REALIZADOS"}</FormLabel>
+                <Label>{status === 'PENDENTE' ? "SERVIÇOS PLANEJADOS" : "SERVIÇOS REALIZADOS"}</Label>
                 <div className="rounded-md border">
                     <Table>
                         <TableHeader>
@@ -801,7 +801,7 @@ export function OrderDialog({
             
             <h3 className="text-base font-semibold text-foreground border-b pb-2">{status === 'PENDENTE' ? "PEÇAS E CUSTOS ESTIMADOS" : "PEÇAS E CUSTOS FINAIS"}</h3>
             <div className="grid gap-2">
-              <FormLabel>{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</FormLabel>
+              <Label>{status === 'PENDENTE' ? "PEÇAS ESTIMADAS (OPCIONAL)" : "PEÇAS UTILIZADAS"}</Label>
               <div className="rounded-md border">
                   <Table>
                       <TableHeader>
