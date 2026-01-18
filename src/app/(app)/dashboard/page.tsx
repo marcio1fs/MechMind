@@ -53,6 +53,7 @@ export default function DashboardPage() {
     const endOfCurrentMonth = endOfMonth(now);
 
     const monthlyRevenue = transactions.reduce((acc, t) => {
+        if (!t.date || typeof t.date.toDate !== 'function') return acc;
         const transactionDate = t.date.toDate();
          if (t.type === 'IN' && transactionDate >= startOfCurrentMonth && transactionDate <= endOfCurrentMonth) {
             return acc + t.value;
@@ -60,18 +61,14 @@ export default function DashboardPage() {
         return acc;
     }, 0);
     
-    const servicesThisMonth = orders.filter(o => {
-        const orderDate = o.startDate instanceof Timestamp ? o.startDate.toDate() : o.startDate;
+    const servicesInMonth = orders.filter(o => {
+        const orderDate = o.startDate instanceof Timestamp ? o.startDate.toDate() : (o.startDate instanceof Date ? o.startDate : null);
+        if (!orderDate) return false;
         return orderDate >= startOfCurrentMonth && orderDate <= endOfCurrentMonth;
-    }).length;
+    });
 
-    const activeCustomers = new Set(orders
-        .filter(o => {
-            const orderDate = o.startDate instanceof Timestamp ? o.startDate.toDate() : o.startDate;
-            return orderDate >= startOfCurrentMonth && orderDate <= endOfCurrentMonth;
-        })
-        .map(o => o.customer)
-    ).size;
+    const servicesThisMonth = servicesInMonth.length;
+    const activeCustomers = new Set(servicesInMonth.map(o => o.customer)).size;
 
     const vehiclesInWorkshop = orders.filter(o => o.status === 'EM ANDAMENTO').length;
 
@@ -92,7 +89,8 @@ export default function DashboardPage() {
         const monthName = format(monthStart, "MMM", { locale: ptBR });
 
         const servicesCount = orders.filter(o => {
-            const orderDate = o.startDate instanceof Timestamp ? o.startDate.toDate() : o.startDate;
+            const orderDate = o.startDate instanceof Timestamp ? o.startDate.toDate() : (o.startDate instanceof Date ? o.startDate : null);
+            if (!orderDate) return false;
             return orderDate >= monthStart && orderDate <= monthEnd;
         }).length;
 
