@@ -75,7 +75,7 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
         <DialogHeader>
           <DialogTitle>REGISTRAR PAGAMENTO</DialogTitle>
           <DialogDescription>
-            CONFIRME O PAGAMENTO PARA A ORDEM DE SERVIÇO <span className="font-bold">{order.id}</span>.
+            CONFIRME O PAGAMENTO PARA A ORDEM DE SERVIÇO <span className="font-bold">#{order.displayId}</span>.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -125,3 +125,5 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
     </Dialog>
   );
 }
+
+    

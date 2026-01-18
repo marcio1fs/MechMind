@@ -28,7 +28,7 @@ export function DeleteOrderDialog({ isOpen, onOpenChange, order, onDelete }: Del
             <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente a ordem de serviço <span className="font-bold">{order.id}</span>.
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente a ordem de serviço <span className="font-bold">#{order.displayId}</span>.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -44,3 +44,5 @@ export function DeleteOrderDialog({ isOpen, onOpenChange, order, onDelete }: Del
         </AlertDialog>
     );
 }
+
+    

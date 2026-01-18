@@ -52,7 +52,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { mockVehicleMakes } from "@/lib/mock-data";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp } from "firebase/firestore";
+import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp, runTransaction } from "firebase/firestore";
 import type { StockItem } from "../inventory/page";
 import type { Mechanic as FullMechanic } from "../mechanics/page";
 
@@ -73,6 +73,7 @@ export type PerformedService = {
 
 export type Order = {
   id: string;
+  displayId?: string;
   oficinaId: string;
   customer: string;
   customerDocumentType?: "CPF" | "CNPJ";
@@ -203,12 +204,29 @@ export default function OrdersPage() {
             await setDoc(orderRef, dataToSave, { merge: true });
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
         } else {
-            const newDocRef = doc(ordersCollection);
-            await setDoc(newDocRef, {
-                ...dataToSave,
-                id: newDocRef.id,
-                oficinaId: OFICINA_ID,
+             const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
+
+            await runTransaction(firestore, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef);
+                
+                let newCount = 1;
+                if (counterDoc.exists()) {
+                    newCount = (counterDoc.data().lastId || 0) + 1;
+                }
+
+                const displayId = String(newCount).padStart(4, '0');
+                
+                const newDocRef = doc(ordersCollection);
+                transaction.set(newDocRef, {
+                    ...dataToSave,
+                    id: newDocRef.id,
+                    displayId: displayId,
+                    oficinaId: OFICINA_ID,
+                });
+                
+                transaction.set(counterRef, { lastId: newCount }, { merge: true });
             });
+
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ADICIONADA COM SUCESSO." });
         }
     } catch (error) {
@@ -256,7 +274,7 @@ export default function OrdersPage() {
         await setDoc(newFinDocRef, {
             id: newFinDocRef.id,
             oficinaId: OFICINA_ID,
-            description: `PAGAMENTO OS: ${order.id}`,
+            description: `PAGAMENTO OS #${order.displayId}`,
             category: "ORDEM DE SERVIÇO",
             type: "IN",
             value: finalTotal,
@@ -267,7 +285,7 @@ export default function OrdersPage() {
 
         toast({
             title: "PAGAMENTO REGISTRADO!",
-            description: `O pagamento para a OS ${order.id} foi registrado com sucesso.`,
+            description: `O pagamento para a OS #${order.displayId} foi registrado com sucesso.`,
         });
         
         toast({
@@ -300,7 +318,7 @@ export default function OrdersPage() {
     if (!orders) return [];
     return orders.filter(order => {
         const matchesSearch = 
-            order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.displayId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
             `${order.vehicle.make} ${order.vehicle.model}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.vehicle.plate.toLowerCase().replace('-', '').includes(searchTerm.toLowerCase().replace('-', ''));
@@ -333,7 +351,7 @@ export default function OrdersPage() {
                     <div className="relative w-full max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            placeholder="PESQUISAR POR ID, CLIENTE, VEÍCULO OU PLACA..." 
+                            placeholder="PESQUISAR POR OS, CLIENTE, VEÍCULO OU PLACA..." 
                             className="pl-9"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -360,7 +378,7 @@ export default function OrdersPage() {
                     <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>ID DO PEDIDO</TableHead>
+                        <TableHead>OS</TableHead>
                         <TableHead>CLIENTE / CONTATO</TableHead>
                         <TableHead>VEÍCULO</TableHead>
                         <TableHead>MECÂNICO</TableHead>
@@ -388,7 +406,7 @@ export default function OrdersPage() {
                                 const startDate = order.startDate instanceof Timestamp ? order.startDate.toDate() : order.startDate;
                                 return (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-medium">{order.id}</TableCell>
+                                    <TableCell className="font-medium">#{order.displayId || order.id.substring(0,6)}</TableCell>
                                     <TableCell>
                                         <div>{order.customer}</div>
                                         <div className="text-xs text-muted-foreground">{order.customerPhone}</div>
@@ -513,3 +531,5 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+    

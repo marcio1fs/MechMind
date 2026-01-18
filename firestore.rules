@@ -273,5 +273,16 @@ service cloud.firestore {
       allow update: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
       allow delete: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
     }
+
+    /**
+     * @description Rules for counter documents used for sequential IDs.
+     * @path /oficinas/{oficinaId}/counters/{counterId}
+     * @principle Allows any office member to read/write to ensure transactions can update counters.
+     */
+    match /oficinas/{oficinaId}/counters/{counterId} {
+      allow read, write: if isUserOfOficina(oficinaId) || isGlobalAdmin();
+    }
   }
 }
+
+    

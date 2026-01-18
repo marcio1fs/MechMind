@@ -21,6 +21,7 @@ import { useFirestore, useUser } from "@/firebase";
 import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { Order } from "../orders/page";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -89,11 +90,11 @@ export default function VehicleHistoryPage() {
         setHistoryText(`Nenhum histórico de serviço encontrado para a placa ${vehiclePlate}.`);
       } else {
         const history = querySnapshot.docs.map(doc => {
-          const order = doc.data();
+          const order = doc.data() as Order;
           const date = order.startDate instanceof Timestamp ? order.startDate.toDate() : order.startDate;
           const formattedDate = format(date, "dd/MM/yyyy", { locale: ptBR });
           const services = order.services?.map((s: any) => s.description).join(', ') || 'N/A';
-          return `${formattedDate}: OS #${doc.id.substring(0, 5)} - Serviços: ${services}. Status: ${order.status}. Total: R$${order.total.toFixed(2)}`;
+          return `${formattedDate}: OS #${order.displayId || doc.id.substring(0, 5)} - Serviços: ${services}. Status: ${order.status}. Total: R$${order.total.toFixed(2)}`;
         }).join('\n');
         setHistoryText(history);
         toast({
@@ -240,3 +241,5 @@ export default function VehicleHistoryPage() {
     </div>
   );
 }
+
+    

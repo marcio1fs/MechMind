@@ -47,7 +47,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
 
       let message = `*Recibo de Pagamento - MechMind*\n\n`;
       message += `Olá ${order.customer},\n`;
-      message += `Agradecemos pela preferência! Segue o resumo da sua Ordem de Serviço *${order.id}*.\n\n`;
+      message += `Agradecemos pela preferência! Segue o resumo da sua Ordem de Serviço *#${order.displayId}*.\n\n`;
       message += `*Cliente:* ${order.customer}\n`;
       if (documentText) {
         message += documentText;
@@ -80,7 +80,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
         <DialogHeader className="no-print">
           <DialogTitle>RECIBO DE PAGAMENTO</DialogTitle>
           <DialogDescription>
-            RECIBO PARA A ORDEM DE SERVIÇO <span className="font-bold">{order.id}</span>.
+            RECIBO PARA A ORDEM DE SERVIÇO <span className="font-bold">#{order.displayId}</span>.
           </DialogDescription>
         </DialogHeader>
         
@@ -92,7 +92,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
                 </div>
                 <div className="text-right">
                     <h2 className="font-bold text-lg">RECIBO</h2>
-                    <p className="text-muted-foreground">{order.id}</p>
+                    <p className="text-muted-foreground">#{order.displayId}</p>
                 </div>
             </div>
 
@@ -176,3 +176,5 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
     </Dialog>
   );
 }
+
+    
