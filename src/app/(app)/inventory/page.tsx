@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -19,14 +19,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, DollarSign, Archive } from "lucide-react";
 import { StockItemDialog } from "./components/stock-item-dialog";
 import { StockMovementDialog } from "./components/stock-movement-dialog";
 import { DeleteItemDialog } from "./components/delete-item-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, runTransaction, Timestamp } from "firebase/firestore";
 import { formatNumber } from "@/lib/utils";
 
 
@@ -77,6 +77,15 @@ export default function InventoryPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const { totalSaleValue, totalCostValue } = useMemo(() => {
+    if (!stockItems) return { totalSaleValue: 0, totalCostValue: 0 };
+    return stockItems.reduce((acc, item) => {
+        acc.totalSaleValue += item.quantity * item.sale_price;
+        acc.totalCostValue += item.quantity * item.cost_price;
+        return acc;
+    }, { totalSaleValue: 0, totalCostValue: 0 });
+  }, [stockItems]);
 
   const handleOpenDialog = (dialog: 'item' | 'movement' | 'delete', item: StockItem | null) => {
     setSelectedItem(item);
@@ -133,24 +142,61 @@ export default function InventoryPage() {
 
   const handleMoveItem = async (item: StockItem, type: "IN" | "OUT", quantity: number, reason?: string) => {
      if (!firestore) {
+        toast({ variant: "destructive", title: "ERRO!", description: "CONEXÃO COM O BANCO DE DADOS FALHOU." });
         return;
      }
 
-    const newQuantity = type === 'IN' ? item.quantity + quantity : item.quantity - quantity;
-    if (newQuantity < 0) {
-        toast({
-            variant: "destructive",
-            title: "ERRO DE ESTOQUE",
-            description: "A SAÍDA NÃO PODE SER MAIOR QUE A QUANTIDADE DISPONÍVEL.",
-        });
-        return;
-    }
     try {
-        const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
-        await updateDoc(itemRef, { quantity: newQuantity });
-        toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ${quantity} UNIDADE(S) (${type}) REGISTRADA PARA ${item.name}.` });
-    } catch (error) {
-        toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL MOVIMENTAR O ITEM." });
+        await runTransaction(firestore, async (transaction) => {
+            const itemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", item.id);
+            const itemDoc = await transaction.get(itemRef);
+            
+            if (!itemDoc.exists()) {
+                throw new Error("O ITEM NÃO EXISTE MAIS NO ESTOQUE.");
+            }
+
+            const currentQuantity = itemDoc.data().quantity;
+            const newQuantity = type === 'IN' ? currentQuantity + quantity : currentQuantity - quantity;
+            
+            if (newQuantity < 0) {
+                throw new Error("A SAÍDA NÃO PODE SER MAIOR QUE A QUANTIDADE DISPONÍVEL.");
+            }
+
+            // Update inventory quantity
+            transaction.update(itemRef, { quantity: newQuantity });
+
+            // Create financial transaction
+            const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
+            const newFinDocRef = doc(financialCollection);
+            const costOfMovement = quantity * item.cost_price;
+
+            let description = "";
+            let category = "";
+
+            if (type === 'IN') {
+                description = `COMPRA ESTOQUE: ${quantity}x ${item.name}`;
+                category = "COMPRA DE ESTOQUE";
+            } else {
+                description = `PERDA/AJUSTE ESTOQUE: ${quantity}x ${item.name}`;
+                category = "PERDAS E AJUSTES";
+            }
+
+            transaction.set(newFinDocRef, {
+               id: newFinDocRef.id,
+               oficinaId: OFICINA_ID,
+               description: reason ? `${description} (${reason})` : description,
+               category: category,
+               type: "OUT", // Both acquisition and loss are expenses
+               value: costOfMovement,
+               date: Timestamp.now(),
+               reference_id: item.id,
+               reference_type: "STOCK",
+            });
+        });
+
+        toast({ title: "SUCESSO!", description: `MOVIMENTAÇÃO DE ESTOQUE E LANÇAMENTO FINANCEIRO REGISTRADOS.` });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "ERRO NA TRANSAÇÃO!", description: error.message || "NÃO FOI POSSÍVEL COMPLETAR A OPERAÇÃO." });
     } finally {
         setSelectedItem(null);
         setIsMovementDialogOpen(false);
@@ -173,6 +219,33 @@ export default function InventoryPage() {
                 </Button>
             </div>
         </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">VALOR DE VENDA DO ESTOQUE</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R$ {formatNumber(totalSaleValue)}</div>}
+            <p className="text-xs text-muted-foreground">
+              POTENCIAL DE RECEITA COM BASE NO PREÇO DE VENDA.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">CUSTO TOTAL DO ESTOQUE</CardTitle>
+            <Archive className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+             {isLoading || !isMounted ? <Skeleton className="h-8 w-3/4"/> : <div className="text-2xl font-bold">R$ {formatNumber(totalCostValue)}</div>}
+            <p className="text-xs text-muted-foreground">
+              VALOR INVESTIDO NO ESTOQUE ATUAL.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
