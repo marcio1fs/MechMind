@@ -53,11 +53,13 @@ export default function AppHeader() {
   }, []);
   
   const handleLogout = async () => {
+    console.log("Tentando fazer logout a partir do cabeçalho...");
     try {
       await signOut(auth);
       toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });
       router.push('/');
     } catch (error) {
+      console.error("Erro no logout do cabeçalho:", error);
       toast({ variant: 'destructive', title: 'ERRO NO LOGOUT', description: 'NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.' });
     }
   };

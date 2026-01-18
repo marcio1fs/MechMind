@@ -45,11 +45,13 @@ export default function AppSidebar() {
   const { toast } = useToast();
 
   const handleLogout = async () => {
+    console.log("Tentando fazer logout a partir da barra lateral...");
     try {
       await signOut(auth);
       toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });
       router.push('/');
     } catch (error) {
+      console.error("Erro no logout da barra lateral:", error);
       toast({ variant: 'destructive', title: 'ERRO NO LOGOUT', description: 'NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.' });
     }
   };
