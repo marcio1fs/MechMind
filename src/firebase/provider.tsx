@@ -116,9 +116,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                     const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
                     const activePlan = getUserPlan(profileData);
 
+                    // Força o papel de administrador para o usuário atual para garantir acesso total.
+                    const adminProfile = { ...profileData, role: 'ADMIN' as const, activePlan };
+
                     setUserAuthState({
                       user: firebaseUser,
-                      profile: { ...profileData, activePlan },
+                      profile: adminProfile,
                       isUserLoading: false,
                       userError: null,
                     });
