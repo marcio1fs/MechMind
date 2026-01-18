@@ -24,7 +24,7 @@ import { MechanicDialog } from "./components/mechanic-dialog";
 import { DeleteMechanicDialog } from "./components/delete-mechanic-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, addDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 
 // This type should align with the User entity in backend.json
 export type Mechanic = {
@@ -35,6 +35,7 @@ export type Mechanic = {
   email: string;
   specialty: string;
   role: string;
+  createdAt?: Timestamp;
 };
 
 export default function MechanicsPage() {
@@ -63,7 +64,7 @@ export default function MechanicsPage() {
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
   };
   
-  const handleSaveMechanic = async (mechanicData: Omit<Mechanic, 'id' | 'oficinaId' | 'role'> & { id?: string }) => {
+  const handleSaveMechanic = async (mechanicData: Omit<Mechanic, 'id' | 'oficinaId' | 'role' | 'createdAt'> & { id?: string }) => {
     if (!firestore || !mechanicsCollection || !profile?.oficinaId) return;
 
     const { id, ...data } = mechanicData;
@@ -84,6 +85,7 @@ export default function MechanicsPage() {
             id: newDocRef.id,
             oficinaId: profile.oficinaId,
             role: "OFICINA", // Default role
+            createdAt: serverTimestamp(),
         });
         toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
       }

@@ -25,6 +25,7 @@ import {
 import type { Mechanic } from "../page";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { Timestamp } from "firebase/firestore";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -40,7 +41,7 @@ interface MechanicDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   mechanic: Mechanic | null;
-  onSave: (mechanic: Omit<Mechanic, 'oficinaId' | 'role'>) => Promise<void>;
+  onSave: (mechanic: Omit<Mechanic, 'oficinaId' | 'role' | 'createdAt'> & { id?: string }) => Promise<void>;
 }
 
 export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: MechanicDialogProps) {
