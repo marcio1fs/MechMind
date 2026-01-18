@@ -2,6 +2,7 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -127,7 +128,7 @@ export default function FinancialPage() {
     }
     try {
         if(transaction.reference_type !== "MANUAL"){
-            toast({ variant: "destructive", title: "ERRO!", description: "LANÇAMENTOS AUTOMÁTICOS (OS, ESTOQUE) NÃO PODEM SER EXCLUÍDOS." });
+            toast({ variant: "destructive", title: "AÇÃO BLOQUEADA", description: "Lançamentos automáticos (gerados por OS ou Estoque) não podem ser excluídos para manter a integridade dos dados." });
         } else {
             const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", transaction.id);
             await deleteDoc(transactionRef);
@@ -213,6 +214,7 @@ export default function FinancialPage() {
       return [...transactions].sort((a,b) => b.date?.toDate().getTime() - a.date?.toDate().getTime()).slice(0,5);
   }, [transactions]);
 
+  const canSeeCashflow = profile?.activePlan === 'PRO+' || profile?.activePlan === 'PREMIUM';
 
   return (
     <div className="flex flex-col gap-8">
@@ -285,40 +287,54 @@ export default function FinancialPage() {
         <Card>
             <CardHeader>
             <CardTitle>FLUXO DE CAIXA MENSAL</CardTitle>
-            <CardDescription>ENTRADAS E SAÍDAS NOS ÚLTIMOS 6 MESES.</CardDescription>
+            <CardDescription>ENTRADAS E SAÍDAS NOS ÚLTIMOS 6 MESES. (RECURSO PRO+)</CardDescription>
             </CardHeader>
             <CardContent>
              {isLoading || !isMounted ? <Skeleton className="h-[300px] w-full"/> : (
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                            dataKey="month"
-                            stroke="#888888"
-                            fontSize={12}
-                            tickLine={false}
-                            axisLine={false}
-                        />
-                        <YAxis
-                            stroke="#888888"
-                            fontSize={12}
-                            tickLine={false}
-                            axisLine={false}
-                            tickFormatter={(value) => `R$${value/1000}k`}
-                        />
-                        <Tooltip 
-                            cursor={{fill: 'hsl(var(--muted))'}}
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--background))',
-                                borderColor: 'hsl(var(--border))',
-                            }}
-                            formatter={(value: number) => `R$ ${formatNumber(value)}`}
-                        />
-                        <Legend wrapperStyle={{fontSize: "0.75rem"}}/>
-                        <Bar dataKey="Entradas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
+                !canSeeCashflow ? (
+                    <div className="h-[300px] flex flex-col items-center justify-center">
+                        <div className="text-center">
+                            <h3 className="text-lg font-semibold">FAÇA UPGRADE PARA O PRO+</h3>
+                            <p className="text-muted-foreground text-sm max-w-xs mt-1">
+                                OBTENHA ACESSO A GRÁFICOS DE FLUXO DE CAIXA E RELATÓRIOS AVANÇADOS PARA ENTENDER MELHOR A SAÚDE FINANCEIRA DA SUA OFICINA.
+                            </p>
+                            <Button asChild className="mt-4">
+                                <Link href="/pricing">VER PLANOS</Link>
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis
+                                dataKey="month"
+                                stroke="#888888"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                            />
+                            <YAxis
+                                stroke="#888888"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(value) => `R$${value/1000}k`}
+                            />
+                            <Tooltip 
+                                cursor={{fill: 'hsl(var(--muted))'}}
+                                contentStyle={{
+                                    backgroundColor: 'hsl(var(--background))',
+                                    borderColor: 'hsl(var(--border))',
+                                }}
+                                formatter={(value: number) => `R$ ${formatNumber(value)}`}
+                            />
+                            <Legend wrapperStyle={{fontSize: "0.75rem"}}/>
+                            <Bar dataKey="Entradas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                )
              )}
             </CardContent>
         </Card>
