@@ -52,7 +52,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { mockVehicleMakes } from "@/lib/mock-data";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp, runTransaction } from "firebase/firestore";
+import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, Timestamp, serverTimestamp, runTransaction, DocumentSnapshot } from "firebase/firestore";
 import type { StockItem } from "../inventory/page";
 import type { Mechanic as FullMechanic } from "../mechanics/page";
 import { formatNumber } from "@/lib/utils";
@@ -209,70 +209,97 @@ export default function OrdersPage() {
       return;
     }
 
-    const dataToSave: { [key: string]: any } = { ...orderData };
     const orderId = orderData.id;
+    const { id, ...dataToSave } = orderData;
     
     // Clean out undefined fields before sending to Firestore
     Object.keys(dataToSave).forEach(key => {
-        if (dataToSave[key] === undefined) {
-            delete dataToSave[key];
+        if (dataToSave[key as keyof typeof dataToSave] === undefined) {
+            delete dataToSave[key as keyof typeof dataToSave];
         }
     });
-    delete dataToSave.id;
 
     try {
         await runTransaction(firestore, async (transaction) => {
+            // --- PHASE 1: READS ---
             let oldParts: UsedPart[] = [];
+            let counterDoc: DocumentSnapshot | null = null;
             
+            // Read existing order (if updating) to get old parts list
             if (orderId) {
                 const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", orderId);
                 const orderDoc = await transaction.get(orderRef);
                 if (orderDoc.exists()) {
                     oldParts = (orderDoc.data().parts as UsedPart[]) || [];
                 }
+            } else {
+                // Read counter (if creating a new order)
+                const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
+                counterDoc = await transaction.get(counterRef);
             }
 
             const newParts: UsedPart[] = (dataToSave.parts as UsedPart[]) || [];
-            
             const stockChanges = new Map<string, number>();
 
+            // Calculate the change in quantity for each part
             oldParts.forEach(part => {
                 stockChanges.set(part.itemId, (stockChanges.get(part.itemId) || 0) + part.quantity);
             });
-
             newParts.forEach(part => {
                 stockChanges.set(part.itemId, (stockChanges.get(part.itemId) || 0) - part.quantity);
             });
+            
+            // Read all affected stock items in one batch
+            const stockItemDocs = new Map<string, DocumentSnapshot>();
+            const stockReads: Promise<void>[] = [];
+            for (const itemId of stockChanges.keys()) {
+                stockReads.push((async () => {
+                    const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
+                    const stockItemDoc = await transaction.get(stockItemRef);
+                    stockItemDocs.set(itemId, stockItemDoc);
+                })());
+            }
+            await Promise.all(stockReads);
 
+            // --- PHASE 2: VALIDATION (In-memory) ---
             for (const [itemId, quantityChange] of stockChanges.entries()) {
                 if (quantityChange === 0) continue;
 
-                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
-                const stockItemDoc = await transaction.get(stockItemRef);
+                const stockItemDoc = stockItemDocs.get(itemId);
 
-                if (!stockItemDoc.exists()) {
+                if (!stockItemDoc || !stockItemDoc.exists()) {
                     throw new Error(`A peça com ID "${itemId}" não foi encontrada no estoque.`);
                 }
 
                 const currentQuantity = stockItemDoc.data().quantity;
-                const newQuantity = currentQuantity + quantityChange;
-
-                if (newQuantity < 0) {
-                    const itemName = stockItemDoc.data().name;
-                    throw new Error(`Estoque insuficiente para a peça "${itemName}".`);
+                // A positive change means returning to stock, a negative change means taking from stock.
+                // We only need to check for sufficient stock when taking items.
+                if (quantityChange < 0 && currentQuantity < Math.abs(quantityChange)) {
+                     const itemName = stockItemDoc.data().name;
+                     throw new Error(`Estoque insuficiente para a peça "${itemName}". Disponível: ${currentQuantity}, Necessário: ${Math.abs(quantityChange)}.`);
                 }
+            }
+            
+            // --- PHASE 3: WRITES ---
+            
+            // Update stock items
+            for (const [itemId, quantityChange] of stockChanges.entries()) {
+                if (quantityChange === 0) continue;
                 
+                const stockItemDoc = stockItemDocs.get(itemId)!;
+                const newQuantity = stockItemDoc.data()!.quantity - quantityChange;
+                const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", itemId);
                 transaction.update(stockItemRef, { quantity: newQuantity });
             }
 
+            // Update or create order
             if (orderId) {
                 const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", orderId);
                 transaction.update(orderRef, dataToSave);
             } else {
                 const counterRef = doc(firestore, "oficinas", OFICINA_ID, "counters", "ordensDeServico");
-                const counterDoc = await transaction.get(counterRef);
                 let newCount = 1;
-                if (counterDoc.exists()) {
+                if (counterDoc && counterDoc.exists()) {
                     newCount = (counterDoc.data().lastId || 0) + 1;
                 }
                 const displayId = String(newCount).padStart(4, '0');
@@ -341,9 +368,11 @@ export default function OrdersPage() {
             for (const part of order.parts) {
                 const stockItemRef = doc(firestore, "oficinas", OFICINA_ID, "inventory", part.itemId);
                 const stockItemDoc = await transaction.get(stockItemRef);
-                if (!stockItemDoc.exists() || stockItemDoc.data().quantity < part.quantity) {
-                    throw new Error(`Estoque insuficiente para a peça "${part.name}".`);
+                if (!stockItemDoc.exists()) {
+                     throw new Error(`A peça "${part.name}" não foi encontrada no estoque.`);
                 }
+                // Note: Stock has already been deducted when OS was saved.
+                // A check here could be for negative stock, but the primary deduction logic is in `handleSaveOrder`.
             }
 
            const originalTotal = order.total;
