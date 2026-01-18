@@ -30,6 +30,8 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
     window.print();
   };
 
+  const hasDiscount = order.subtotal && order.discount && order.discount > 0;
+
   const handleWhatsApp = () => {
       const servicesText = order.services && order.services.length > 0 
         ? order.services.map(s => `- ${s.quantity}x ${s.description}: R$${(s.quantity * s.unitPrice).toFixed(2)}`).join('\n')
@@ -54,6 +56,12 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
       message += `*Data:* ${format(new Date(), "dd/MM/yyyy")}\n\n`;
       message += `*Serviços Realizados:*\n${servicesText}\n\n`;
       message += `*Peças Utilizadas:*\n${partsText}\n\n`;
+      
+      if (hasDiscount && order.subtotal && order.discount) {
+          message += `*Subtotal:* R$${order.subtotal.toFixed(2)}\n`;
+          message += `*Desconto:* -R$${order.discount.toFixed(2)}\n`;
+      }
+
       message += `*Valor Total Pago:* R$${order.total.toFixed(2)}\n`;
       if(order.paymentMethod) {
         message += `*Forma de Pagamento:* ${order.paymentMethod}\n\n`;
@@ -133,11 +141,29 @@ export function ReceiptDialog({ isOpen, onOpenChange, order }: ReceiptDialogProp
             
             <Separator className="my-4" />
 
-            <div className="flex justify-between items-center font-bold text-lg mb-2">
-                <span>TOTAL PAGO</span>
-                <span>R${order.total.toFixed(2)}</span>
-            </div>
-            <div className="text-right text-muted-foreground">
+            {hasDiscount && order.subtotal && order.discount ? (
+                <>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                        <span>Subtotal</span>
+                        <span>R${order.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                        <span>Desconto</span>
+                        <span className="text-destructive">-R${order.discount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold text-lg mt-2 pt-2 border-t">
+                        <span>TOTAL PAGO</span>
+                        <span>R${order.total.toFixed(2)}</span>
+                    </div>
+                </>
+            ) : (
+                <div className="flex justify-between items-center font-bold text-lg">
+                    <span>TOTAL PAGO</span>
+                    <span>R${order.total.toFixed(2)}</span>
+                </div>
+            )}
+
+            <div className="text-right text-muted-foreground mt-2">
                 <p>Pago em {format(new Date(), "dd/MM/yyyy 'às' HH:mm")} {order.paymentMethod ? `via ${order.paymentMethod}` : ''}</p>
             </div>
         </div>

@@ -103,6 +103,8 @@ const formSchema = z.object({
     quantity: z.number(),
     sale_price: z.number(),
   })).optional(),
+  subtotal: z.number().optional(),
+  discount: z.number().optional(),
   total: z.coerce.number().min(0, "O TOTAL NÃO PODE SER NEGATIVO."),
 }).superRefine((data, ctx) => {
     if (data.customerDocumentType === 'CPF' && data.customerCpf) {
@@ -252,6 +254,8 @@ export function OrderDialog({
           startDate: startDate,
           services: order.services || [],
           parts: order.parts || [],
+          subtotal: order.subtotal,
+          discount: order.discount,
         });
       } else {
         form.reset({
@@ -276,6 +280,8 @@ export function OrderDialog({
           diagnosis: "",
           services: [],
           parts: [],
+          subtotal: undefined,
+          discount: undefined,
           total: 0,
         });
       }
@@ -304,8 +310,6 @@ export function OrderDialog({
         parts: data.parts || [],
       });
       onOpenChange(false);
-    } catch (error) {
-      // Error is handled in the parent component
     } finally {
       setIsSaving(false);
     }

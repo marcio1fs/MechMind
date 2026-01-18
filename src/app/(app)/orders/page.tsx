@@ -93,6 +93,8 @@ export type Order = {
   services: PerformedService[];
   parts: UsedPart[];
   total: number;
+  subtotal?: number;
+  discount?: number;
   symptoms?: string;
   diagnosis?: string;
   paymentMethod?: string;
@@ -222,26 +224,34 @@ export default function OrdersPage() {
     }
   };
 
-  const handleConfirmPayment = async (order: Order, paymentMethod: string) => {
+  const handleConfirmPayment = async (order: Order, paymentMethod: string, discountValue: number) => {
      if (!firestore || !profile) return;
     
     const orderRef = doc(firestore, "oficinas", OFICINA_ID, "ordensDeServico", order.id);
     const financialCollection = collection(firestore, "oficinas", OFICINA_ID, "financialTransactions");
 
+    const originalTotal = order.total;
+    const finalTotal = originalTotal - discountValue;
+
     try {
-        // Update order status
+        // Update order status and totals
         await updateDoc(orderRef, { 
             status: "FINALIZADO",
             paymentMethod: paymentMethod,
+            total: finalTotal,
+            subtotal: originalTotal,
+            discount: discountValue > 0 ? discountValue : null,
         });
 
         // Create financial transaction
-        await addDoc(financialCollection, {
+        const newFinDocRef = doc(financialCollection);
+        await setDoc(newFinDocRef, {
+            id: newFinDocRef.id,
             oficinaId: OFICINA_ID,
             description: `PAGAMENTO OS: ${order.id}`,
             category: "ORDEM DE SERVIÇO",
             type: "IN",
-            value: order.total,
+            value: finalTotal,
             date: serverTimestamp(),
             reference_id: order.id,
             reference_type: "OS",
@@ -254,14 +264,21 @@ export default function OrdersPage() {
         
         toast({
             title: "LANÇAMENTO FINANCEIRO CRIADO",
-            description: `Entrada de R$${order.total.toFixed(2)} registrada no módulo financeiro.`,
+            description: `Entrada de R$${finalTotal.toFixed(2)} registrada no módulo financeiro.`,
         });
 
         setIsPaymentDialogOpen(false);
         // Find the updated order data from the local state to show receipt
         const updatedOrder = orders?.find(o => o.id === order.id);
         if (updatedOrder) {
-            setSelectedOrder({ ...updatedOrder, status: "FINALIZADO", paymentMethod }); 
+            setSelectedOrder({ 
+                ...updatedOrder, 
+                status: "FINALIZADO", 
+                paymentMethod,
+                total: finalTotal,
+                subtotal: originalTotal,
+                discount: discountValue,
+            }); 
         }
         setIsReceiptDialogOpen(true);
     } catch (error) {

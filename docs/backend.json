@@ -213,8 +213,17 @@
             }
           }
         },
+        "subtotal": {
+          "type": "number",
+          "description": "The total cost before any discount is applied."
+        },
+        "discount": {
+          "type": "number",
+          "description": "The monetary value of the discount applied."
+        },
         "total": {
-          "type": "number"
+          "type": "number",
+          "description": "The final total after any discounts."
         },
         "paymentMethod": {
           "type": "string"
