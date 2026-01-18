@@ -111,6 +111,7 @@ export default function WorkshopSettingsPage() {
         try {
             const dataToSave = {
                 ...data,
+                id: OFICINA_ID,
                 cnpj: data.cnpj.replace(/\D/g, ''),
                 phone: data.phone.replace(/\D/g, ''),
             };

@@ -138,6 +138,20 @@ service cloud.firestore {
       return request.resource.data.oficinaId == resource.data.oficinaId;
     }
 
+    /**
+     * Validates that the `id` in a newly created Oficina document matches the path.
+     */
+    function isCreatingValidOficinaDoc(oficinaId) {
+      return request.resource.data.id == oficinaId;
+    }
+
+    /**
+     * Validates that the immutable `id` field in an Oficina document is not changed.
+     */
+    function hasImmutableOficinaFields() {
+      return request.resource.data.id == resource.data.id;
+    }
+
     // -------------------------------------------------------------------------
     // Collection Rules
     // -------------------------------------------------------------------------
@@ -184,8 +198,8 @@ service cloud.firestore {
     match /oficinas/{oficinaId} {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if false;
-      allow create: if isGlobalAdmin();
-      allow update: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
+      allow create: if (isOficinaAdmin(oficinaId) && isCreatingValidOficinaDoc(oficinaId)) || isGlobalAdmin();
+      allow update: if (isOficinaAdmin(oficinaId) && isExistingDoc() && hasImmutableOficinaFields()) || isGlobalAdmin();
       allow delete: if (isOficinaAdmin(oficinaId) && isExistingDoc()) || isGlobalAdmin();
     }
 
@@ -284,5 +298,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
