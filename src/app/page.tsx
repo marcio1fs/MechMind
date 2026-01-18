@@ -11,19 +11,17 @@ import { Label } from '@/components/ui/label';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Wrench, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useUser, useFirestore } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 
 
 export default function LoginPage() {
   const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -41,23 +39,10 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const newUser = userCredential.user;
-
-      // Ensure user document exists to prevent loading deadlocks
-      const userDocRef = doc(firestore, "oficinas", "default_oficina", "users", newUser.uid);
-      const displayName = newUser.displayName || "Usuário";
-      const [firstName, ...lastName] = displayName.split(' ');
-      await setDoc(userDocRef, {
-        id: newUser.uid,
-        oficinaId: "default_oficina",
-        firstName: firstName || 'Novo',
-        lastName: lastName.join(' ') || 'Usuário',
-        email: newUser.email,
-        role: "ADMIN",
-      }, { merge: true });
-
-      toast({ title: 'SUCESSO', description: 'LOGIN REALIZADO COM SUCESSO.' });
+      await signInWithEmailAndPassword(auth, email, password);
+      // On successful login, the onAuthStateChanged listener in FirebaseProvider
+      // will handle fetching the user profile and redirecting.
+      toast({ title: 'SUCESSO', description: 'LOGIN REALIZADO COM SUCESSO. REDIRECIONANDO...' });
       router.replace('/dashboard');
     } catch (error: any) {
       toast({
@@ -74,24 +59,12 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const newUser = result.user;
-
-      // Check if user document already exists, if not, create it
-      const userDocRef = doc(firestore, "oficinas", "default_oficina", "users", newUser.uid);
-      const displayName = newUser.displayName || "Usuário";
-      const [firstName, ...lastName] = displayName.split(' ');
-      await setDoc(userDocRef, {
-        id: newUser.uid,
-        oficinaId: "default_oficina",
-        firstName: firstName || '',
-        lastName: lastName.join(' ') || '',
-        email: newUser.email,
-        role: "ADMIN",
-      }, { merge: true });
-
+      await signInWithPopup(auth, provider);
+      // On successful login, the onAuthStateChanged listener in FirebaseProvider
+      // will handle fetching the user profile. A new user signing in with Google
+      // for the first time should go through the /signup flow.
       toast({ title: 'SUCESSO', description: 'LOGIN COM O GOOGLE REALIZADO COM SUCESSO.' });
-      router.replace('/dashboard'); // Direct redirect on success
+      router.replace('/dashboard');
     } catch (error: any) {
       toast({
         variant: 'destructive',

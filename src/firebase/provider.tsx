@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, onSnapshot, DocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
+import { Firestore, doc, onSnapshot, getDoc, DocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { getUserPlan } from '@/lib/subscription';
@@ -88,7 +88,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const authUnsubscribe = onAuthStateChanged(
       auth,
-      (firebaseUser) => {
+      async (firebaseUser) => {
         // Always clean up the previous profile listener when auth state changes.
         if (profileUnsubscribe) {
           profileUnsubscribe();
@@ -96,46 +96,58 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         }
 
         if (firebaseUser) {
-          const profileDocRef = doc(firestore, "oficinas/default_oficina/users", firebaseUser.uid);
-          profileUnsubscribe = onSnapshot(
-            profileDocRef,
-            (snapshot: DocumentSnapshot<DocumentData>) => {
-              if (snapshot.exists()) {
-                const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
-                const activePlan = getUserPlan(profileData);
+          try {
+            // 1. Get the user's oficinaId from the top-level /users mapping collection
+            const userMappingRef = doc(firestore, "users", firebaseUser.uid);
+            const mappingDoc = await getDoc(userMappingRef);
 
-                setUserAuthState({
-                  user: firebaseUser,
-                  profile: { ...profileData, activePlan },
-                  isUserLoading: false,
-                  userError: null,
-                });
-              } else {
-                // User is authenticated, but profile doesn't exist yet.
-                // This state tells the app to wait for the login/signup flow to create the profile doc.
-                setUserAuthState({
-                  user: firebaseUser,
-                  profile: null,
-                  isUserLoading: true, // Keep loading until profile exists
-                  userError: null,
-                });
+            if (mappingDoc.exists()) {
+              const { oficinaId } = mappingDoc.data();
+              if (!oficinaId) {
+                throw new Error("Oficina ID is missing in user mapping.");
               }
-            },
-            (error) => {
-              setUserAuthState({
-                user: firebaseUser,
-                profile: null,
-                isUserLoading: false, // Stop loading on error to prevent infinite spinners
-                userError: error,
-              });
+
+              // 2. Now that we have the oficinaId, listen to the actual user profile document
+              const profileDocRef = doc(firestore, "oficinas", oficinaId, "users", firebaseUser.uid);
+              profileUnsubscribe = onSnapshot(
+                profileDocRef,
+                (snapshot: DocumentSnapshot<DocumentData>) => {
+                  if (snapshot.exists()) {
+                    const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
+                    const activePlan = getUserPlan(profileData);
+
+                    setUserAuthState({
+                      user: firebaseUser,
+                      profile: { ...profileData, activePlan },
+                      isUserLoading: false,
+                      userError: null,
+                    });
+                  } else {
+                     // This is an inconsistent state (mapping exists, but profile doesn't).
+                     // This can happen if signup fails midway. We should treat them as not fully onboarded.
+                     setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: new Error("User profile document not found.") });
+                  }
+                },
+                (error) => {
+                  // Error listening to the profile document
+                  setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
+                }
+              );
+            } else {
+              // Mapping doesn't exist. This user hasn't completed the signup flow for this app.
+              // We stop loading and the user will be redirected from protected routes.
+              setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: null });
             }
-          );
+          } catch(error: any) {
+             setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
+          }
         } else {
           // User is not authenticated, clear all user and profile state.
           setUserAuthState({ user: null, profile: null, isUserLoading: false, userError: null });
         }
       },
       (error) => {
+        // Error with the auth listener itself
         setUserAuthState({ user: null, profile: null, isUserLoading: false, userError: error });
       }
     );
