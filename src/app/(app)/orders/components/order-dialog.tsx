@@ -88,7 +88,7 @@ const formSchema = z.object({
   startDate: z.date({
     required_error: "A DATA DE INÍCIO É OBRIGATÓRIA.",
   }),
-  status: z.enum(["CONCLUÍDO", "EM ANDAMENTO", "PENDENTE", "FINALIZADO"]),
+  status: z.enum(["PRONTO PARA PAGAMENTO", "EM ANDAMENTO", "PENDENTE", "FINALIZADO"]),
   symptoms: z.string().optional(),
   diagnosis: z.string().optional(),
   services: z.array(z.object({
@@ -654,7 +654,7 @@ export function OrderDialog({
                     <SelectContent>
                       <SelectItem value="PENDENTE">PENDENTE</SelectItem>
                       <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
-                      <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
+                      <SelectItem value="PRONTO PARA PAGAMENTO">PRONTO PARA PAGAMENTO</SelectItem>
                        <SelectItem value="FINALIZADO" disabled>FINALIZADO</SelectItem>
                     </SelectContent>
                   </Select>
@@ -875,3 +875,5 @@ export function OrderDialog({
     </>
   );
 }
+
+    

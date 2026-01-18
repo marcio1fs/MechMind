@@ -91,7 +91,7 @@ export type Order = {
   mechanicId?: string;
   mechanicName?: string;
   startDate: Date | Timestamp;
-  status: "CONCLUÍDO" | "EM ANDAMENTO" | "PENDENTE" | "FINALIZADO";
+  status: "PRONTO PARA PAGAMENTO" | "EM ANDAMENTO" | "PENDENTE" | "FINALIZADO";
   services: PerformedService[];
   parts: UsedPart[];
   total: number;
@@ -103,7 +103,7 @@ export type Order = {
 };
 
 const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outline" } = {
-    "CONCLUÍDO": "default",
+    "PRONTO PARA PAGAMENTO": "default",
     "EM ANDAMENTO": "secondary",
     "PENDENTE": "outline",
     "FINALIZADO": "default",
@@ -379,7 +379,7 @@ export default function OrdersPage() {
                                 <SelectItem value="TODOS">TODOS</SelectItem>
                                 <SelectItem value="PENDENTE">PENDENTE</SelectItem>
                                 <SelectItem value="EM ANDAMENTO">EM ANDAMENTO</SelectItem>
-                                <SelectItem value="CONCLUÍDO">CONCLUÍDO</SelectItem>
+                                <SelectItem value="PRONTO PARA PAGAMENTO">PRONTO PARA PAGAMENTO</SelectItem>
                                 <SelectItem value="FINALIZADO">FINALIZADO</SelectItem>
                             </SelectContent>
                         </Select>
@@ -450,7 +450,7 @@ export default function OrdersPage() {
                                                     <DropdownMenuItem onClick={() => handleOpenDialog('order', order)}>EDITAR</DropdownMenuItem>
                                                     <DropdownMenuItem 
                                                         onClick={() => handleOpenDialog('payment', order)}
-                                                        disabled={order.status !== 'CONCLUÍDO'}
+                                                        disabled={order.status !== 'PRONTO PARA PAGAMENTO'}
                                                     >
                                                         <CreditCard className="mr-2 h-4 w-4" />
                                                         REGISTRAR PAGAMENTO
@@ -544,3 +544,5 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+    

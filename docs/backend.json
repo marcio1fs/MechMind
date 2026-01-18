@@ -171,7 +171,7 @@
         "status": {
           "type": "string",
           "enum": [
-            "CONCLUÍDO",
+            "PRONTO PARA PAGAMENTO",
             "EM ANDAMENTO",
             "PENDENTE",
             "FINALIZADO"
@@ -651,3 +651,5 @@
     "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable data model for the OSMECH application, focusing on Authorization Independence, Structural Segregation, Access Modeling, and Data Clarity. \n\n**Authorization Independence:** The structure achieves Authorization Independence by denormalizing the `oficinaId` field into the `users`, `ordensDeServico`, and `vehicleHistory` collections. This eliminates the need for `get()` calls to parent documents in security rules, enabling atomic operations (transactions/batches) and simplifying debugging.\n\n**Structural Segregation:** Data with different access needs is segregated into separate collections. For instance, user data is stored in `oficinas/{oficinaId}/users/{userId}`, service orders in `oficinas/{oficinaId}/ordensDeServico/{ordemDeServicoId}`, and vehicle history in `oficinas/{oficinaId}/vehicleHistory/{vehicleHistoryId}`, ensuring each collection has a homogeneous security posture.\n\n**Access Modeling:** The structure adheres to consistent patterns for authorization:\n\n*   **Path-Based Ownership:** User data (`/oficinas/{oficinaId}/users/{userId}`) is organized using hierarchical paths to ensure straightforward ownership-based security rules.\n*   **Membership Map (Not Applicable):** Since roles are defined in the user document, no membership map is used for collaborative access here.\n*   **Global Roles (DBAC):** While roles are stored on the user document directly, a dedicated collection for admin roles (`/roles_admin/{uid}`) is supported, enabling existence-based rules for admin privileges.\n\n**QAPs (Rules are not Filters):** The structure supports secure `list` operations by ensuring that authorization information is available within each document, preventing the need to filter based on external data.\n\n**Data Clarity and Predictability:** The structure employs explicit state modeling with the `status` field in `OrdemDeServico`, predictable schema, and radical consistency with semantic naming conventions (e.g., `oficinaId`, `userId`).\n\n*   **Subscription Plans:** Subscription plan details (`/subscriptionPlans/{subscriptionPlanId}`) are stored in a separate collection.  Oficinas reference these plans using the `subscriptionPlanId` field, supporting the SaaS model.\n"
   }
 }
+
+    
