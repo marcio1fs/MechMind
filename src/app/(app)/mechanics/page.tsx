@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -90,11 +91,10 @@ export default function MechanicsPage() {
         });
         toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
       }
-      setSelectedMechanic(null);
-      setIsMechanicDialogOpen(false);
     } catch (error) {
         console.error("Error saving mechanic: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O MECÂNICO." });
+        throw error;
     }
   };
 
@@ -214,5 +214,3 @@ export default function MechanicsPage() {
     </div>
   );
 }
-
-    

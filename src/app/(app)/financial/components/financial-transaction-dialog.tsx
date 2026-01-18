@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { FinancialTransaction } from "../page";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Popover,
@@ -33,7 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Timestamp } from "firebase/firestore";
 
@@ -52,10 +52,11 @@ interface FinancialTransactionDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   transaction: FinancialTransaction | null;
-  onSave: (transaction: TransactionFormValues) => void;
+  onSave: (transaction: TransactionFormValues) => Promise<void>;
 }
 
 export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, onSave }: FinancialTransactionDialogProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,9 +88,16 @@ export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, 
     }
   }, [transaction, form, isOpen]);
 
-  const onSubmit = (data: TransactionFormValues) => {
-    onSave(data);
-    onOpenChange(false);
+  const onSubmit = async (data: TransactionFormValues) => {
+    setIsSaving(true);
+    try {
+      await onSave(data);
+      onOpenChange(false);
+    } catch (error) {
+      // Error is handled and toasted in the parent component
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const title = transaction ? "Editar Lançamento" : "Adicionar Novo Lançamento";
@@ -215,7 +223,10 @@ export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, 
                 />
             </div>
             <DialogFooter>
-              <Button type="submit">SALVAR LANÇAMENTO</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                SALVAR LANÇAMENTO
+              </Button>
             </DialogFooter>
           </form>
         </Form>
@@ -223,5 +234,3 @@ export function FinancialTransactionDialog({ isOpen, onOpenChange, transaction, 
     </Dialog>
   );
 }
-
-    

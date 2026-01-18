@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -96,17 +97,18 @@ export default function InventoryPage() {
             toast({ title: "SUCESSO!", description: "ITEM ATUALIZADO COM SUCESSO." });
         } else {
             // Adding new item
-            await addDoc(inventoryCollection, {
+            const newDocRef = doc(inventoryCollection);
+            await setDoc(newDocRef, {
                 ...data,
+                id: newDocRef.id,
                 oficinaId: OFICINA_ID,
             });
             toast({ title: "SUCESSO!", description: "ITEM ADICIONADO COM SUCESSO." });
         }
-        setSelectedItem(null);
-        setIsItemDialogOpen(false);
     } catch (error) {
         console.error("Error saving item: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O ITEM." });
+        throw error;
     }
   };
 

@@ -101,17 +101,19 @@ export default function FinancialPage() {
             toast({ title: "SUCESSO!", description: "LANÇAMENTO ATUALIZADO COM SUCESSO." });
         } else {
             // Adding new transaction
-            await addDoc(financialCollection, {
+            const newDocRef = doc(financialCollection);
+            await setDoc(newDocRef, {
                 ...data,
+                id: newDocRef.id,
                 oficinaId: OFICINA_ID,
                 reference_type: "MANUAL",
             });
             toast({ title: "SUCESSO!", description: "LANÇAMENTO ADICIONADO COM SUCESSO." });
         }
-        setIsTransactionDialogOpen(false);
     } catch (error) {
         console.error("Error saving transaction: ", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR O LANÇAMENTO." });
+        throw error;
     }
   };
 
@@ -394,5 +396,3 @@ export default function FinancialPage() {
     </div>
   )
 }
-
-    

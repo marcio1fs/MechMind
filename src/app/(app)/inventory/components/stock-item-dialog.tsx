@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -22,7 +23,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { StockItem } from "../page";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -41,10 +43,11 @@ interface StockItemDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   item: StockItem | null;
-  onSave: (item: StockItemFormValues) => void;
+  onSave: (item: StockItemFormValues) => Promise<void>;
 }
 
 export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockItemDialogProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const form = useForm<StockItemFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -77,9 +80,16 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
     }
   }, [item, form, isOpen]);
 
-  const onSubmit = (data: StockItemFormValues) => {
-    onSave(data);
-    onOpenChange(false);
+  const onSubmit = async (data: StockItemFormValues) => {
+    setIsSaving(true);
+    try {
+      await onSave(data);
+      onOpenChange(false);
+    } catch (error) {
+      // Error is handled and toasted in the parent
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const title = item ? "Editar Item" : "Adicionar Novo Item";
@@ -192,7 +202,10 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
                 />
             </div>
             <DialogFooter>
-              <Button type="submit">Salvar Alterações</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar Alterações
+              </Button>
             </DialogFooter>
           </form>
         </Form>

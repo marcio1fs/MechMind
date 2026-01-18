@@ -131,7 +131,7 @@ interface OrderDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   order: Order | null;
-  onSave: (order: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => void;
+  onSave: (order: Omit<Order, 'id' | 'oficinaId'> & { id?: string }) => Promise<void>;
   stockItems: StockItem[];
   mechanics: {id: string, name: string}[];
   vehicleMakes: string[];
@@ -149,6 +149,7 @@ export function OrderDialog({
   const { toast } = useToast();
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [isAddPartDialogOpen, setIsAddPartDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(formSchema),
@@ -285,22 +286,29 @@ export function OrderDialog({
     form.setValue("total", partsTotal + servicesTotal, { shouldValidate: true });
   }, [partsTotal, servicesTotal, form]);
 
-  const onSubmit = (data: OrderFormValues) => {
-    const payload = { 
-        ...data,
-        customerCpf: data.customerCpf?.replace(/\D/g, ""),
-        customerCnpj: data.customerCnpj?.replace(/\D/g, ""),
-        customerPhone: data.customerPhone?.replace(/\D/g, ""),
-    };
-    const selectedMechanic = mechanics.find(m => m.id === data.mechanicId);
-    onSave({
-      ...payload,
-      id: order?.id,
-      mechanicName: selectedMechanic?.name,
-      services: data.services || [],
-      parts: data.parts || [],
-    });
-    onOpenChange(false);
+  const onSubmit = async (data: OrderFormValues) => {
+    setIsSaving(true);
+    try {
+      const payload = { 
+          ...data,
+          customerCpf: data.customerCpf?.replace(/\D/g, ""),
+          customerCnpj: data.customerCnpj?.replace(/\D/g, ""),
+          customerPhone: data.customerPhone?.replace(/\D/g, ""),
+      };
+      const selectedMechanic = mechanics.find(m => m.id === data.mechanicId);
+      
+      await onSave({
+        ...payload,
+        mechanicName: selectedMechanic?.name,
+        services: data.services || [],
+        parts: data.parts || [],
+      });
+      onOpenChange(false);
+    } catch (error) {
+      // Error is handled in the parent component
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleGenerateDiagnosis = async () => {
@@ -845,7 +853,10 @@ export function OrderDialog({
             />
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>CANCELAR</Button>
-              <Button type="submit" disabled={isFinalizado}>SALVAR ORDEM DE SERVIÇO</Button>
+              <Button type="submit" disabled={isFinalizado || isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                SALVAR ORDEM DE SERVIÇO
+              </Button>
             </DialogFooter>
           </form>
         </Form>

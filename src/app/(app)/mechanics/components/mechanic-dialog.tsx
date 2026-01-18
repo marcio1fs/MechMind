@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -22,7 +23,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { Mechanic } from "../page";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -38,10 +40,11 @@ interface MechanicDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   mechanic: Mechanic | null;
-  onSave: (mechanic: Omit<Mechanic, 'oficinaId' | 'role'>) => void;
+  onSave: (mechanic: Omit<Mechanic, 'oficinaId' | 'role'>) => Promise<void>;
 }
 
 export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: MechanicDialogProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const form = useForm<MechanicFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -68,9 +71,16 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
     }
   }, [mechanic, form, isOpen]);
 
-  const onSubmit = (data: MechanicFormValues) => {
-    onSave(data);
-    onOpenChange(false);
+  const onSubmit = async (data: MechanicFormValues) => {
+    setIsSaving(true);
+    try {
+      await onSave(data);
+      onOpenChange(false);
+    } catch (error) {
+      // Error is handled and toasted in the parent
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const title = mechanic ? "EDITAR MECÂNICO" : "ADICIONAR NOVO MECÂNICO";
@@ -140,7 +150,10 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
             )}
             />
             <DialogFooter>
-              <Button type="submit">SALVAR ALTERAÇÕES</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                SALVAR ALTERAÇÕES
+              </Button>
             </DialogFooter>
           </form>
         </Form>
@@ -148,5 +161,3 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
     </Dialog>
   );
 }
-
-    

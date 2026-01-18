@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -192,16 +193,18 @@ export default function OrdersPage() {
             await setDoc(orderRef, data, { merge: true });
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ATUALIZADA COM SUCESSO." });
         } else {
-            await addDoc(ordersCollection, {
+            const newDocRef = doc(ordersCollection);
+            await setDoc(newDocRef, {
                 ...data,
+                id: newDocRef.id,
                 oficinaId: OFICINA_ID,
             });
             toast({ title: "SUCESSO!", description: "ORDEM DE SERVIÇO ADICIONADA COM SUCESSO." });
         }
-        setIsOrderDialogOpen(false);
     } catch (error) {
         console.error("Error saving order:", error);
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL SALVAR A ORDEM DE SERVIÇO." });
+        throw error;
     }
   };
 
