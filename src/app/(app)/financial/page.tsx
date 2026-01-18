@@ -32,7 +32,7 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGri
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
-import { collection, Timestamp, doc, addDoc, setDoc, deleteDoc } from "firebase/firestore"
+import { collection, Timestamp, doc, setDoc, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast";
 import { FinancialTransactionDialog } from "./components/financial-transaction-dialog";
 import { DeleteTransactionDialog } from "./components/delete-transaction-dialog";
@@ -95,19 +95,28 @@ export default function FinancialPage() {
         throw new Error("Firestore not initialized");
     }
     
-    const { id, ...data } = transactionData;
+    const dataToSave: { [key: string]: any } = { ...transactionData };
+    const transactionId = transactionData.id;
+    delete dataToSave.id;
+
+    // Clean out undefined fields before sending to Firestore
+    Object.keys(dataToSave).forEach(key => {
+        if (dataToSave[key] === undefined) {
+            delete dataToSave[key];
+        }
+    });
 
     try {
-        if (id) {
+        if (transactionId) {
             // Editing existing transaction
-            const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", id);
-            await setDoc(transactionRef, data, { merge: true });
+            const transactionRef = doc(firestore, "oficinas", OFICINA_ID, "financialTransactions", transactionId);
+            await setDoc(transactionRef, dataToSave, { merge: true });
             toast({ title: "SUCESSO!", description: "LANÇAMENTO ATUALIZADO COM SUCESSO." });
         } else {
             // Adding new transaction
             const newDocRef = doc(financialCollection);
             await setDoc(newDocRef, {
-                ...data,
+                ...dataToSave,
                 id: newDocRef.id,
                 oficinaId: OFICINA_ID,
                 reference_type: "MANUAL",
@@ -215,7 +224,7 @@ export default function FinancialPage() {
 
   return (
     <div className="flex flex-col gap-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 className="text-3xl font-bold font-headline tracking-tight">VISÃO GERAL FINANCEIRA</h1>
                 <p className="text-muted-foreground">

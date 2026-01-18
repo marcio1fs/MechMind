@@ -117,7 +117,7 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
                 </FormItem>
             )}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
                 name="code"
@@ -145,7 +145,7 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
                 )}
                 />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <FormField
                 control={form.control}
                 name="quantity"
@@ -173,7 +173,7 @@ export function StockItemDialog({ isOpen, onOpenChange, item, onSave }: StockIte
                 )}
                 />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
                 name="cost_price"

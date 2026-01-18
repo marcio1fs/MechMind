@@ -438,7 +438,7 @@ export function OrderDialog({
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {documentType === "CPF" ? (
                     <FormField
                     control={form.control}
@@ -482,7 +482,7 @@ export function OrderDialog({
                 )}
                 />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="vehicle.make"
@@ -521,7 +521,7 @@ export function OrderDialog({
                 )}
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="vehicle.year"
@@ -566,7 +566,7 @@ export function OrderDialog({
             <Separator className="my-4" />
 
             <h3 className="text-base font-semibold text-foreground border-b pb-2">DETALHES DA ORDEM DE SERVIÇO</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
                 name="startDate"
