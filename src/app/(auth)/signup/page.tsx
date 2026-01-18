@@ -18,7 +18,6 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { doc, serverTimestamp, writeBatch, collection } from 'firebase/firestore';
 
 export default function SignupPage() {
   const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
@@ -33,46 +32,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
-  const createWorkshopAndUser = async (user: { uid: string, email: string | null, displayName: string | null }) => {
-    const batch = writeBatch(firestore);
-
-    // 1. Create a new Oficina document
-    const oficinasCol = collection(firestore, "oficinas");
-    const newOficinaRef = doc(oficinasCol); // Create a ref with a new auto-generated ID
-
-    const displayName = user.displayName || name || "Nova Oficina";
-    
-    batch.set(newOficinaRef, {
-        id: newOficinaRef.id,
-        name: `Oficina de ${displayName}`,
-        cnpj: "",
-        address: "",
-        phone: "",
-        email: user.email,
-        // subscriptionPlanId is not set, user will be on trial by default
-    });
-
-    // 2. Create the user profile document under the new oficina
-    const [firstName, ...lastName] = displayName.split(' ');
-    const userDocRef = doc(firestore, "oficinas", newOficinaRef.id, "users", user.uid);
-    batch.set(userDocRef, {
-      id: user.uid,
-      oficinaId: newOficinaRef.id,
-      firstName: firstName || '',
-      lastName: lastName.join(' ') || '',
-      email: user.email,
-      role: "ADMIN", // First user becomes admin of their workshop
-      createdAt: serverTimestamp(),
-    });
-
-    // 3. Create the user-to-oficina mapping document for quick lookups
-    const userMappingRef = doc(firestore, "users", user.uid);
-    batch.set(userMappingRef, { oficinaId: newOficinaRef.id });
-    
-    // Commit all writes at once
-    await batch.commit();
-  }
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +49,8 @@ export default function SignupPage() {
       const newUser = userCredential.user;
       await updateProfile(newUser, { displayName: name });
 
-      await createWorkshopAndUser(newUser);
+      // The onAuthStateChanged listener in FirebaseProvider will now handle
+      // creating the workshop and user documents.
 
       toast({
         title: 'CONTA CRIADA!',
@@ -118,10 +78,10 @@ export default function SignupPage() {
     setIsGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const newUser = result.user;
+      await signInWithPopup(auth, provider);
       
-      await createWorkshopAndUser(newUser);
+      // The onAuthStateChanged listener in FirebaseProvider will now handle
+      // creating the workshop and user documents for the new user.
 
       toast({
         title: 'CONTA CRIADA!',

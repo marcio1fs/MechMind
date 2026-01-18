@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, onSnapshot, getDoc, setDoc, DocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
+import { Firestore, doc, onSnapshot, getDoc, setDoc, DocumentSnapshot, DocumentData, Timestamp, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { getUserPlan } from '@/lib/subscription';
@@ -97,62 +97,83 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
         if (firebaseUser) {
           try {
-            // 1. Get the user's oficinaId from the top-level /users mapping collection
             const userMappingRef = doc(firestore, "users", firebaseUser.uid);
             const mappingDoc = await getDoc(userMappingRef);
+            let oficinaId;
 
             if (mappingDoc.exists()) {
-              const { oficinaId } = mappingDoc.data();
+              oficinaId = mappingDoc.data().oficinaId;
               if (!oficinaId) {
                 throw new Error("Oficina ID is missing in user mapping.");
               }
-
-              // 2. Now that we have the oficinaId, listen to the actual user profile document
-              const profileDocRef = doc(firestore, "oficinas", oficinaId, "users", firebaseUser.uid);
-              profileUnsubscribe = onSnapshot(
-                profileDocRef,
-                (snapshot: DocumentSnapshot<DocumentData>) => {
-                  if (snapshot.exists()) {
-                    const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
-                    
-                    // If the user's role in the DB is not ADMIN, update it.
-                    // This is a robust fix to ensure the primary user is always an admin.
-                    if (profileData.role !== 'ADMIN') {
-                        // Update the document in the background.
-                        // The onSnapshot listener will pick up this change automatically
-                        // and re-render the app with the correct permissions.
-                        setDoc(profileDocRef, { role: 'ADMIN' }, { merge: true }).catch(err => {
-                            console.error("Failed to update user role to ADMIN:", err);
-                        });
-                    }
-
-                    const activePlan = getUserPlan(profileData);
-                    // Also force the role to ADMIN on the client-side profile for immediate UI update
-                    const finalProfile = { ...profileData, activePlan, role: 'ADMIN' as const }; 
-
-                    // Set the real profile data from Firestore
-                    setUserAuthState({
-                      user: firebaseUser,
-                      profile: finalProfile,
-                      isUserLoading: false,
-                      userError: null,
-                    });
-                  } else {
-                     // This is an inconsistent state (mapping exists, but profile doesn't).
-                     // This can happen if signup fails midway. We should treat them as not fully onboarded.
-                     setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: new Error("User profile document not found.") });
-                  }
-                },
-                (error) => {
-                  // Error listening to the profile document
-                  setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
-                }
-              );
             } else {
-              // Mapping doesn't exist. This user hasn't completed the signup flow for this app.
-              // We stop loading and the user will be redirected from protected routes.
-              setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: null });
+              // User mapping doesn't exist. This is a NEW USER.
+              // Create all necessary documents for them in a single transaction.
+              const batch = writeBatch(firestore);
+              const oficinasCol = collection(firestore, "oficinas");
+              const newOficinaRef = doc(oficinasCol);
+
+              const displayName = firebaseUser.displayName || "Novo Usuário";
+              
+              batch.set(newOficinaRef, {
+                  id: newOficinaRef.id,
+                  name: `Oficina de ${displayName}`,
+                  cnpj: "",
+                  address: "",
+                  phone: "",
+                  email: firebaseUser.email,
+              });
+
+              const [firstName, ...lastName] = displayName.split(' ');
+              const userDocRef = doc(firestore, "oficinas", newOficinaRef.id, "users", firebaseUser.uid);
+              batch.set(userDocRef, {
+                id: firebaseUser.uid,
+                oficinaId: newOficinaRef.id,
+                firstName: firstName || '',
+                lastName: lastName.join(' ') || '',
+                email: firebaseUser.email,
+                role: "ADMIN",
+                createdAt: serverTimestamp(),
+              });
+
+              batch.set(userMappingRef, { oficinaId: newOficinaRef.id });
+              
+              await batch.commit();
+              oficinaId = newOficinaRef.id; // Use the new oficinaId for the profile listener
             }
+
+            // Now that we have the oficinaId (either existing or newly created), listen to the user profile
+            const profileDocRef = doc(firestore, "oficinas", oficinaId, "users", firebaseUser.uid);
+            profileUnsubscribe = onSnapshot(
+              profileDocRef,
+              (snapshot: DocumentSnapshot<DocumentData>) => {
+                if (snapshot.exists()) {
+                  const profileData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
+                  
+                  if (profileData.role !== 'ADMIN') {
+                      setDoc(profileDocRef, { role: 'ADMIN' }, { merge: true }).catch(err => {
+                          console.error("Failed to update user role to ADMIN:", err.message);
+                      });
+                  }
+
+                  const activePlan = getUserPlan(profileData);
+                  const finalProfile = { ...profileData, activePlan, role: 'ADMIN' as const }; 
+
+                  setUserAuthState({
+                    user: firebaseUser,
+                    profile: finalProfile,
+                    isUserLoading: false,
+                    userError: null,
+                  });
+                } else {
+                   // This should now be a very rare case, only if the batch write above fails partially.
+                   setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: new Error("User profile document not found after creation attempt.") });
+                }
+              },
+              (error) => {
+                setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
+              }
+            );
           } catch(error: any) {
              setUserAuthState({ user: firebaseUser, profile: null, isUserLoading: false, userError: error });
           }
@@ -185,7 +206,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
       user: userAuthState.user,
-      profile: userAuthState.profile, // Use the profile directly from state
+      profile: userAuthState.profile,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
     };
