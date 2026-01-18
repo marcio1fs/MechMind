@@ -44,7 +44,7 @@ export default function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const { toast } = useToast();
   const title = getTitleFromPathname(pathname);
   const [isMounted, setIsMounted] = useState(false);
@@ -64,12 +64,30 @@ export default function AppHeader() {
   };
   
   const getAvatarFallback = () => {
-    if (!user?.displayName) return "U";
-    const names = user.displayName.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    if (profile?.firstName && profile.lastName) {
+      return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
     }
-    return user.displayName.substring(0, 2).toUpperCase();
+    if (profile?.firstName) {
+      return profile.firstName.substring(0, 2).toUpperCase();
+    }
+    if (user?.displayName) {
+      const names = user.displayName.split(' ');
+      if (names.length > 1) {
+        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+      }
+      return user.displayName.substring(0, 2).toUpperCase();
+    }
+    return "U";
+  }
+  
+  const getUserDisplayName = () => {
+      if(profile?.firstName && profile?.lastName) {
+          return `${profile.firstName} ${profile.lastName}`;
+      }
+      if(profile?.firstName) {
+          return profile.firstName;
+      }
+      return user?.displayName || 'MINHA CONTA';
   }
 
   return (
@@ -94,7 +112,7 @@ export default function AppHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{user?.displayName || 'MINHA CONTA'}</DropdownMenuLabel>
+            <DropdownMenuLabel>{getUserDisplayName()}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
                 <Link href="/settings">CONFIGURAÇÕES</Link>
