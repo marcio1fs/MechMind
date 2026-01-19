@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -24,7 +23,7 @@ import { MechanicDialog } from "./components/mechanic-dialog";
 import { DeleteMechanicDialog } from "./components/delete-mechanic-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, setDoc, deleteDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, query, where, getDocs } from "firebase/firestore";
 import AccessDenied from "@/components/access-denied";
 
 
@@ -79,8 +78,13 @@ export default function MechanicsPage() {
         toast({ title: "SUCESSO!", description: "MECÂNICO ATUALIZADO COM SUCESSO." });
       } else {
         // Adding new mechanic
-        // Note: This flow doesn't create a Firebase Auth user, only a Firestore document.
-        // A complete solution would involve a Cloud Function or a more complex client-side flow.
+        // Check if email already exists
+        const q = query(mechanicsCollection, where("email", "==", data.email));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          throw new Error("Já existe um mecânico com este e-mail.");
+        }
+
         const newDocRef = doc(mechanicsCollection);
         await setDoc(newDocRef, {
             ...data,

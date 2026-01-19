@@ -25,7 +25,6 @@ import {
 import type { Mechanic } from "../page";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { Timestamp } from "firebase/firestore";
 
 const formSchema = z.object({
   id: z.string().optional(),
