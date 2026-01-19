@@ -16,17 +16,14 @@ import {
   ClipboardList,
   Settings,
   Wrench,
-  LogOut,
   Package,
   UserCog,
   DollarSign,
   Building,
 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useAuth, useUser } from "@/firebase";
-import { signOut } from "firebase/auth";
-import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/firebase";
 
 const allMenuItems = [
   { href: "/dashboard", label: "PAINEL", icon: LayoutDashboard, roles: ['ADMIN', 'OFICINA'] },
@@ -43,27 +40,14 @@ const allMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const auth = useAuth();
-  const { toast } = useToast();
   const { profile } = useUser();
 
   const menuItems = useMemo(() => {
+    // In test mode, we hardcode the ADMIN role, so all items should be visible
     if (!profile?.role) return [];
-    // A fallback for users that might not have a role defined yet
-    const userRole = profile.role || 'OFICINA';
+    const userRole = profile.role;
     return allMenuItems.filter(item => item.roles.includes(userRole));
   }, [profile?.role]);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({ title: 'LOGOUT REALIZADO', description: 'VOCÊ FOI DESCONECTADO COM SUCESSO.' });
-      router.push('/');
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'ERRO NO LOGOUT', description: 'NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.' });
-    }
-  };
 
   return (
     <>
@@ -92,14 +76,7 @@ export default function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-            <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} tooltip="SAIR">
-                    <LogOut/>
-                    <span>SAIR</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        </SidebarMenu>
+         {/* Logout button removed for testing */}
       </SidebarFooter>
     </>
   );

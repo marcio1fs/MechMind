@@ -466,10 +466,7 @@
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "google.com"
-    ]
+    "providers": []
   },
   "firestore": {
     "structure": [
