@@ -40,7 +40,7 @@ interface MechanicDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   mechanic: Mechanic | null;
-  onSave: (mechanic: Omit<Mechanic, 'oficinaId' | 'role' | 'createdAt'> & { id?: string }) => Promise<void>;
+  onSave: (mechanic: Omit<Mechanic, 'oficinaId' | 'role' | 'createdAt'> & { id?: string }) => Promise<boolean>;
 }
 
 export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: MechanicDialogProps) {
@@ -73,13 +73,10 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
 
   const onSubmit = async (data: MechanicFormValues) => {
     setIsSaving(true);
-    try {
-      await onSave(data);
+    const success = await onSave(data);
+    setIsSaving(false);
+    if (success) {
       onOpenChange(false);
-    } catch (error) {
-      // Error is handled and toasted in the parent
-    } finally {
-      setIsSaving(false);
     }
   };
 
