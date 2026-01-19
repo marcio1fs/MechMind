@@ -214,7 +214,7 @@ service cloud.firestore {
     match /oficinas/{oficinaId} {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if false;
-      allow create: if isSignedIn() && isCreatingValidOficinaDoc(oficinaId); // Any signed-in user can create a new workshop.
+      allow create: if isSignedIn();
       allow update: if (isOficinaAdminForPath(oficinaId) && isExistingDoc() && hasImmutableOficinaFields()) || isGlobalAdmin();
       allow delete: if (isOficinaAdminForPath(oficinaId) && isExistingDoc()) || isGlobalAdmin();
     }
@@ -228,10 +228,11 @@ service cloud.firestore {
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow create: if (isCreatingValidOficinaData(oficinaId) && request.resource.data.id == userId) &&
                       (
-                        // Scenario 1: A new user creates their own ADMIN profile during signup.
-                        (request.resource.data.role == 'ADMIN' && isOwner(userId)) ||
-                        // Scenario 2: An admin creates a profile for someone else (e.g., a mechanic).
-                        (request.resource.data.role == 'OFICINA' && isOficinaAdminForPath(oficinaId))
+                        // Case 1: New user signup, creating their own ADMIN profile.
+                        (isOwner(userId) && request.resource.data.role == 'ADMIN')
+                        ||
+                        // Case 2: An existing Admin creates a new OFICINA (mechanic) profile for someone else.
+                        (!isOwner(userId) && request.resource.data.role == 'OFICINA' && isOficinaAdminForPath(oficinaId))
                       );
       allow update: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId)) && hasImmutableUserFields()) || isGlobalAdmin();
       allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
