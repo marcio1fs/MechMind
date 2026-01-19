@@ -226,16 +226,13 @@ service cloud.firestore {
     match /oficinas/{oficinaId}/users/{userId} {
       allow get: if isUserOfOficina(oficinaId) || isGlobalAdmin();
       allow list: if isUserOfOficina(oficinaId) || isGlobalAdmin();
-      allow create: if (isCreatingValidOficinaData(oficinaId) && request.resource.data.id == userId) && (
-                      // Scenario 1: A new workshop is being created. The user creating the
-                      // profile must be the owner of the account and must be assigning
-                      // themselves the 'ADMIN' role. This happens during signup.
-                      (isOwner(userId) && request.resource.data.role == 'ADMIN') ||
-                      // Scenario 2: The workshop already exists. The user creating the
-                      // new profile must be an existing admin of that workshop. This
-                      // happens when an admin invites a new mechanic.
-                      (exists(/databases/$(database)/documents/oficinas/$(oficinaId)) && isOficinaAdminForPath(oficinaId))
-                    );
+      allow create: if (isCreatingValidOficinaData(oficinaId) && request.resource.data.id == userId) &&
+                      (
+                        // Scenario 1: A new user creates their own ADMIN profile during signup.
+                        (request.resource.data.role == 'ADMIN' && isOwner(userId)) ||
+                        // Scenario 2: An admin creates a profile for someone else (e.g., a mechanic).
+                        (request.resource.data.role == 'OFICINA' && isOficinaAdminForPath(oficinaId))
+                      );
       allow update: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId)) && hasImmutableUserFields()) || isGlobalAdmin();
       allow delete: if (isExistingDoc() && (isOwner(userId) || isOficinaAdminForPath(oficinaId))) || isGlobalAdmin();
     }
