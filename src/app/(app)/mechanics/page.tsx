@@ -24,7 +24,6 @@ import { GenericDeleteDialog } from "@/components/generic-delete-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, query, where, getDocs } from "firebase/firestore";
-import AccessDenied from "@/components/access-denied";
 
 
 // This type should align with the User entity in backend.json
@@ -55,17 +54,23 @@ export default function MechanicsPage() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
 
+  const isAdmin = profile?.role === 'ADMIN';
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const handleOpenDialog = (dialog: 'mechanic' | 'delete', mechanic: Mechanic | null) => {
+    if (!isAdmin) return;
     setSelectedMechanic(mechanic);
     if (dialog === 'mechanic') setIsMechanicDialogOpen(true);
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
   };
   
   const handleSaveMechanic = async (mechanicData: Omit<Mechanic, 'id' | 'oficinaId' | 'role' | 'createdAt'> & { id?: string }): Promise<void> => {
+    if (!isAdmin) {
+        throw new Error("Apenas administradores podem salvar mecânicos.");
+    }
     if (!firestore || !mechanicsCollection || !profile?.oficinaId) {
         const errorMsg = "Sessão inválida. Faça login novamente.";
         toast({ variant: "destructive", title: "ERRO!", description: errorMsg });
@@ -102,12 +107,12 @@ export default function MechanicsPage() {
     } catch (error: any) {
         const errorMessage = error.message || "NÃO FOI POSSÍVEL SALVAR O MECÂNICO.";
         toast({ variant: "destructive", title: "ERRO!", description: errorMessage });
-        throw error;
+        throw error; // Re-throw to be caught in the dialog
     }
   };
 
   const handleDeleteMechanic = async (mechanic: Mechanic) => {
-    if (!firestore || !profile?.oficinaId) return;
+    if (!isAdmin || !firestore || !profile?.oficinaId) return;
     try {
         const mechanicRef = doc(firestore, "oficinas", profile.oficinaId, "users", mechanic.id);
         await deleteDoc(mechanicRef);
@@ -127,10 +132,9 @@ export default function MechanicsPage() {
       </div>
     );
   }
-
-  if (profile && profile.role !== 'ADMIN') {
-    return <AccessDenied />;
-  }
+  
+  // Unlike other admin pages, any authenticated user can VIEW the mechanics.
+  // But only admins can perform actions.
 
   return (
     <div className="flex flex-col gap-8">
@@ -141,12 +145,14 @@ export default function MechanicsPage() {
                 GERENCIE A EQUIPE DA SUA OFICINA.
                 </p>
             </div>
-            <div>
-                <Button onClick={() => handleOpenDialog('mechanic', null)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    ADICIONAR MECÂNICO
-                </Button>
-            </div>
+            {isAdmin && (
+              <div>
+                  <Button onClick={() => handleOpenDialog('mechanic', null)}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      ADICIONAR MECÂNICO
+                  </Button>
+              </div>
+            )}
         </div>
 
       <Card>
@@ -154,6 +160,7 @@ export default function MechanicsPage() {
             <CardTitle>EQUIPE</CardTitle>
             <CardDescription>
                 A LISTA DE TODOS OS MECÂNICOS CADASTRADOS.
+                 {!isAdmin && <span className="block mt-1 text-xs"> (MODO DE VISUALIZAÇÃO)</span>}
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -186,7 +193,7 @@ export default function MechanicsPage() {
                         <TableCell>{mechanic.specialty}</TableCell>
                         <TableCell>{mechanic.email}</TableCell>
                         <TableCell className="text-right">
-                            {isMounted ? (
+                            {isMounted && isAdmin ? (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon">
@@ -200,9 +207,7 @@ export default function MechanicsPage() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             ) : (
-                                <div className="flex justify-end">
-                                    <Skeleton className="h-10 w-10" />
-                                </div>
+                                isMounted && !isAdmin ? null : <Skeleton className="h-10 w-10 ml-auto" />
                             )}
                         </TableCell>
                         </TableRow>

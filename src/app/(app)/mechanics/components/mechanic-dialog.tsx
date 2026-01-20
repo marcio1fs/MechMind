@@ -130,7 +130,7 @@ export function MechanicDialog({ isOpen, onOpenChange, mechanic, onSave }: Mecha
                 <FormItem>
                 <FormLabel>E-MAIL</FormLabel>
                 <FormControl>
-                    <Input placeholder="EX: carlos@email.com" {...field} type="email" />
+                    <Input placeholder="EX: carlos@email.com" {...field} type="email" readOnly={!!mechanic} />
                 </FormControl>
                  <FormMessage />
                 </FormItem>
