@@ -11,27 +11,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { Order } from "../page";
 import { Loader2 } from "lucide-react";
 
-interface DeleteOrderDialogProps {
+interface GenericDeleteDialogProps<T> {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  order: Order | null;
-  onDelete: (order: Order) => Promise<void>;
+  item: T | null;
+  onDelete: (item: T) => Promise<void>;
+  title: string;
+  description: React.ReactNode;
 }
 
-export function DeleteOrderDialog({ isOpen, onOpenChange, order, onDelete }: DeleteOrderDialogProps) {
+export function GenericDeleteDialog<T>({ isOpen, onOpenChange, item, onDelete, title, description }: GenericDeleteDialogProps<T>) {
     const [isDeleting, setIsDeleting] = useState(false);
 
-    if (!order) return null;
-
     const handleDelete = async () => {
+        if (!item) return;
         setIsDeleting(true);
         try {
-            await onDelete(order);
+            await onDelete(item);
         } finally {
             setIsDeleting(false);
+            onOpenChange(false);
         }
     };
 
@@ -39,20 +40,20 @@ export function DeleteOrderDialog({ isOpen, onOpenChange, order, onDelete }: Del
         <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogTitle>{title}</AlertDialogTitle>
             <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente a ordem de serviço <span className="font-bold">#{order.displayId}</span>.
+                {description}
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>CANCELAR</AlertDialogCancel>
             <AlertDialogAction
                 onClick={handleDelete}
                 disabled={isDeleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
                 {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Excluir
+                EXCLUIR
             </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

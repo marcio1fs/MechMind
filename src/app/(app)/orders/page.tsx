@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -34,7 +33,7 @@ import { getOrderSummary } from "./actions";
 import { type OrderSummaryOutput } from "@/ai/flows/order-summary-generation";
 import { Sparkles, Loader2, MoreHorizontal, PlusCircle, Search, CreditCard, CheckCircle, Calendar as CalendarIcon } from "lucide-react";
 import { OrderDialog } from "./components/order-dialog";
-import { DeleteOrderDialog } from "./components/delete-order-dialog";
+import { GenericDeleteDialog } from "@/components/generic-delete-dialog";
 import { PaymentDialog } from "./components/payment-dialog";
 import { ReceiptDialog } from "./components/receipt-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -378,9 +377,9 @@ export default function OrdersPage() {
         toast({ title: "SUCESSO!", description: "Ordem de Serviço excluída e estoque restaurado." });
     } catch (error: any) {
         toast({ variant: "destructive", title: "ERRO!", description: `NÃO FOI POSSÍVEL EXCLUIR A ORDEM DE SERVIÇO: ${error.message}` });
+        throw error;
     } finally {
         setSelectedOrder(null);
-        setIsDeleteDialogOpen(false);
     }
   };
 
@@ -722,11 +721,17 @@ export default function OrdersPage() {
       )}
 
       {/* Dialog for Delete Confirmation */}
-      <DeleteOrderDialog
+      <GenericDeleteDialog
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-        order={selectedOrder}
+        item={selectedOrder}
         onDelete={handleDeleteOrder}
+        title="Você tem certeza?"
+        description={
+            <>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente a ordem de serviço <span className="font-bold">#{selectedOrder?.displayId}</span>.
+            </>
+        }
       />
 
       {/* Dialog for Payment */}

@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { MoreHorizontal, PlusCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MechanicDialog } from "./components/mechanic-dialog";
-import { DeleteMechanicDialog } from "./components/delete-mechanic-dialog";
+import { GenericDeleteDialog } from "@/components/generic-delete-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, query, where, getDocs } from "firebase/firestore";
@@ -112,10 +112,11 @@ export default function MechanicsPage() {
         const mechanicRef = doc(firestore, "oficinas", profile.oficinaId, "users", mechanic.id);
         await deleteDoc(mechanicRef);
         toast({ title: "SUCESSO!", description: "MECÂNICO EXCLUÍDO COM SUCESSO." });
-        setSelectedMechanic(null);
-        setIsDeleteDialogOpen(false);
     } catch (error) {
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O MECÂNICO." });
+        throw error;
+    } finally {
+        setSelectedMechanic(null);
     }
   };
 
@@ -224,11 +225,17 @@ export default function MechanicsPage() {
         onSave={handleSaveMechanic}
       />
 
-      <DeleteMechanicDialog
+      <GenericDeleteDialog
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-        mechanic={selectedMechanic}
+        item={selectedMechanic}
         onDelete={handleDeleteMechanic}
+        title="VOCÊ TEM CERTEZA?"
+        description={
+            <>
+                ESTA AÇÃO NÃO PODE SER DESFEITA. ISTO EXCLUIRÁ PERMANENTEMENTE O MECÂNICO <span className="font-bold">{`${selectedMechanic?.firstName} ${selectedMechanic?.lastName}`}</span>.
+            </>
+        }
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -22,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { MoreHorizontal, PlusCircle, DollarSign, Archive } from "lucide-react";
 import { StockItemDialog } from "./components/stock-item-dialog";
 import { StockMovementDialog } from "./components/stock-movement-dialog";
-import { DeleteItemDialog } from "./components/delete-item-dialog";
+import { GenericDeleteDialog } from "@/components/generic-delete-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
@@ -143,9 +142,9 @@ export default function InventoryPage() {
         toast({ title: "SUCESSO!", description: "ITEM EXCLUÍDO COM SUCESSO." });
     } catch (error) {
         toast({ variant: "destructive", title: "ERRO!", description: "NÃO FOI POSSÍVEL EXCLUIR O ITEM." });
+        throw error;
     } finally {
         setSelectedItem(null);
-        setIsDeleteDialogOpen(false);
     }
   };
 
@@ -372,11 +371,17 @@ export default function InventoryPage() {
         onMove={handleMoveItem}
       />
 
-      <DeleteItemDialog
+      <GenericDeleteDialog
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         item={selectedItem}
         onDelete={handleDeleteItem}
+        title="Você tem certeza?"
+        description={
+            <>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente o item <span className="font-bold">{selectedItem?.name}</span> do seu estoque.
+            </>
+        }
       />
     </div>
   );
