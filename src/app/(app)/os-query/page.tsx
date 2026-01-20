@@ -11,9 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, AlertCircle } from "lucide-react";
+import { Search, Loader2, AlertCircle, Printer } from "lucide-react";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, where, getDocs, doc, DocumentData } from "firebase/firestore";
+import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import type { Order } from "../orders/page";
 import { ReceiptDialog } from "../orders/components/receipt-dialog";
 import { formatNumber } from "@/lib/utils";
@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Timestamp } from "firebase/firestore";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type WorkshopInfo = {
     name: string;
@@ -41,10 +43,12 @@ const statusVariant: { [key in Order["status"]]: "default" | "secondary" | "outl
 export default function OsQueryPage() {
     const firestore = useFirestore();
     const { profile } = useUser();
-    const [searchId, setSearchId] = useState("");
-    const [foundOrder, setFoundOrder] = useState<Order | null>(null);
+    const [searchValue, setSearchValue] = useState("");
+    const [searchType, setSearchType] = useState<'displayId' | 'customer' | 'plate'>('displayId');
+    const [foundOrders, setFoundOrders] = useState<Order[] | null>(null);
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectedOrderForReceipt, setSelectedOrderForReceipt] = useState<Order | null>(null);
     const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
     const workshopDocRef = useMemoFirebase(() => {
@@ -54,8 +58,8 @@ export default function OsQueryPage() {
     const { data: workshopData } = useDoc<WorkshopInfo>(workshopDocRef);
 
     const handleSearch = async () => {
-        if (!searchId) {
-            setError("Por favor, insira o número da OS.");
+        if (!searchValue) {
+            setError("Por favor, insira um valor para a busca.");
             return;
         }
         if (!firestore || !profile?.oficinaId) {
@@ -64,28 +68,46 @@ export default function OsQueryPage() {
         }
 
         setIsSearching(true);
-        setFoundOrder(null);
+        setFoundOrders(null);
         setError(null);
 
         try {
             const ordersRef = collection(firestore, "oficinas", profile.oficinaId, "ordensDeServico");
-            const q = query(ordersRef, where("displayId", "==", searchId.padStart(4, '0')));
+            let q;
+            switch (searchType) {
+                case 'displayId':
+                    q = query(ordersRef, where("displayId", "==", searchValue.padStart(4, '0')));
+                    break;
+                case 'customer':
+                     // Firestore queries are case-sensitive.
+                    q = query(ordersRef, where("customer", "==", searchValue));
+                    break;
+                case 'plate':
+                    q = query(ordersRef, where("vehicle.plate", "==", searchValue.toUpperCase()));
+                    break;
+                default:
+                    throw new Error("Tipo de busca inválido");
+            }
+            
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
-                setError(`Nenhuma Ordem de Serviço encontrada com o número #${searchId}.`);
+                setError(`Nenhuma Ordem de Serviço encontrada para sua busca.`);
             } else {
-                const orderDoc = querySnapshot.docs[0];
-                setFoundOrder(orderDoc.data() as Order);
+                const orders = querySnapshot.docs.map(doc => doc.data() as Order);
+                setFoundOrders(orders);
             }
         } catch (e) {
-            setError("Ocorreu um erro ao buscar a Ordem de Serviço.");
+            setError("Ocorreu um erro ao buscar as Ordens de Serviço.");
         } finally {
             setIsSearching(false);
         }
     };
 
-    const startDate = foundOrder?.startDate instanceof Timestamp ? foundOrder.startDate.toDate() : foundOrder?.startDate;
+    const handleOpenReceipt = (order: Order) => {
+        setSelectedOrderForReceipt(order);
+        setIsReceiptOpen(true);
+    };
 
     return (
         <>
@@ -100,21 +122,34 @@ export default function OsQueryPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Buscar Ordem de Serviço</CardTitle>
-                        <CardDescription>Insira o número da OS para iniciar a busca.</CardDescription>
+                        <CardDescription>Selecione o tipo de busca e insira o valor para encontrar a OS.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex items-end gap-2">
-                        <div className="grid w-full max-w-sm items-center gap-1.5">
-                            <Label htmlFor="os-number">Número da OS</Label>
+                    <CardContent className="flex flex-col sm:flex-row items-end gap-2">
+                        <div className="grid w-full sm:w-auto items-center gap-1.5">
+                            <Label htmlFor="search-type">Buscar por</Label>
+                            <Select value={searchType} onValueChange={(v) => setSearchType(v as any)}>
+                                <SelectTrigger id="search-type" className="w-full sm:w-[180px]">
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="displayId">Nº da OS</SelectItem>
+                                    <SelectItem value="customer">Nome do Cliente</SelectItem>
+                                    <SelectItem value="plate">Placa do Veículo</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid w-full flex-1 items-center gap-1.5">
+                            <Label htmlFor="search-value">Valor</Label>
                             <Input 
                                 type="text" 
-                                id="os-number" 
-                                placeholder="Ex: 123" 
-                                value={searchId}
-                                onChange={(e) => setSearchId(e.target.value.replace(/\D/g, ''))}
+                                id="search-value" 
+                                placeholder="Insira o valor..." 
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             />
                         </div>
-                        <Button onClick={handleSearch} disabled={isSearching}>
+                        <Button onClick={handleSearch} disabled={isSearching} className="w-full sm:w-auto">
                             {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                             Buscar
                         </Button>
@@ -135,50 +170,54 @@ export default function OsQueryPage() {
                     </Card>
                 )}
 
-                {foundOrder && !isSearching && (
+                {foundOrders && !isSearching && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Resultado da Busca</CardTitle>
+                             <CardDescription>{foundOrders.length} resultado(s) encontrado(s).</CardDescription>
                         </CardHeader>
                         <CardContent className="grid gap-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                    <p className="font-semibold text-muted-foreground">Nº OS</p>
-                                    <p className="font-bold text-lg">#{foundOrder.displayId}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-muted-foreground">Cliente</p>
-                                    <p>{foundOrder.customer}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-muted-foreground">Veículo</p>
-                                    <p>{`${foundOrder.vehicle.make} ${foundOrder.vehicle.model} (${foundOrder.vehicle.plate})`}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-muted-foreground">Data</p>
-                                    <p>{startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-muted-foreground">Status</p>
-                                    <Badge variant={statusVariant[foundOrder.status]}>{foundOrder.status}</Badge>
-                                </div>
-                                 <div className="col-span-full sm:col-span-1">
-                                    <p className="font-semibold text-muted-foreground">Total</p>
-                                    <p className="font-bold">R$ {formatNumber(foundOrder.total)}</p>
-                                </div>
+                            <div className="rounded-lg border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>OS</TableHead>
+                                            <TableHead>Cliente</TableHead>
+                                            <TableHead>Veículo</TableHead>
+                                            <TableHead>Data</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Total</TableHead>
+                                            <TableHead className="text-right">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {foundOrders.map(order => {
+                                            const startDate = order.startDate instanceof Timestamp ? order.startDate.toDate() : order.startDate;
+                                            return (
+                                                <TableRow key={order.id}>
+                                                    <TableCell className="font-medium">#{order.displayId}</TableCell>
+                                                    <TableCell>{order.customer}</TableCell>
+                                                    <TableCell>{`${order.vehicle.make} ${order.vehicle.model} (${order.vehicle.plate})`}</TableCell>
+                                                    <TableCell>{startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}</TableCell>
+                                                    <TableCell><Badge variant={statusVariant[order.status]}>{order.status}</Badge></TableCell>
+                                                    <TableCell className="text-right">R$ {formatNumber(order.total)}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button 
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleOpenReceipt(order)}
+                                                            disabled={order.status !== 'FINALIZADO'}
+                                                        >
+                                                            <Printer className="mr-2 h-4 w-4" />
+                                                            Recibo
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
                             </div>
-                            <Button 
-                                onClick={() => setIsReceiptOpen(true)}
-                                disabled={foundOrder.status !== 'FINALIZADO'}
-                                className="w-full sm:w-auto"
-                            >
-                                Reimprimir Recibo
-                            </Button>
-                             {foundOrder.status !== 'FINALIZADO' && (
-                                <p className="text-xs text-muted-foreground">
-                                    A reimpressão do recibo só é permitida para Ordens de Serviço com status "FINALIZADO".
-                                </p>
-                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -187,7 +226,7 @@ export default function OsQueryPage() {
             <ReceiptDialog 
                 isOpen={isReceiptOpen}
                 onOpenChange={setIsReceiptOpen}
-                order={foundOrder}
+                order={selectedOrderForReceipt}
                 workshop={workshopData}
             />
         </>
