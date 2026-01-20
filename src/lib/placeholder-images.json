@@ -29,12 +29,6 @@
       "description": "A blue sedan in a city.",
       "imageUrl": "https://images.unsplash.com/photo-1621601628445-ff13122a9caf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Ymx1ZSUyMHNlZGFufGVufDB8fHx8MTc2ODU3MzM1MXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "blue sedan"
-    },
-    {
-      "id": "pix-qrcode",
-      "description": "A PIX QR code generated from the user's key.",
-      "imageUrl": "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=77988849278",
-      "imageHint": "pix qrcode"
     }
   ]
 }
