@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { formatNumber } from "@/lib/utils";
+import { Copy } from "lucide-react";
 
 interface PixPaymentDialogProps {
   isOpen: boolean;
@@ -25,11 +26,19 @@ interface PixPaymentDialogProps {
   } | null;
 }
 
-const PIX_KEY = "colocar-sua-chave-pix-aqui";
+const PIX_KEY = "77988849278";
 
 export function PixPaymentDialog({ isOpen, onOpenChange, plan }: PixPaymentDialogProps) {
   const { toast } = useToast();
   const qrCodeImage = PlaceHolderImages.find((p) => p.id === "pix-qrcode");
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(PIX_KEY);
+    toast({
+      title: "Chave PIX Copiada!",
+      description: "A chave PIX foi copiada para a área de transferência.",
+    });
+  };
 
   if (!plan) return null;
 
@@ -56,12 +65,16 @@ export function PixPaymentDialog({ isOpen, onOpenChange, plan }: PixPaymentDialo
                 />
             )}
             
-            <p className="text-sm text-muted-foreground">Ou use a chave PIX abaixo:</p>
+            <p className="text-sm text-muted-foreground">Ou use a chave PIX (copia e cola):</p>
 
             <Card className="w-full">
                 <CardContent className="p-3">
                     <div className="flex items-center gap-2">
                         <Input value={PIX_KEY} readOnly className="font-mono"/>
+                        <Button variant="outline" size="icon" onClick={handleCopy}>
+                            <Copy className="h-4 w-4" />
+                            <span className="sr-only">Copiar Chave PIX</span>
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
