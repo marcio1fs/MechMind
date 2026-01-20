@@ -70,6 +70,8 @@ export default function InventoryPage() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
 
+  const isAdmin = profile?.role === 'ADMIN';
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -238,7 +240,7 @@ export default function InventoryPage() {
                 </p>
             </div>
             <div>
-                <Button onClick={() => handleOpenDialog('item', null)}>
+                <Button onClick={() => handleOpenDialog('item', null)} disabled={!isAdmin}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     ADICIONAR ITEM
                 </Button>
@@ -326,7 +328,7 @@ export default function InventoryPage() {
                             {isMounted ? (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
+                                        <Button variant="ghost" size="icon" disabled={!isAdmin}>
                                             <MoreHorizontal className="h-4 w-4" />
                                             <span className="sr-only">AÇÕES</span>
                                         </Button>
