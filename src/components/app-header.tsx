@@ -8,6 +8,7 @@ const pathTitles: { [key: string]: string } = {
     "/dashboard": "PAINEL",
     "/diagnostics": "DIAGNÓSTICOS",
     "/orders": "ORDENS DE SERVIÇO",
+    "/os-query": "CONSULTA DE OS",
     "/vehicle-history": "HISTÓRICO DO VEÍCULO",
     "/inventory": "ESTOQUE",
     "/mechanics": "MECÂNICOS",

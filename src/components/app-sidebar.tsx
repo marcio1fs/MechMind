@@ -20,6 +20,7 @@ import {
   UserCog,
   DollarSign,
   Building,
+  Search,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -29,6 +30,7 @@ const allMenuItems = [
   { href: "/dashboard", label: "PAINEL", icon: LayoutDashboard, roles: ['ADMIN', 'OFICINA'] },
   { href: "/diagnostics", label: "DIAGNÓSTICOS", icon: Wrench, roles: ['ADMIN', 'OFICINA'] },
   { href: "/orders", label: "ORDENS DE SERVIÇO", icon: ClipboardList, roles: ['ADMIN', 'OFICINA'] },
+  { href: "/os-query", label: "CONSULTA OS", icon: Search, roles: ['ADMIN', 'OFICINA'] },
   { href: "/vehicle-history", label: "HISTÓRICO DO VEÍCULO", icon: History, roles: ['ADMIN', 'OFICINA'] },
   { href: "/inventory", label: "ESTOQUE", icon: Package, roles: ['ADMIN', 'OFICINA'] },
   { href: "/mechanics", label: "MECÂNICOS", icon: UserCog, roles: ['ADMIN'] },
