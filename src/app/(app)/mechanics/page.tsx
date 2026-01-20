@@ -65,10 +65,11 @@ export default function MechanicsPage() {
     if (dialog === 'delete') setIsDeleteDialogOpen(true);
   };
   
-  const handleSaveMechanic = async (mechanicData: Omit<Mechanic, 'id' | 'oficinaId' | 'role' | 'createdAt'> & { id?: string }): Promise<boolean> => {
+  const handleSaveMechanic = async (mechanicData: Omit<Mechanic, 'id' | 'oficinaId' | 'role' | 'createdAt'> & { id?: string }): Promise<void> => {
     if (!firestore || !mechanicsCollection || !profile?.oficinaId) {
-        toast({ variant: "destructive", title: "ERRO!", description: "Sessão inválida. Faça login novamente." });
-        return false;
+        const errorMsg = "Sessão inválida. Faça login novamente.";
+        toast({ variant: "destructive", title: "ERRO!", description: errorMsg });
+        throw new Error(errorMsg);
     };
 
     const { id, ...data } = mechanicData;
@@ -98,11 +99,10 @@ export default function MechanicsPage() {
         });
         toast({ title: "SUCESSO!", description: "MECÂNICO ADICIONADO COM SUCESSO." });
       }
-      return true;
     } catch (error: any) {
         const errorMessage = error.message || "NÃO FOI POSSÍVEL SALVAR O MECÂNICO.";
         toast({ variant: "destructive", title: "ERRO!", description: errorMessage });
-        return false;
+        throw error;
     }
   };
 
