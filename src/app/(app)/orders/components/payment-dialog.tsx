@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -32,7 +31,7 @@ interface PaymentDialogProps {
   onConfirm: (order: Order, paymentMethod: string, discountValue: number) => Promise<void>;
 }
 
-const paymentMethods = ["DINHEIRO", "PIX", "CARTÃO DE CRÉDITO", "CARTÃO DE DÉBITO"];
+const paymentMethods = ["DINHEIRO", "PIX", "CARTÃO DE CRÉDITO", "CARTÃO DE DÉBITO", "MERCADO PAGO"];
 
 export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: PaymentDialogProps) {
   const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0]);
@@ -139,5 +138,3 @@ export function PaymentDialog({ isOpen, onOpenChange, order, onConfirm }: Paymen
     </Dialog>
   );
 }
-
-    
