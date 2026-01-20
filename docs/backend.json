@@ -449,6 +449,18 @@
         }
       }
     },
+    "PaymentsConfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentsConfig",
+      "type": "object",
+      "description": "Stores payment integration configuration.",
+      "properties": {
+        "pixKey": {
+          "type": "string",
+          "description": "The PIX key for receiving subscription payments."
+        }
+      }
+    },
     "Counter": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Counter",
@@ -619,21 +631,33 @@
         }
       },
       {
-        "path": "/oficinas/{oficinaId}/config/{configId}",
+        "path": "/oficinas/{oficinaId}/config/whatsapp",
         "definition": {
           "entityName": "WhatsappConfig",
           "schema": {
             "$ref": "#/backend/entities/WhatsappConfig"
           },
-          "description": "Stores specific configurations for an oficina, e.g., 'whatsapp' integration settings.",
+          "description": "Stores WhatsApp integration settings.",
           "params": [
             {
               "name": "oficinaId",
               "description": "Unique identifier for the Oficina."
-            },
+            }
+          ]
+        }
+      },
+      {
+        "path": "/oficinas/{oficinaId}/config/payments",
+        "definition": {
+          "entityName": "PaymentsConfig",
+          "schema": {
+            "$ref": "#/backend/entities/PaymentsConfig"
+          },
+          "description": "Stores payment settings.",
+          "params": [
             {
-              "name": "configId",
-              "description": "Identifier for the configuration, e.g., 'whatsapp'."
+              "name": "oficinaId",
+              "description": "Unique identifier for the Oficina."
             }
           ]
         }

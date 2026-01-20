@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Loader2 } from "lucide-react";
 import { PixPaymentDialog } from "./components/pix-payment-dialog";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { formatNumber } from "@/lib/utils";
 import { getSubscriptionDetails } from "@/lib/subscription";
 import AccessDenied from "@/components/access-denied";
+import { doc } from "firebase/firestore";
 
 type Plan = {
     name: string;
@@ -16,6 +17,10 @@ type Plan = {
     features: string[];
     cta: string;
     popular?: boolean;
+};
+
+type PaymentsConfig = {
+    pixKey?: string;
 };
 
 const plans: Plan[] = [
@@ -59,6 +64,13 @@ export default function PricingPage() {
     const [isPixDialogOpen, setIsPixDialogOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
     const { profile, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const paymentsConfigRef = useMemoFirebase(() => {
+        if (!firestore || !profile?.oficinaId) return null;
+        return doc(firestore, "oficinas", profile.oficinaId, "config", "payments");
+    }, [firestore, profile?.oficinaId]);
+    const { data: paymentsConfigData } = useDoc<PaymentsConfig>(paymentsConfigRef);
 
     const handleChoosePlan = (plan: Plan) => {
         setSelectedPlan(plan);
@@ -148,6 +160,7 @@ export default function PricingPage() {
                 isOpen={isPixDialogOpen}
                 onOpenChange={setIsPixDialogOpen}
                 plan={selectedPlan}
+                pixKey={paymentsConfigData?.pixKey}
             />
         </>
     )
