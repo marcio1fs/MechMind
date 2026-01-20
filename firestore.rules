@@ -32,15 +32,21 @@ service cloud.firestore {
     match /oficinas/{oficinaId} {
         allow get: if isOficinaMember(oficinaId);
         allow list: if false; // Never allow listing all workshops.
+        // Allow a user to create a workshop document during signup.
+        allow create: if request.auth.uid != null;
         allow update: if isOficinaAdmin(oficinaId);
     }
     
     // Rules for the users/mechanics within a workshop.
     match /oficinas/{oficinaId}/users/{userId} {
         allow read: if isOficinaMember(oficinaId);
-        allow create, delete: if isOficinaAdmin(oficinaId);
+        // Allow a user to create their OWN user document during signup.
+        // Also allow admins to create other users.
+        allow create: if isOficinaAdmin(oficinaId) || request.auth.uid == userId;
+        allow delete: if isOficinaAdmin(oficinaId);
         // An admin can update anyone, or a user can update their own info.
-        allow update: if isOficinaAdmin(oficinaId) || request.auth.uid == userId;
+        // A user cannot change their own role.
+        allow update: if isOficinaAdmin(oficinaId) || (request.auth.uid == userId && request.resource.data.role == resource.data.role);
     }
 
     // Rules for service orders.
