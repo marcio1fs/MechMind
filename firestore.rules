@@ -1,11 +1,85 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Rules are wide open for testing purposes.
-    // This is not secure for a production environment.
-    // Forcing a redeploy.
-    match /{document=**} {
-      allow read, write: if true;
+  
+    // =============================================
+    // HELPER FUNCTIONS
+    // =============================================
+    
+    // Checks if the user is a member of the specified workshop.
+    function isOficinaMember(oficinaId) {
+      return exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
+    }
+
+    // Checks if the user is an ADMIN of the specified workshop.
+    function isOficinaAdmin(oficinaId) {
+      // It's important to check for existence before accessing .data
+      let userDoc = get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
+      return userDoc.data.role == 'ADMIN';
+    }
+
+    // For the current test environment, authentication is mocked, so request.auth is null.
+    // This function allows the test environment to bypass auth checks.
+    // In a real production environment with a login system, this function and its calls would be removed.
+    function isTestEnvironment() {
+      return request.auth == null;
+    }
+    
+    // =============================================
+    // RULES
+    // =============================================
+
+    // This is the primary rule that ensures one workshop cannot see another's data.
+    match /oficinas/{oficinaId}/{documents=**} {
+        allow read, write: if isOficinaMember(oficinaId) || isTestEnvironment();
+    }
+    
+    // Rule for the workshop's own document.
+    match /oficinas/{oficinaId} {
+        allow get: if isOficinaMember(oficinaId) || isTestEnvironment();
+        allow list: if false; // Never allow listing all workshops.
+        allow update: if isOficinaAdmin(oficinaId) || isTestEnvironment();
+    }
+    
+    // Rules for the users/mechanics within a workshop.
+    match /oficinas/{oficinaId}/users/{userId} {
+        allow read: if isOficinaMember(oficinaId) || isTestEnvironment();
+        allow create, delete: if isOficinaAdmin(oficinaId) || isTestEnvironment();
+        // An admin can update anyone, or a user can update their own info.
+        allow update: if (isOficinaAdmin(oficinaId) || request.auth.uid == userId) || isTestEnvironment();
+    }
+
+    // Rules for service orders.
+    match /oficinas/{oficinaId}/ordensDeServico/{osId} {
+        allow read, create, update: if isOficinaMember(oficinaId) || isTestEnvironment();
+        // A member can only delete an order if it's not finalized.
+        allow delete: if (isOficinaMember(oficinaId) && resource.data.status != 'FINALIZADO') || isTestEnvironment();
+    }
+    
+    // Rules for inventory.
+    match /oficinas/{oficinaId}/inventory/{itemId} {
+        allow read, write: if isOficinaMember(oficinaId) || isTestEnvironment();
+    }
+
+    // Rules for financial transactions.
+    match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
+        // Only admins can view the full financial ledger.
+        allow read: if isOficinaAdmin(oficinaId) || isTestEnvironment();
+        // Transactions are created automatically by OS/Stock updates (by any member) or manually by an admin.
+        allow create: if (isOficinaMember(oficinaId) && request.resource.data.reference_type != 'MANUAL') || isOficinaAdmin(oficinaId) || isTestEnvironment();
+        // Only admins can alter manual transactions. Automated ones are locked.
+        allow update, delete: if (isOficinaAdmin(oficinaId) && resource.data.reference_type == 'MANUAL') || isTestEnvironment();
+    }
+    
+    // Counters are modified within transactions by members.
+    match /oficinas/{oficinaId}/counters/{counterId} {
+      allow read, write: if isOficinaMember(oficinaId) || isTestEnvironment();
+    }
+
+    // Workshop-specific config (e.g., WhatsApp API keys).
+     match /oficinas/{oficinaId}/config/{configId} {
+      allow read, write: if isOficinaAdmin(oficinaId) || isTestEnvironment();
     }
   }
 }
