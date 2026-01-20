@@ -37,9 +37,10 @@ export async function getAIDiagnosis(
       vehicleHistory: validatedFields.data.vehicleHistory || "Nenhum histórico fornecido.",
     });
     return { data: result, message: "Diagnóstico completo." };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("AI Diagnosis Error:", error);
     return {
-      message: "Ocorreu um erro ao obter o diagnóstico. Por favor, tente novamente.",
+      message: error.message || "Ocorreu um erro ao obter o diagnóstico. Por favor, tente novamente.",
     };
   }
 }

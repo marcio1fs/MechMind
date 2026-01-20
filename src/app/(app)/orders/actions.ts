@@ -38,9 +38,10 @@ export async function getOrderSummary(
   try {
     const result = await generateOrderSummary(validatedFields.data);
     return { data: result, message: "Resumo gerado." };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Order Summary Error:", error);
     return {
-      message: "Ocorreu um erro ao gerar o resumo.",
+      message: error.message || "Ocorreu um erro ao gerar o resumo.",
     };
   }
 }
@@ -67,9 +68,10 @@ export async function getAIDiagnosisForOrder(
       vehicleHistory: validatedFields.data.vehicleHistory || "Nenhum histórico fornecido.",
     });
     return { data: result };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("AI Diagnosis for Order Error:", error);
     return {
-      message: "Ocorreu um erro ao obter o diagnóstico. Por favor, tente novamente.",
+      message: error.message || "Ocorreu um erro ao obter o diagnóstico. Por favor, tente novamente.",
     };
   }
 }
