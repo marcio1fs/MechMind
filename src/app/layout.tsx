@@ -18,7 +18,7 @@ const sourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'MechMind',
+  title: 'OSMECH',
   description: 'SaaS para Oficinas de Reparação Automotiva',
 };
 

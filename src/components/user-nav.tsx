@@ -71,7 +71,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => window.open('mailto:suporte@mechmind.com')}>
+        <DropdownMenuItem onClick={() => window.open('mailto:suporte@osmech.com')}>
             <LifeBuoy className="mr-2 h-4 w-4" />
             <span>Suporte</span>
         </DropdownMenuItem>

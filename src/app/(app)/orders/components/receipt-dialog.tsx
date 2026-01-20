@@ -56,7 +56,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order, workshop }: Receipt
         ? `*CNPJ:* ${order.customerCnpj}\n`
         : (order.customerCpf ? `*CPF:* ${order.customerCpf}\n` : '');
 
-      let message = `*Recibo de Pagamento - ${workshop?.name || 'MechMind'}*\n\n`;
+      let message = `*Recibo de Pagamento - ${workshop?.name || 'OSMECH'}*\n\n`;
       message += `Olá ${order.customer},\n`;
       message += `Agradecemos pela preferência! Segue o resumo da sua Ordem de Serviço *#${order.displayId}*.\n\n`;
       message += `*Cliente:* ${order.customer}\n`;
@@ -77,7 +77,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order, workshop }: Receipt
       if(order.paymentMethod) {
         message += `*Forma de Pagamento:* ${order.paymentMethod}\n\n`;
       }
-      message += `Atenciosamente,\nEquipe ${workshop?.name || 'MechMind'}`;
+      message += `Atenciosamente,\nEquipe ${workshop?.name || 'OSMECH'}`;
       
       const phone = order.customerPhone?.replace(/\D/g, '');
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone || ''}&text=${encodeURIComponent(message)}`;
@@ -100,7 +100,7 @@ export function ReceiptDialog({ isOpen, onOpenChange, order, workshop }: Receipt
                 <div className="flex items-start gap-2">
                     <Wrench className="h-8 w-8 text-primary mt-1 shrink-0" />
                     <div>
-                        <h2 className="text-lg font-bold font-headline leading-tight">{workshop?.name || "MECHMIND"}</h2>
+                        <h2 className="text-lg font-bold font-headline leading-tight">{workshop?.name || "OSMECH"}</h2>
                         {workshop?.address && <p className="text-xs text-muted-foreground">{workshop.address}</p>}
                         <div className="text-xs text-muted-foreground">
                             {workshop?.phone && <span>Tel: {formatPhone(workshop.phone)}</span>}

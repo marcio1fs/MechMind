@@ -1,4 +1,4 @@
-,08# OSMECH - Sistema de Gestão para Oficinas
+# OSMECH - Sistema de Gestão para Oficinas
 
 ## Visão Geral
 

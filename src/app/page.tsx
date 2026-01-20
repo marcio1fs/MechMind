@@ -50,7 +50,7 @@ export default function LoginPage() {
           <CardHeader className="text-center">
              <div className="flex items-center justify-center gap-2 mb-4">
                 <Wrench className="h-8 w-8 text-primary" />
-                <h1 className="text-3xl font-bold font-headline">MechMind</h1>
+                <h1 className="text-3xl font-bold font-headline">OSMECH</h1>
             </div>
             <CardTitle className="text-2xl">Login</CardTitle>
             <CardDescription>

@@ -35,7 +35,7 @@ export default function AppHeader() {
         <h1 className="hidden text-lg font-semibold md:block">{title}</h1>
          <div className="flex items-center gap-2 md:hidden">
             <Wrench className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold font-headline">MECHMIND</span>
+            <span className="text-lg font-bold font-headline">OSMECH</span>
         </div>
       </div>
       
