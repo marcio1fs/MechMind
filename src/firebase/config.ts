@@ -1,8 +1,9 @@
 export const firebaseConfig = {
-  "projectId": "studio-9195083382-c4b3c",
-  "appId": "1:154483041337:web:8394aa30fdfdbd34bc59e8",
-  "apiKey": "AIzaSyAiJettVbr6AhjQEmTaVga998-SF8cYq4g",
-  "authDomain": "studio-9195083382-c4b3c.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "154483041337"
+  apiKey: "AIzaSyCvZOjIkvqlkHt1hfpZ0M2rQUMk1W3wvKY",
+  authDomain: "mechmind-53bdd.firebaseapp.com",
+  projectId: "mechmind-53bdd",
+  storageBucket: "mechmind-53bdd.firebasestorage.app",
+  messagingSenderId: "674586056341",
+  appId: "1:674586056341:web:e3c7b5317f07ec0625ad9c",
+  measurementId: "G-WJN73K3TD0"
 };
