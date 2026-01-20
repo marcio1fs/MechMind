@@ -32,9 +32,9 @@
     },
     {
       "id": "pix-qrcode",
-      "description": "A placeholder for a PIX QR code.",
-      "imageUrl": "https://images.unsplash.com/photo-1550482768-88b710a445fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cXIlMjBjb2RlfGVufDB8fHx8MTc2ODU1NDIyMHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "qr code"
+      "description": "A PIX QR code generated from the user's key.",
+      "imageUrl": "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=77988849278",
+      "imageHint": "pix qrcode"
     }
   ]
 }
