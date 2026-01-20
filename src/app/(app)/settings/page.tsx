@@ -26,6 +26,7 @@ export default function SettingsPage() {
     const [senderNumber, setSenderNumber] = useState("");
     const [isConfigLoading, setIsConfigLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
 
     useEffect(() => {
         if (!profile?.oficinaId || !firestore) return;
@@ -56,6 +57,12 @@ export default function SettingsPage() {
             setIsConfigLoading(false);
         }
     }, [profile, firestore, toast]);
+
+    useEffect(() => {
+        if (profile) {
+            setSubscriptionDetails(getSubscriptionDetails(profile));
+        }
+    }, [profile]);
 
     const handleSave = async () => {
         if (!profile?.oficinaId || !firestore) {
@@ -96,10 +103,6 @@ export default function SettingsPage() {
     };
 
     const isReadOnly = profile?.role !== 'ADMIN';
-
-    const subscriptionDetails = useMemo(() => {
-        return getSubscriptionDetails(profile);
-    }, [profile]);
     
     const getStatusVariant = (status: SubscriptionDetails['status']) => {
         switch (status) {
@@ -187,7 +190,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-            {isUserLoading ? (
+            {isUserLoading || !subscriptionDetails ? (
                 <Skeleton className="h-12 w-full" />
             ) : (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
