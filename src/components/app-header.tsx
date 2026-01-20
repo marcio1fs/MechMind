@@ -3,6 +3,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { Wrench } from "lucide-react";
+import { UserNav } from "@/components/user-nav";
 
 const pathTitles: { [key: string]: string } = {
     "/dashboard": "PAINEL",
@@ -38,9 +39,7 @@ export default function AppHeader() {
         </div>
       </div>
       
-      <div className="text-sm font-medium text-muted-foreground">
-        MODO DE TESTE (SEM AUTENTICAÇÃO)
-      </div>
+      <UserNav />
     </header>
   );
 }

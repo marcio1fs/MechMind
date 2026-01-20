@@ -2,9 +2,10 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, Timestamp } from 'firebase/firestore';
-import { Auth, User } from 'firebase/auth';
+import { Firestore, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { getSubscriptionDetails } from '@/lib/subscription';
 
 // Define the shape of the user profile based on the User entity.
 type UserProfile = {
@@ -26,33 +27,20 @@ interface UserAuthState {
   userError: Error | null;
 }
 
-export interface FirebaseContextState {
+export interface FirebaseContextState extends UserAuthState {
   areServicesAvailable: boolean;
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
-  user: User | null;
-  profile: UserProfile | null;
-  isUserLoading: boolean;
-  userError: Error | null;
 }
 
-export interface FirebaseServicesAndUser {
+export interface FirebaseServicesAndUser extends UserAuthState {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
-  user: User | null;
-  profile: UserProfile | null;
-  isUserLoading: boolean;
-  userError: Error | null;
 }
 
-export interface UserHookResult {
-  user: User | null;
-  profile: UserProfile | null;
-  isUserLoading: boolean;
-  userError: Error | null;
-}
+export interface UserHookResult extends UserAuthState {}
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
@@ -63,17 +51,66 @@ export interface FirebaseProviderProps {
     auth: Auth | null;
 }
 
-const MOCK_OFICINA_ID = "oficina-teste-123";
+const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAuthState => {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
+  const [userError, setUserError] = useState<Error | null>(null);
 
-const mockProfile: UserProfile = {
-    id: "usuario-teste-123",
-    oficinaId: MOCK_OFICINA_ID,
-    firstName: "Usuário",
-    lastName: "Teste",
-    email: "teste@mechmind.com",
-    role: "ADMIN",
-    activePlan: "PREMIUM",
-    createdAt: Timestamp.now(),
+  useEffect(() => {
+    if (!auth || !firestore) {
+      setIsUserLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      setIsUserLoading(true);
+      if (authUser) {
+        setUser(authUser);
+        try {
+          // 1. Get oficinaId from the top-level users collection
+          const userMapRef = doc(firestore, "users", authUser.uid);
+          const userMapSnap = await getDoc(userMapRef);
+          
+          if (!userMapSnap.exists()) {
+            throw new Error("Mapeamento de oficina não encontrado para este usuário.");
+          }
+          const { oficinaId } = userMapSnap.data();
+
+          // 2. Get the full user profile from the oficina's subcollection
+          const profileRef = doc(firestore, "oficinas", oficinaId, "users", authUser.uid);
+          const profileSnap = await getDoc(profileRef);
+
+          if (!profileSnap.exists()) {
+            throw new Error("Perfil de usuário não encontrado na oficina.");
+          }
+          const profileData = profileSnap.data() as Omit<UserProfile, 'activePlan'>;
+
+          // 3. Determine active plan
+          const subscription = getSubscriptionDetails(profileData);
+
+          setProfile({ ...profileData, activePlan: subscription.plan, id: authUser.uid, oficinaId });
+          setUserError(null);
+
+        } catch (error: any) {
+          console.error("Erro ao buscar perfil do usuário:", error);
+          setUserError(error);
+          setProfile(null);
+          // Optional: sign out the user if their profile is invalid
+          // auth.signOut();
+        }
+      } else {
+        setUser(null);
+        setProfile(null);
+        setUserError(null);
+      }
+      setIsUserLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth, firestore]);
+
+  return { user, profile, isUserLoading, userError };
 };
 
 
@@ -83,13 +120,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firestore,
   auth,
 }) => {
-  // Authentication is disabled, so we provide a mock user and profile.
-  const userAuthState: UserAuthState = {
-    user: null, // No real Firebase user
-    profile: mockProfile,
-    isUserLoading: false,
-    userError: null,
-  };
+  const userAuthState = useFirebaseAuth(auth, firestore);
 
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
@@ -108,7 +139,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   return (
     <FirebaseContext.Provider value={contextValue}>
-      {/* FirebaseErrorListener can stay, in case of other Firestore errors */}
       <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>

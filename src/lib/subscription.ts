@@ -10,8 +10,9 @@ export type SubscriptionDetails = {
 };
 
 // This represents the part of the user profile needed for subscription logic.
-type UserProfileForPlan = {
+export type UserProfileForPlan = {
     createdAt?: Timestamp;
+    activePlan?: Plan;
     // In a real app, this would come from a Stripe/payment provider integration.
     // For now, we assume if trial is over, they need to pay, but we don't have a paid status.
     // Let's assume anyone past trial is on PRO unless they have a specific subscription field.
@@ -26,9 +27,28 @@ const TRIAL_DURATION_DAYS = 30;
  * @returns An object with the user's current plan, status, and trial details.
  */
 export const getSubscriptionDetails = (profile?: UserProfileForPlan | null): SubscriptionDetails => {
-    if (!profile || !profile.createdAt) {
+    if (!profile) {
         // Fallback for users without a creation date. They are on the base plan and need to subscribe.
         return {
+            plan: 'PRO',
+            status: 'AVALIAÇÃO EXPIRADA',
+            trialEndDate: null,
+            daysRemaining: null,
+        };
+    }
+
+    // If a plan is explicitly set on the profile, it overrides any trial logic.
+    if (profile.activePlan) {
+        return {
+            plan: profile.activePlan,
+            status: 'ASSINATURA ATIVA',
+            trialEndDate: null,
+            daysRemaining: null,
+        };
+    }
+    
+    if (!profile.createdAt) {
+       return {
             plan: 'PRO',
             status: 'AVALIAÇÃO EXPIRADA',
             trialEndDate: null,
