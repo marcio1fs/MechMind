@@ -16,7 +16,7 @@ service cloud.firestore {
     function isOficinaAdmin(oficinaId) {
       // It's important to check for existence before accessing .data
       let userDoc = get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
-      return userDoc.data.role == 'ADMIN';
+      return userDoc.data != null && userDoc.data.role == 'ADMIN';
     }
     
     // =============================================

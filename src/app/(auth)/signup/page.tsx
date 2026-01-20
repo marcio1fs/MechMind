@@ -104,6 +104,9 @@ export default function SignupPage() {
       let errorMessage = 'Ocorreu um erro durante o cadastro.';
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Este e-mail já está em uso.';
+      } else if (error.message) {
+        // Firebase security rule errors will have a descriptive message
+        errorMessage = `Erro: ${error.message}`;
       }
       console.error("Signup Error:", error);
       setError(errorMessage);
