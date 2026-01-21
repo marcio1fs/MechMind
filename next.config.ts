@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: "clipboard-write 'self'",
+            value: "clipboard-write=(self)",
           }
         ],
       },
