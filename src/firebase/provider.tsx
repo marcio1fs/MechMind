@@ -2,8 +2,8 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, Timestamp } from 'firebase/firestore';
-import { Auth, User } from 'firebase/auth';
+import { Firestore, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 // Define the shape of the user profile based on the User entity.
@@ -62,6 +62,8 @@ const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAu
     // For the development environment, we immediately set a mock admin user
     // to bypass login screens and facilitate rapid development.
     // This simulates a full-access user without requiring real authentication.
+    // IMPORTANT: This does NOT create a real auth session. Firestore rules will see `request.auth` as `null`.
+    // The rules MUST be configured to allow access for the `dev-oficina-id` without authentication.
 
     const mockProfile: UserProfile = {
       id: 'dev-admin-user',

@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Wrench } from 'lucide-react';
 import { useUser } from '@/firebase';
 
-export default function LoginPage() {
+export default function LandingPage() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    // AuthGuard will handle the redirect if the user is logged in.
-    // This is a fallback if the guard logic changes.
+    // AuthGuard will handle the redirect if the user is "logged in" via the mock.
+    // This is just a fallback.
     if (!isUserLoading && user) {
       router.push('/dashboard');
     }

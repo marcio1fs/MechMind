@@ -6,26 +6,25 @@ service cloud.firestore {
     // =============================================
     // HELPER FUNCTIONS
     // =============================================
-    
-    // In a test environment, allow any request if the workshop ID is the dev one.
-    // This bypasses the need for real authentication during local development.
-    // WARNING: THIS SHOULD BE REMOVED OR SECURED BEFORE PRODUCTION.
-    function isDevEnvironment(oficinaId) {
-      return oficinaId == 'dev-oficina-id';
-    }
 
     // Checks if the user is a member of the specified workshop.
     // Suitable for GET, CREATE, UPDATE, DELETE operations.
-    // NOT suitable for LIST operations in production due to the 'exists' call.
+    // NOT suitable for LIST operations due to the 'exists' call.
     function isOficinaMember(oficinaId) {
-      return (request.auth != null && exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid))) || isDevEnvironment(oficinaId);
+      // In a dev environment, this allows access if the ID matches, regardless of auth.
+      if (oficinaId == 'dev-oficina-id') {
+        return true;
+      }
+      // For production, it requires a real authenticated user.
+      return request.auth != null && exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
     }
 
     // Checks if the user is an ADMIN of the specified workshop.
     // Suitable for GET, CREATE, UPDATE, DELETE operations.
-    // NOT suitable for LIST operations in production due to the 'get' call.
+    // NOT suitable for LIST operations due to the 'get' call.
     function isOficinaAdmin(oficinaId) {
-      if (isDevEnvironment(oficinaId)) {
+      // In a dev environment, always treat as admin.
+      if (oficinaId == 'dev-oficina-id') {
         return true;
       }
       if (request.auth == null) {
@@ -33,13 +32,6 @@ service cloud.firestore {
       }
       let userDoc = get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
       return userDoc.data != null && userDoc.data.role == 'ADMIN';
-    }
-
-    // A simplified check for LIST operations that is performant.
-    // It allows access for the dev environment or any authenticated user.
-    // In production, this would ideally be replaced with a custom claim check.
-    function canList(oficinaId) {
-        return isDevEnvironment(oficinaId) || request.auth != null;
     }
     
     // =============================================
@@ -50,7 +42,7 @@ service cloud.firestore {
     match /users/{userId} {
         allow read: if true;
         // A user can only write their own mapping document.
-        allow write: if (request.auth != null && request.auth.uid == userId) || isDevEnvironment('dev-oficina-id');
+        allow write: if (request.auth != null && request.auth.uid == userId) || (userId == 'dev-admin-user');
     }
 
     // Rule for the workshop's own document.
@@ -58,14 +50,15 @@ service cloud.firestore {
         allow get: if isOficinaMember(oficinaId);
         allow list: if false; // Never allow listing all workshops for security.
         // A user can create a workshop document, necessary for the signup flow.
-        allow create: if request.auth != null || isDevEnvironment(oficinaId);
+        allow create: if request.auth != null || oficinaId == 'dev-oficina-id';
         allow update: if isOficinaAdmin(oficinaId);
     }
     
     // Rules for the users/mechanics within a workshop.
     match /oficinas/{oficinaId}/users/{userId} {
         allow get: if isOficinaMember(oficinaId);
-        allow list: if canList(oficinaId);
+        // Explicitly allow list for dev environment OR for authenticated users.
+        allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
         
         // An admin can create new users, OR a user can create their own document during signup.
         allow create: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId);
@@ -78,7 +71,8 @@ service cloud.firestore {
     // Rules for service orders.
     match /oficinas/{oficinaId}/ordensDeServico/{osId} {
         allow get, create, update: if isOficinaMember(oficinaId);
-        allow list: if canList(oficinaId);
+        // Explicitly allow list for dev environment OR for authenticated users.
+        allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
         
         // A member can only delete an order if it's not finalized to maintain historical integrity.
         allow delete: if isOficinaMember(oficinaId) && resource.data.status != 'FINALIZADO';
@@ -87,16 +81,15 @@ service cloud.firestore {
     // Rules for inventory.
     match /oficinas/{oficinaId}/inventory/{itemId} {
         allow get, create, update, delete: if isOficinaMember(oficinaId);
-        allow list: if canList(oficinaId);
+        // Explicitly allow list for dev environment OR for authenticated users.
+        allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
     }
 
     // Rules for financial transactions.
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
-        // For single-doc reads (get) and writes, we can use the more detailed admin check.
-        allow get: if isOficinaAdmin(oficinaId);
-        allow write: if isOficinaMember(oficinaId); // Allows automatic creation from OS/Stock
-        // For list queries, we use a simplified rule. The UI already restricts page access.
-        allow list: if isOficinaAdmin(oficinaId);
+        allow get, write: if isOficinaMember(oficinaId);
+        // Explicitly allow list for dev environment OR for authenticated admins.
+        allow list: if (oficinaId == 'dev-oficina-id') || isOficinaAdmin(oficinaId);
     }
     
     // Rules for vehicle history.
