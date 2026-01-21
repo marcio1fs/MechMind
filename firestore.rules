@@ -9,11 +9,25 @@ service cloud.firestore {
     
     // Checks if the user is a member of the specified workshop.
     function isOficinaMember(oficinaId) {
-      return exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
+      // DEV ONLY: For testing, bypass auth check for the dev workshop.
+      // This allows testing without a real user session.
+      // REMOVE THIS BLOCK FOR PRODUCTION.
+      if (oficinaId == 'dev-oficina-id') {
+        return true;
+      }
+      return request.auth != null && exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
     }
 
     // Checks if the user is an ADMIN of the specified workshop.
     function isOficinaAdmin(oficinaId) {
+      // DEV ONLY: For testing, assume admin for the dev workshop.
+      // REMOVE THIS BLOCK FOR PRODUCTION.
+      if (oficinaId == 'dev-oficina-id') {
+        return true;
+      }
+      if (request.auth == null) {
+        return false;
+      }
       // It's important to check for existence before accessing .data
       let userDoc = get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
       return userDoc.data != null && userDoc.data.role == 'ADMIN';
@@ -33,7 +47,7 @@ service cloud.firestore {
         allow get: if isOficinaMember(oficinaId);
         allow list: if false; // Never allow listing all workshops.
         // Allow a user to create a workshop document during signup.
-        allow create: if request.auth.uid != null;
+        allow create: if request.auth != null || oficinaId == 'dev-oficina-id';
         allow update: if isOficinaAdmin(oficinaId);
     }
     
@@ -42,11 +56,11 @@ service cloud.firestore {
         allow read: if isOficinaMember(oficinaId);
         // Allow a user to create their OWN user document during signup.
         // Also allow admins to create other users.
-        allow create: if isOficinaAdmin(oficinaId) || request.auth.uid == userId;
+        allow create: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId);
         allow delete: if isOficinaAdmin(oficinaId);
         // An admin can update anyone, or a user can update their own info.
         // A user cannot change their own role.
-        allow update: if isOficinaAdmin(oficinaId) || (request.auth.uid == userId && request.resource.data.role == resource.data.role);
+        allow update: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId && request.resource.data.role == resource.data.role);
     }
 
     // Rules for service orders.
@@ -84,7 +98,8 @@ service cloud.firestore {
     // Publicly readable user mapping for login flow
     match /users/{userId} {
         allow read: if true;
-        allow write: if request.auth.uid == userId; // Allow users to create their own mapping
+        // Allow write if user is creating their own map, or if in dev mode
+        allow write: if (request.auth != null && request.auth.uid == userId) || (userId == 'dev-user-id');
     }
   }
 }
