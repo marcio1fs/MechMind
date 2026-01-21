@@ -15,21 +15,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth, useUser } from "@/firebase"
-import { signOut } from "firebase/auth"
+import { useUser } from "@/firebase"
 import { useRouter } from "next/navigation"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { CreditCard, LifeBuoy, LogOut, Settings, User } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 export function UserNav() {
     const { profile } = useUser();
-    const auth = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
     const avatarImage = PlaceHolderImages.find(p => p.id === 'avatar-user');
     
     const handleLogout = async () => {
-        await signOut(auth);
-        router.push('/');
+        toast({
+            title: "Logout Desativado",
+            description: "O sistema foi simplificado e o logout não é necessário.",
+        });
     }
 
     if (!profile) {

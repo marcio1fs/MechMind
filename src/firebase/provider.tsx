@@ -2,8 +2,8 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Firestore, Timestamp } from 'firebase/firestore';
+import { Auth, User } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { getSubscriptionDetails } from '@/lib/subscription';
 
@@ -52,65 +52,44 @@ export interface FirebaseProviderProps {
 }
 
 const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAuthState => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
-  const [userError, setUserError] = useState<Error | null>(null);
+  const [userState, setUserState] = useState<UserAuthState>({
+    user: null,
+    profile: null,
+    isUserLoading: true,
+    userError: null,
+  });
 
   useEffect(() => {
-    if (!auth || !firestore) {
-      setIsUserLoading(false);
-      return;
-    }
+    // Simulate a logged-in admin user for development to simplify the workflow.
+    // This bypasses the need for actual login/signup.
+    const mockUser = {
+      uid: 'dev-user-id',
+      email: 'dev@osmech.com',
+      // Cast to User as we are mocking a subset of its properties
+    } as User;
 
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      setIsUserLoading(true);
-      if (authUser) {
-        setUser(authUser);
-        try {
-          // 1. Get oficinaId from the top-level users collection
-          const userMapRef = doc(firestore, "users", authUser.uid);
-          const userMapSnap = await getDoc(userMapRef);
-          
-          if (!userMapSnap.exists()) {
-            throw new Error("Mapeamento de oficina não encontrado para este usuário.");
-          }
-          const { oficinaId } = userMapSnap.data();
+    const mockProfile: UserProfile = {
+      id: 'dev-user-id',
+      oficinaId: 'dev-oficina-id', // Use a fixed ID for all dev operations
+      firstName: 'Usuário',
+      lastName: 'Teste',
+      email: 'dev@osmech.com',
+      role: 'ADMIN',
+      createdAt: Timestamp.now(),
+    };
+    
+    const subscription = getSubscriptionDetails(mockProfile);
 
-          // 2. Get the full user profile from the oficina's subcollection
-          const profileRef = doc(firestore, "oficinas", oficinaId, "users", authUser.uid);
-          const profileSnap = await getDoc(profileRef);
-
-          if (!profileSnap.exists()) {
-            throw new Error("Perfil de usuário não encontrado na oficina.");
-          }
-          const profileData = profileSnap.data() as Omit<UserProfile, 'activePlan'>;
-
-          // 3. Determine active plan
-          const subscription = getSubscriptionDetails(profileData);
-
-          setProfile({ ...profileData, activePlan: subscription.plan, id: authUser.uid, oficinaId });
-          setUserError(null);
-
-        } catch (error: any) {
-          console.error("Erro ao buscar perfil do usuário:", error);
-          setUserError(error);
-          setProfile(null);
-          // Optional: sign out the user if their profile is invalid
-          // auth.signOut();
-        }
-      } else {
-        setUser(null);
-        setProfile(null);
-        setUserError(null);
-      }
-      setIsUserLoading(false);
+    setUserState({
+      user: mockUser,
+      profile: { ...mockProfile, activePlan: subscription.plan },
+      isUserLoading: false,
+      userError: null,
     });
 
-    return () => unsubscribe();
-  }, [auth, firestore]);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
-  return { user, profile, isUserLoading, userError };
+  return userState;
 };
 
 
