@@ -2,8 +2,8 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Firestore, Timestamp } from 'firebase/firestore';
+import { Auth, User } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { getSubscriptionDetails } from '@/lib/subscription';
 
@@ -52,6 +52,8 @@ export interface FirebaseProviderProps {
 }
 
 const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAuthState => {
+  // This hook now returns a static, mocked admin user for development purposes.
+  // It simulates a logged-in state without requiring actual authentication.
   const [userState, setUserState] = useState<UserAuthState>({
     user: null,
     profile: null,
@@ -60,68 +62,45 @@ const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAu
   });
 
   useEffect(() => {
-    if (!auth || !firestore) {
-      setUserState(s => ({ ...s, isUserLoading: false }));
-      return;
+    // This effect now runs only once to set the mocked user.
+    // It checks the pathname to decide if the user should be "logged in".
+    const isLoginPage = window.location.pathname === '/' || window.location.pathname.startsWith('/signup') || window.location.pathname.startsWith('/forgot-password');
+
+    if (isLoginPage) {
+        // If on a public/auth page, simulate a logged-out user.
+        setUserState({ user: null, profile: null, isUserLoading: false, userError: null });
+        return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          // User is signed in, now fetch their profile from the /users mapping
-          const userMappingRef = doc(firestore, 'users', user.uid);
-          const userMappingSnap = await getDoc(userMappingRef);
+    // For any other page, simulate a logged-in admin user.
+    const mockProfile: UserProfile = {
+      id: 'dev-user-id',
+      oficinaId: 'dev-oficina-id',
+      firstName: 'Admin',
+      lastName: 'OSMECH',
+      email: 'admin@osmech.com',
+      role: 'ADMIN',
+      specialty: 'Gestão',
+      createdAt: Timestamp.fromDate(new Date()),
+      activePlan: 'PREMIUM', // Mocked as PREMIUM for full feature access
+    };
 
-          if (!userMappingSnap.exists()) {
-            // This can happen during signup before the user mapping is created.
-            // It's a transient state, so we can wait or assume signup flow will handle it.
-            // For now, we'll treat it as loading.
-            setUserState({ user, profile: null, isUserLoading: true, userError: null });
-            return;
-          }
+    const mockUser: User = {
+      uid: 'dev-user-id',
+      email: 'admin@osmech.com',
+      displayName: 'Admin OSMECH',
+    } as User;
 
-          const { oficinaId } = userMappingSnap.data();
-
-          // Now fetch the actual user profile from within their oficina subcollection
-          const profileRef = doc(firestore, 'oficinas', oficinaId, 'users', user.uid);
-          const profileSnap = await getDoc(profileRef);
-
-          if (profileSnap.exists()) {
-            const profileData = profileSnap.data() as Omit<UserProfile, 'id' | 'activePlan'>;
-            
-            const fullProfile: UserProfile = {
-              ...profileData,
-              id: user.uid,
-              oficinaId,
-            };
-            
-            const subscription = getSubscriptionDetails(fullProfile);
-
-            setUserState({
-              user,
-              profile: { ...fullProfile, activePlan: subscription.plan },
-              isUserLoading: false,
-              userError: null,
-            });
-          } else {
-            // This is an inconsistent state - auth user exists but no profile.
-            // Could be a failed signup.
-             throw new Error('Perfil de usuário não encontrado.');
-          }
-
-        } catch (error: any) {
-          console.error("Erro ao buscar perfil do usuário:", error);
-          setUserState({ user: null, profile: null, isUserLoading: false, userError: error });
-        }
-      } else {
-        // User is signed out
-        setUserState({ user: null, profile: null, isUserLoading: false, userError: null });
-      }
+    setUserState({
+      user: mockUser,
+      profile: mockProfile,
+      isUserLoading: false,
+      userError: null,
     });
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, [auth, firestore]);
+  // We add 'auth' as a dependency so this effect can re-run if auth status conceptually changes,
+  // although in our mock, it's driven by path.
+  }, [auth]);
 
   return userState;
 };

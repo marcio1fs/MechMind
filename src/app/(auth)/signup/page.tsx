@@ -16,12 +16,12 @@ export default function SignupPage() {
                 </div>
                 <CardTitle>Cadastro Desabilitado</CardTitle>
                 <CardDescription>
-                    O sistema de login foi simplificado. O cadastro não é necessário no momento.
+                    O cadastro de novos usuários está desabilitado no ambiente de demonstração.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Button asChild>
-                    <Link href="/dashboard">Ir para o Painel</Link>
+                    <Link href="/">Voltar para o Login</Link>
                 </Button>
             </CardContent>
         </Card>

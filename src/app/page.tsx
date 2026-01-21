@@ -9,15 +9,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const loginImage = PlaceHolderImages.find((p) => p.id === 'login-background');
-  const auth = useAuth();
-  const { toast } = useToast();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -29,18 +24,18 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: 'Login realizado com sucesso!' });
-      router.push('/dashboard');
-    } catch (error: any) {
-      let errorMessage = 'Ocorreu um erro ao fazer login.';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        errorMessage = 'E-mail ou senha inválidos.';
+
+    // Simulate a network request for a better UX
+    setTimeout(() => {
+      // For development, we allow login with specific credentials without hitting Firebase Auth
+      if (email === 'admin@osmech.com' && password === 'password') {
+        // The AuthGuard and FirebaseProvider will use the mocked admin user
+        router.push('/dashboard');
+      } else {
+        setError('E-mail ou senha inválidos para o ambiente de demonstração.');
+        setIsLoading(false);
       }
-      setError(errorMessage);
-      setIsLoading(false);
-    }
+    }, 1000);
   };
 
   return (
@@ -52,19 +47,19 @@ export default function LoginPage() {
                 <Wrench className="h-8 w-8 text-primary" />
                 <h1 className="text-3xl font-bold font-headline">OSMECH</h1>
             </div>
-            <CardTitle className="text-2xl">Login</CardTitle>
+            <CardTitle className="text-2xl">LOGIN</CardTitle>
             <CardDescription>
-              Insira seu e-mail abaixo para fazer login em sua conta.
+              INSIRA O E-MAIL E SENHA DE DEMONSTRAÇÃO.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">E-MAIL</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="admin@osmech.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -73,12 +68,12 @@ export default function LoginPage() {
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Senha</Label>
+                  <Label htmlFor="password">SENHA</Label>
                   <Link
                     href="/forgot-password"
                     className="ml-auto inline-block text-sm underline"
                   >
-                    Esqueceu sua senha?
+                    ESQUECEU SUA SENHA?
                   </Link>
                 </div>
                 <Input 
@@ -93,13 +88,13 @@ export default function LoginPage() {
                {error && <p className="text-sm font-medium text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login
+                LOGIN
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
-              Não tem uma conta?{' '}
+              NÃO TEM UMA CONTA?{' '}
               <Link href="/signup" className="underline">
-                Cadastre-se
+                CADASTRE-SE
               </Link>
             </div>
           </CardContent>

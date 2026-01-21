@@ -16,12 +16,12 @@ export default function ForgotPasswordPage() {
                 </div>
                 <CardTitle>Função Desabilitada</CardTitle>
                 <CardDescription>
-                    A recuperação de senha está temporariamente desabilitada para fins de teste.
+                    A recuperação de senha está desabilitada no ambiente de demonstração.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Button asChild>
-                    <Link href="/dashboard">Ir para o Painel</Link>
+                    <Link href="/">Voltar para o Login</Link>
                 </Button>
             </CardContent>
         </Card>
