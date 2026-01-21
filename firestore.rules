@@ -89,7 +89,7 @@ service cloud.firestore {
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
         allow get, write: if isOficinaMember(oficinaId);
         // Explicitly allow list for dev environment OR for authenticated admins.
-        allow list: if (oficinaId == 'dev-oficina-id') || isOficinaAdmin(oficinaId);
+        allow list: if (oficinaId == 'dev-oficina-id') || request.auth != null;
     }
     
     // Rules for vehicle history.
