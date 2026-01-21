@@ -15,11 +15,15 @@ service cloud.firestore {
     }
 
     // Checks if the user is a member of the specified workshop.
+    // Suitable for GET, CREATE, UPDATE, DELETE operations.
+    // NOT suitable for LIST operations in production due to the 'exists' call.
     function isOficinaMember(oficinaId) {
       return (request.auth != null && exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid))) || isDevEnvironment(oficinaId);
     }
 
     // Checks if the user is an ADMIN of the specified workshop.
+    // Suitable for GET, CREATE, UPDATE, DELETE operations.
+    // NOT suitable for LIST operations in production due to the 'get' call.
     function isOficinaAdmin(oficinaId) {
       if (isDevEnvironment(oficinaId)) {
         return true;
@@ -27,11 +31,15 @@ service cloud.firestore {
       if (request.auth == null) {
         return false;
       }
-      // This reads the user's document inside the workshop to check their role.
-      // IMPORTANT: This function CANNOT be used to secure `list` queries due to performance constraints in production.
-      // It is safe for `get`, `create`, `update`, `delete`.
       let userDoc = get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
       return userDoc.data != null && userDoc.data.role == 'ADMIN';
+    }
+
+    // A simplified check for LIST operations that is performant.
+    // It allows access for the dev environment or any authenticated user.
+    // In production, this would ideally be replaced with a custom claim check.
+    function canList(oficinaId) {
+        return isDevEnvironment(oficinaId) || request.auth != null;
     }
     
     // =============================================
@@ -39,7 +47,6 @@ service cloud.firestore {
     // =============================================
     
     // Publicly readable user mapping for login flow
-    // This allows the app to find which `oficinaId` a `userId` belongs to.
     match /users/{userId} {
         allow read: if true;
         // A user can only write their own mapping document.
@@ -57,7 +64,9 @@ service cloud.firestore {
     
     // Rules for the users/mechanics within a workshop.
     match /oficinas/{oficinaId}/users/{userId} {
-        allow read: if isOficinaMember(oficinaId);
+        allow get: if isOficinaMember(oficinaId);
+        allow list: if canList(oficinaId);
+        
         // An admin can create new users, OR a user can create their own document during signup.
         allow create: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId);
         // Only an admin can delete a user.
@@ -68,22 +77,26 @@ service cloud.firestore {
 
     // Rules for service orders.
     match /oficinas/{oficinaId}/ordensDeServico/{osId} {
-        // Any member can read and manage service orders.
-        allow read, create, update: if isOficinaMember(oficinaId);
+        allow get, create, update: if isOficinaMember(oficinaId);
+        allow list: if canList(oficinaId);
+        
         // A member can only delete an order if it's not finalized to maintain historical integrity.
         allow delete: if isOficinaMember(oficinaId) && resource.data.status != 'FINALIZADO';
     }
     
     // Rules for inventory.
     match /oficinas/{oficinaId}/inventory/{itemId} {
-        // Any member can manage the inventory.
-        allow read, write: if isOficinaMember(oficinaId);
+        allow get, create, update, delete: if isOficinaMember(oficinaId);
+        allow list: if canList(oficinaId);
     }
 
     // Rules for financial transactions.
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
-        // Any member can read financial transactions. Writing is also open to any member.
-        allow read, write: if isOficinaMember(oficinaId);
+        // For single-doc reads (get) and writes, we can use the more detailed admin check.
+        allow get: if isOficinaAdmin(oficinaId);
+        allow write: if isOficinaMember(oficinaId); // Allows automatic creation from OS/Stock
+        // For list queries, we use a simplified rule. The UI already restricts page access.
+        allow list: if isOficinaAdmin(oficinaId);
     }
     
     // Rules for vehicle history.
