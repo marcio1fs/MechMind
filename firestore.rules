@@ -36,11 +36,6 @@ service cloud.firestore {
     // =============================================
     // RULES
     // =============================================
-
-    // This is the primary rule that ensures one workshop cannot see another's data.
-    match /oficinas/{oficinaId}/{documents=**} {
-        allow read, write: if isOficinaMember(oficinaId);
-    }
     
     // Rule for the workshop's own document.
     match /oficinas/{oficinaId} {
@@ -83,6 +78,11 @@ service cloud.firestore {
         allow create: if (isOficinaMember(oficinaId) && request.resource.data.reference_type != 'MANUAL') || isOficinaAdmin(oficinaId);
         // Only admins can alter manual transactions. Automated ones are locked.
         allow update, delete: if isOficinaAdmin(oficinaId) && resource.data.reference_type == 'MANUAL';
+    }
+    
+    // Rules for vehicle history.
+    match /oficinas/{oficinaId}/vehicleHistory/{historyId} {
+      allow read, write: if isOficinaMember(oficinaId);
     }
     
     // Counters are modified within transactions by members.
