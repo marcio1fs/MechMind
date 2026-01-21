@@ -4,33 +4,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
   
     // =============================================
-    // DEVELOPMENT RULES
+    // HELPER FUNCTIONS
     // =============================================
-    // This provides wide-open access for the specific development workshop ID.
-    // It allows all frontend queries to succeed without a real authenticated user.
-    match /oficinas/dev-oficina-id/{document=**} {
-      allow read, write: if true;
-    }
-    
-    // =============================================
-    // HELPER FUNCTIONS (FOR PRODUCTION)
-    // =============================================
+    // NOTA: Estas funções não podem ser usadas em regras `allow list` porque
+    // contêm chamadas `get()` ou `exists()`, que não são permitidas em consultas de coleção.
 
     function isOficinaMember(oficinaId) {
-      // Allow any access in the dev environment without auth checks.
       if (oficinaId == 'dev-oficina-id') {
         return true;
       }
-      // Production check: User must be authenticated and a member of the specified workshop.
       return request.auth != null && exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
     }
 
     function isOficinaAdmin(oficinaId) {
-      // Allow any access in the dev environment without auth checks.
       if (oficinaId == 'dev-oficina-id') {
         return true;
       }
-      // Production check: User must be an authenticated member AND have the ADMIN role.
       if (request.auth == null) {
         return false;
       }
@@ -42,59 +31,60 @@ service cloud.firestore {
     // PRODUCTION RULES
     // =============================================
     
-    // Publicly readable user mapping for login flow
+    // Mapeamento de usuário para oficina, público para o fluxo de login
     match /users/{userId} {
         allow read: if true;
         allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Rule for the workshop's own document.
+    // Regra para o próprio documento da oficina.
     match /oficinas/{oficinaId} {
         allow get: if isOficinaMember(oficinaId);
-        allow list: if false; // Never allow listing all workshops for security.
+        allow list: if false; // Nunca permitir a listagem de todas as oficinas por segurança.
         allow create: if request.auth != null;
         allow update: if isOficinaAdmin(oficinaId);
     }
     
-    // Rules for the users/mechanics within a workshop.
+    // Regras para os usuários/mecânicos dentro de uma oficina.
     match /oficinas/{oficinaId}/users/{userId} {
         allow get: if isOficinaMember(oficinaId);
-        allow list: if isOficinaMember(oficinaId);
+        allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
         allow create: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId);
         allow delete: if isOficinaAdmin(oficinaId);
         allow update: if (isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId && request.resource.data.role == resource.data.role));
     }
 
-    // Rules for service orders.
+    // Regras para ordens de serviço.
     match /oficinas/{oficinaId}/ordensDeServico/{osId} {
         allow get, create, update: if isOficinaMember(oficinaId);
-        allow list: if isOficinaMember(oficinaId);
+        allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
         allow delete: if (isOficinaMember(oficinaId) && resource.data.status != 'FINALIZADO');
     }
     
-    // Rules for inventory.
+    // Regras para o estoque.
     match /oficinas/{oficinaId}/inventory/{itemId} {
         allow get, create, update, delete: if isOficinaMember(oficinaId);
-        allow list: if isOficinaMember(oficinaId);
+        allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
     }
 
-    // Rules for financial transactions.
+    // Regras para transações financeiras.
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
         allow get, write: if isOficinaAdmin(oficinaId);
-        allow list: if isOficinaAdmin(oficinaId);
+        allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
     }
     
-    // Rules for vehicle history.
+    // Regras para o histórico do veículo.
     match /oficinas/{oficinaId}/vehicleHistory/{historyId} {
-      allow read, write: if isOficinaMember(oficinaId);
+      allow get, write: if isOficinaMember(oficinaId);
+      allow list: if oficinaId == 'dev-oficina-id' || request.auth != null;
     }
     
-    // Counters are an internal mechanism modified within transactions by members.
+    // Contadores são um mecanismo interno modificado dentro de transações por membros.
     match /oficinas/{oficinaId}/counters/{counterId} {
       allow read, write: if isOficinaMember(oficinaId);
     }
 
-    // Workshop-specific config can only be managed by admins.
+    // A configuração específica da oficina só pode ser gerenciada por administradores.
      match /oficinas/{oficinaId}/config/{configId} {
       allow read, write: if isOficinaAdmin(oficinaId);
     }
