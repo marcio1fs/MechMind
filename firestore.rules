@@ -2,17 +2,6 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // =============================================
-    // DEVELOPMENT-ONLY OVERRIDE
-    // =============================================
-    // This block grants open access for the `dev-oficina-id`.
-    // It is critical for local development where `request.auth` is null.
-    // The Firebase rules engine matches the most specific path first, so this
-    // will be used for all dev requests, and production rules below will be ignored for this path.
-    match /oficinas/dev-oficina-id/{document=**} {
-      allow read, write: if true;
-    }
   
     // =============================================
     // HELPER FUNCTIONS (FOR PRODUCTION)
@@ -34,7 +23,7 @@ service cloud.firestore {
     }
     
     // =============================================
-    // PRODUCTION RULES
+    // PRODUCTION RULES (with dev override)
     // =============================================
     
     // User-to-workshop mapping for login flow (production)
@@ -45,56 +34,52 @@ service cloud.firestore {
 
     // Rule for the workshop document itself.
     match /oficinas/{oficinaId} {
-        allow get: if isOficinaMember(oficinaId);
+        allow get: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
         allow list: if false; // NEVER allow listing all workshops for security.
-        allow create: if request.auth != null;
-        allow update: if isOficinaAdmin(oficinaId);
+        allow create: if request.auth != null || oficinaId == 'dev-oficina-id';
+        allow update: if isOficinaAdmin(oficinaId) || oficinaId == 'dev-oficina-id';
     }
     
     // Rules for subcollections within a workshop.
-    // The client SDK is responsible for querying ONLY within the user's oficinaId.
-    // The list rule here just ensures the user is logged in, which is a valid query.
-
     match /oficinas/{oficinaId}/users/{userId} {
-        allow get: if isOficinaMember(oficinaId);
-        allow list: if request.auth != null;
-        allow create: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId);
-        allow delete: if isOficinaAdmin(oficinaId);
-        allow update: if (request.auth != null && request.auth.uid == userId && request.resource.data.role == resource.data.role) || isOficinaAdmin(oficinaId);
+        allow get: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
+        allow list: if request.auth != null || oficinaId == 'dev-oficina-id';
+        allow create: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId) || oficinaId == 'dev-oficina-id';
+        allow delete: if isOficinaAdmin(oficinaId) || oficinaId == 'dev-oficina-id';
+        allow update: if (request.auth != null && request.auth.uid == userId && request.resource.data.role == resource.data.role) || isOficinaAdmin(oficinaId) || oficinaId == 'dev-oficina-id';
     }
 
     match /oficinas/{oficinaId}/ordensDeServico/{osId} {
-        allow get: if isOficinaMember(oficinaId);
-        allow list: if request.auth != null;
-        allow create, update: if isOficinaMember(oficinaId);
-        allow delete: if isOficinaMember(oficinaId) && resource.data.status != 'FINALIZADO';
+        allow get: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
+        allow list: if request.auth != null || oficinaId == 'dev-oficina-id';
+        allow create, update: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
+        allow delete: if (isOficinaMember(oficinaId) && resource.data.status != 'FINALIZADO') || oficinaId == 'dev-oficina-id';
     }
     
     match /oficinas/{oficinaId}/inventory/{itemId} {
-        allow get: if isOficinaMember(oficinaId);
-        allow list: if request.auth != null;
-        allow create, update, delete: if isOficinaMember(oficinaId);
+        allow get: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
+        allow list: if request.auth != null || oficinaId == 'dev-oficina-id';
+        allow create, update, delete: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
     }
 
-    // Admins can read/write single transactions. Any logged-in user can list (UI hides for non-admins).
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
-        allow get: if isOficinaAdmin(oficinaId);
-        allow list: if request.auth != null;
-        allow write: if isOficinaAdmin(oficinaId);
+        allow get: if isOficinaAdmin(oficinaId) || oficinaId == 'dev-oficina-id';
+        allow list: if request.auth != null || oficinaId == 'dev-oficina-id';
+        allow write: if isOficinaAdmin(oficinaId) || oficinaId == 'dev-oficina-id';
     }
     
     match /oficinas/{oficinaId}/vehicleHistory/{historyId} {
-      allow get: if isOficinaMember(oficinaId);
-      allow list: if request.auth != null;
-      allow write: if isOficinaMember(oficinaId);
+      allow get: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
+      allow list: if request.auth != null || oficinaId == 'dev-oficina-id';
+      allow write: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
     }
     
     match /oficinas/{oficinaId}/counters/{counterId} {
-      allow read, write: if isOficinaMember(oficinaId);
+      allow read, write: if isOficinaMember(oficinaId) || oficinaId == 'dev-oficina-id';
     }
 
      match /oficinas/{oficinaId}/config/{configId} {
-      allow read, write: if isOficinaAdmin(oficinaId);
+      allow read, write: if isOficinaAdmin(oficinaId) || oficinaId == 'dev-oficina-id';
     }
   }
 }
