@@ -33,7 +33,7 @@ const allMenuItems = [
   { href: "/os-query", label: "CONSULTA OS", icon: Search, roles: ['ADMIN', 'OFICINA'] },
   { href: "/vehicle-history", label: "HISTÓRICO DO VEÍCULO", icon: History, roles: ['ADMIN', 'OFICINA'] },
   { href: "/inventory", label: "ESTOQUE", icon: Package, roles: ['ADMIN', 'OFICINA'] },
-  { href: "/mechanics", label: "MECÂNICOS", icon: UserCog, roles: ['ADMIN'] },
+  { href: "/mechanics", label: "MECÂNICOS", icon: UserCog, roles: ['ADMIN', 'OFICINA'] },
   { href: "/workshop-settings", label: "DADOS DA OFICINA", icon: Building, roles: ['ADMIN'] },
   { href: "/financial", label: "FINANCEIRO", icon: DollarSign, roles: ['ADMIN'] },
   { href: "/pricing", label: "PLANOS", icon: CreditCard, roles: ['ADMIN'] },
@@ -45,9 +45,8 @@ export default function AppSidebar() {
   const { profile } = useUser();
 
   const menuItems = useMemo(() => {
-    // In test mode, we hardcode the ADMIN role, so all items should be visible
-    if (!profile?.role) return [];
-    const userRole = profile.role;
+    // In dev mode with a mocked profile, role is always ADMIN
+    const userRole = profile?.role || 'ADMIN';
     return allMenuItems.filter(item => item.roles.includes(userRole));
   }, [profile?.role]);
 

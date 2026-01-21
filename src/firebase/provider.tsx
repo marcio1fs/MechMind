@@ -59,42 +59,52 @@ const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAu
   });
 
   useEffect(() => {
-    if (!auth || !firestore) {
-      setUserState({ user: null, profile: null, isUserLoading: false, userError: null });
-      return;
-    }
+    // For the development environment, we immediately set a mock admin user
+    // to bypass login screens and facilitate rapid development.
+    // This simulates a full-access user without requiring real authentication.
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        // A user is signed in. For development, we'll always use a static admin profile.
-        // This avoids needing real user data in Firestore for the dev environment to work.
-        const mockProfile: UserProfile = {
-          id: user.uid,
-          oficinaId: 'dev-oficina-id',
-          firstName: 'Admin',
-          lastName: 'OSMECH',
-          email: user.email || 'admin@osmech.com',
-          role: 'ADMIN',
-          specialty: 'Gestão',
-          createdAt: Timestamp.fromDate(new Date()),
-          activePlan: 'PREMIUM',
-        };
+    const mockProfile: UserProfile = {
+      id: 'dev-admin-user',
+      oficinaId: 'dev-oficina-id',
+      firstName: 'Admin',
+      lastName: 'OSMECH',
+      email: 'admin@osmech.com',
+      role: 'ADMIN',
+      specialty: 'Gestão',
+      createdAt: Timestamp.fromDate(new Date()),
+      activePlan: 'PREMIUM',
+    };
 
-        setUserState({
-          user: user,
-          profile: mockProfile,
-          isUserLoading: false,
-          userError: null,
-        });
+    // The `user` object can be partially mocked for the UI, but it won't affect backend rules.
+    const mockUser = {
+        uid: 'dev-admin-user',
+        email: 'admin@osmech.com',
+        emailVerified: true,
+        displayName: 'Admin OSMECH',
+        isAnonymous: true, // Indicate this is not a real, persistent user
+        providerData: [],
+        // Add other properties as needed by the UI, with dummy values
+        photoURL: null,
+        phoneNumber: null,
+        tenantId: null,
+        providerId: 'firebase',
+        metadata: {},
+        refreshToken: 'mock-token',
+        delete: async () => {},
+        getIdToken: async () => 'mock-id-token',
+        getIdTokenResult: async () => ({ token: 'mock-id-token', claims: {}, authTime: '', expirationTime: '', issuedAtTime: '', signInProvider: null, signInSecondFactor: null }),
+        reload: async () => {},
+        toJSON: () => ({}),
+    } as User;
 
-      } else {
-        // No user is signed in. Set user state to null.
-        setUserState({ user: null, profile: null, isUserLoading: false, userError: null });
-      }
+    setUserState({
+      user: mockUser,
+      profile: mockProfile,
+      isUserLoading: false,
+      userError: null,
     });
-
-    return () => unsubscribe();
-  }, [auth, firestore]);
+    
+  }, [auth, firestore]); // The dependencies are kept for consistency, though the effect is now static.
 
   return userState;
 };

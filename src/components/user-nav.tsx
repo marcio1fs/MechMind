@@ -15,21 +15,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useUser, useAuth } from "@/firebase"
+import { useUser } from "@/firebase"
 import { useRouter } from "next/navigation"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { CreditCard, LifeBuoy, LogOut, Settings, User } from "lucide-react"
-import { signOut } from "firebase/auth"
 
 export function UserNav() {
     const { profile } = useUser();
-    const auth = useAuth();
     const router = useRouter();
     const avatarImage = PlaceHolderImages.find(p => p.id === 'avatar-user');
     
     const handleLogout = async () => {
-        await signOut(auth);
-        // The onAuthStateChanged listener in the FirebaseProvider will handle redirecting to the login page.
+        // In the mocked development environment, there's no real logout.
+        // We can just redirect to the "login" page, which will then auto-redirect.
+        router.push('/');
     }
 
     if (!profile) {
@@ -78,7 +77,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
+          <span>Sair (Simulado)</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

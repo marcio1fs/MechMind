@@ -7,10 +7,11 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // =============================================
     
-    // In a test environment, allow any authenticated user to access the dev workshop.
-    // This works with the anonymous sign-in on the client for development.
+    // In a test environment, allow any request if the workshop ID is the dev one.
+    // This bypasses the need for real authentication during local development.
+    // WARNING: THIS SHOULD BE REMOVED OR SECURED BEFORE PRODUCTION.
     function isDevEnvironment(oficinaId) {
-      return request.auth != null && oficinaId == 'dev-oficina-id';
+      return oficinaId == 'dev-oficina-id';
     }
 
     // Checks if the user is a member of the specified workshop.
