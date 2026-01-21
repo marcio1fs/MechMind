@@ -32,13 +32,22 @@ export function PixPaymentDialog({ isOpen, onOpenChange, plan, pixKey }: PixPaym
 
   if (!plan) return null;
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (pixKey) {
-        navigator.clipboard.writeText(pixKey);
-        toast({
-            title: "Chave PIX Copiada!",
-            description: "A chave foi copiada para sua área de transferência.",
-        });
+        try {
+            await navigator.clipboard.writeText(pixKey);
+            toast({
+                title: "Chave PIX Copiada!",
+                description: "A chave foi copiada para sua área de transferência.",
+            });
+        } catch (err) {
+            console.error("Falha ao copiar para a área de transferência:", err);
+            toast({
+                variant: "destructive",
+                title: "Falha ao Copiar",
+                description: "Não foi possível copiar a chave. Por favor, copie manualmente.",
+            });
+        }
     }
   };
   

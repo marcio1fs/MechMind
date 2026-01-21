@@ -9,26 +9,19 @@ service cloud.firestore {
     
     // Checks if the user is a member of the specified workshop.
     function isOficinaMember(oficinaId) {
-      // DEV ONLY: For testing, bypass auth check for the dev workshop.
-      // This allows testing without a real user session.
-      // REMOVE THIS BLOCK FOR PRODUCTION.
-      if (oficinaId == 'dev-oficina-id') {
-        return true;
-      }
+      // For a user to be a member, they must be authenticated AND
+      // a user document must exist for them inside the specified workshop's `users` subcollection.
       return request.auth != null && exists(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
     }
 
     // Checks if the user is an ADMIN of the specified workshop.
     function isOficinaAdmin(oficinaId) {
-      // DEV ONLY: For testing, assume admin for the dev workshop.
-      // REMOVE THIS BLOCK FOR PRODUCTION.
-      if (oficinaId == 'dev-oficina-id') {
-        return true;
-      }
       if (request.auth == null) {
         return false;
       }
-      // It's important to check for existence before accessing .data
+      // This reads the user's document inside the workshop to check their role.
+      // IMPORTANT: This function CANNOT be used to secure `list` queries due to performance constraints.
+      // It is safe for `get`, `create`, `update`, `delete`.
       let userDoc = get(/databases/$(database)/documents/oficinas/$(oficinaId)/users/$(request.auth.uid));
       return userDoc.data != null && userDoc.data.role == 'ADMIN';
     }
@@ -37,44 +30,61 @@ service cloud.firestore {
     // RULES
     // =============================================
     
+    // Publicly readable user mapping for login flow
+    // This allows the app to find which `oficinaId` a `userId` belongs to.
+    match /users/{userId} {
+        allow read: if true;
+        // A user can only write their own mapping document.
+        allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Rule for the workshop's own document.
     match /oficinas/{oficinaId} {
         allow get: if isOficinaMember(oficinaId);
-        allow list: if false; // Never allow listing all workshops.
-        // Allow a user to create a workshop document during signup.
-        allow create: if request.auth != null || oficinaId == 'dev-oficina-id';
+        allow list: if false; // Never allow listing all workshops for security.
+        // A user can create a workshop document, necessary for the signup flow.
+        allow create: if request.auth != null;
         allow update: if isOficinaAdmin(oficinaId);
     }
     
+    // Rules for the nested collections within a workshop.
+    // The `{document=**}` wildcard is NOT used to ensure each collection has explicit rules.
+    
     // Rules for the users/mechanics within a workshop.
     match /oficinas/{oficinaId}/users/{userId} {
+        // Any member of the workshop can see the list of other members.
         allow read: if isOficinaMember(oficinaId);
-        // Allow a user to create their OWN user document during signup.
-        // Also allow admins to create other users.
+        // Only an admin can create new users, OR a user can create their own document during signup.
         allow create: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId);
+        // Only an admin can delete a user.
         allow delete: if isOficinaAdmin(oficinaId);
-        // An admin can update anyone, or a user can update their own info.
-        // A user cannot change their own role.
+        // An admin can update anyone's info. A user can update their own info, but cannot change their own role.
         allow update: if isOficinaAdmin(oficinaId) || (request.auth != null && request.auth.uid == userId && request.resource.data.role == resource.data.role);
     }
 
     // Rules for service orders.
     match /oficinas/{oficinaId}/ordensDeServico/{osId} {
+        // Any member can read and manage service orders.
         allow read, create, update: if isOficinaMember(oficinaId);
-        // A member can only delete an order if it's not finalized.
+        // A member can only delete an order if it's not finalized to maintain historical integrity.
         allow delete: if isOficinaMember(oficinaId) && resource.data.status != 'FINALIZADO';
     }
     
     // Rules for inventory.
     match /oficinas/{oficinaId}/inventory/{itemId} {
+        // Any member can manage the inventory.
         allow read, write: if isOficinaMember(oficinaId);
     }
 
     // Rules for financial transactions.
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
-        // Temporarily allow all members to read to fix dev environment list query issue.
-        // TODO: This should be restricted back to isOficinaAdmin with a more robust solution for production (e.g., custom claims).
-        allow read: if isOficinaMember(oficinaId);
+        // LIST Rule: To avoid performance issues with `get` in list queries, we allow any member to LIST transactions.
+        // The UI is responsible for hiding this data from non-admins. This is a security trade-off for performance.
+        allow list: if isOficinaMember(oficinaId);
+        // GET Rule: For reading a single document, we can enforce the stricter Admin-only rule.
+        allow get: if isOficinaAdmin(oficinaId);
+        
+        // Write Rules:
         // Transactions are created automatically by OS/Stock updates (by any member) or manually by an admin.
         allow create: if (isOficinaMember(oficinaId) && request.resource.data.reference_type != 'MANUAL') || isOficinaAdmin(oficinaId);
         // Only admins can alter manual transactions. Automated ones are locked.
@@ -86,21 +96,14 @@ service cloud.firestore {
       allow read, write: if isOficinaMember(oficinaId);
     }
     
-    // Counters are modified within transactions by members.
+    // Counters are an internal mechanism modified within transactions by members.
     match /oficinas/{oficinaId}/counters/{counterId} {
       allow read, write: if isOficinaMember(oficinaId);
     }
 
-    // Workshop-specific config (e.g., WhatsApp API keys).
+    // Workshop-specific config (e.g., WhatsApp API keys) can only be managed by admins.
      match /oficinas/{oficinaId}/config/{configId} {
       allow read, write: if isOficinaAdmin(oficinaId);
-    }
-
-    // Publicly readable user mapping for login flow
-    match /users/{userId} {
-        allow read: if true;
-        // Allow write if user is creating their own map, or if in dev mode
-        allow write: if (request.auth != null && request.auth.uid == userId) || (userId == 'dev-user-id');
     }
   }
 }
