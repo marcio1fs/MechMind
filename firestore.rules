@@ -7,10 +7,10 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // =============================================
     
-    // In a test environment, if auth is null, we can bypass auth checks for a specific workshop ID.
-    // WARNING: This should be removed or secured before going to production.
+    // In a test environment, allow any authenticated user to access the dev workshop.
+    // This works with the anonymous sign-in on the client for development.
     function isDevEnvironment(oficinaId) {
-      return request.auth == null && oficinaId == 'dev-oficina-id';
+      return request.auth != null && oficinaId == 'dev-oficina-id';
     }
 
     // Checks if the user is a member of the specified workshop.
@@ -81,13 +81,8 @@ service cloud.firestore {
 
     // Rules for financial transactions.
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
-        // For dev environment, we must relax the rules for `list` operations.
-        // `isOficinaAdmin` contains a `get()` which is not allowed in list queries.
-        // The UI is already gated, so this is an acceptable trade-off for dev.
-        allow read: if isOficinaMember(oficinaId);
-        
-        // Write Rules:
-        allow write: if isOficinaMember(oficinaId);
+        // Any member can read financial transactions. Writing is also open to any member.
+        allow read, write: if isOficinaMember(oficinaId);
     }
     
     // Rules for vehicle history.

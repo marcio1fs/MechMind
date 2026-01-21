@@ -1,7 +1,34 @@
 import type {NextConfig} from 'next';
 
+const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data: https://placehold.co https://images.unsplash.com https://picsum.photos https://lh3.googleusercontent.com https://api.qrserver.com;
+    font-src 'self';
+    connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com wss://*.firebaseio.com;
+    frame-src 'self' https://mechmind-53bdd.firebaseapp.com;
+`.replace(/\s{2,}/g, ' ').trim();
+
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: cspHeader,
+          },
+          {
+            key: 'Permissions-Policy',
+            value: "clipboard-write 'self'",
+          }
+        ],
+      },
+    ]
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

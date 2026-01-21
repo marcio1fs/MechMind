@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, Timestamp } from 'firebase/firestore';
-import { Auth, User } from 'firebase/auth';
+import { Auth, User, signInAnonymously } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { getSubscriptionDetails } from '@/lib/subscription';
 
@@ -52,8 +52,6 @@ export interface FirebaseProviderProps {
 }
 
 const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAuthState => {
-  // This hook now returns a static, mocked admin user for development purposes.
-  // It simulates a logged-in state without requiring actual authentication.
   const [userState, setUserState] = useState<UserAuthState>({
     user: null,
     profile: null,
@@ -62,45 +60,45 @@ const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAu
   });
 
   useEffect(() => {
-    // This effect now runs only once to set the mocked user.
-    // It checks the pathname to decide if the user should be "logged in".
-    const isLoginPage = window.location.pathname === '/' || window.location.pathname.startsWith('/signup') || window.location.pathname.startsWith('/forgot-password');
-
-    if (isLoginPage) {
-        // If on a public/auth page, simulate a logged-out user.
-        setUserState({ user: null, profile: null, isUserLoading: false, userError: null });
-        return;
+    if (!auth || !firestore) {
+      setUserState({ user: null, profile: null, isUserLoading: false, userError: null });
+      return;
     }
 
-    // For any other page, simulate a logged-in admin user.
-    const mockProfile: UserProfile = {
-      id: 'dev-user-id',
-      oficinaId: 'dev-oficina-id',
-      firstName: 'Admin',
-      lastName: 'OSMECH',
-      email: 'admin@osmech.com',
-      role: 'ADMIN',
-      specialty: 'Gestão',
-      createdAt: Timestamp.fromDate(new Date()),
-      activePlan: 'PREMIUM', // Mocked as PREMIUM for full feature access
-    };
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        // A user is signed in. For development, we'll always use a static admin profile.
+        const mockProfile: UserProfile = {
+          id: user.uid,
+          oficinaId: 'dev-oficina-id',
+          firstName: 'Admin',
+          lastName: 'OSMECH',
+          email: user.isAnonymous ? 'admin@osmech.com' : (user.email || 'admin@osmech.com'),
+          role: 'ADMIN',
+          specialty: 'Gestão',
+          createdAt: Timestamp.fromDate(new Date()),
+          activePlan: 'PREMIUM',
+        };
 
-    const mockUser: User = {
-      uid: 'dev-user-id',
-      email: 'admin@osmech.com',
-      displayName: 'Admin OSMECH',
-    } as User;
+        setUserState({
+          user: user,
+          profile: mockProfile,
+          isUserLoading: false,
+          userError: null,
+        });
 
-    setUserState({
-      user: mockUser,
-      profile: mockProfile,
-      isUserLoading: false,
-      userError: null,
+      } else {
+        // No user is signed in. For development, we initiate anonymous sign-in.
+        // The onAuthStateChanged listener will be called again once sign-in completes.
+        signInAnonymously(auth).catch((error) => {
+          console.error("Anonymous sign-in failed", error);
+          setUserState({ user: null, profile: null, isUserLoading: false, userError: error });
+        });
+      }
     });
 
-  // We add 'auth' as a dependency so this effect can re-run if auth status conceptually changes,
-  // although in our mock, it's driven by path.
-  }, [auth]);
+    return () => unsubscribe();
+  }, [auth, firestore]);
 
   return userState;
 };
