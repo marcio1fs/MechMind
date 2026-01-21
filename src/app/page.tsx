@@ -28,7 +28,7 @@ export default function LoginPage() {
     // Simulate a network request for a better UX
     setTimeout(() => {
       // For development, we allow login with specific credentials without hitting Firebase Auth
-      if (email === 'admin@osmech.com' && password === 'password') {
+      if (email.toLowerCase() === 'admin@osmech.com' && password === 'password') {
         // The AuthGuard and FirebaseProvider will use the mocked admin user
         router.push('/dashboard');
       } else {
@@ -64,6 +64,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
+                  className="normal-case placeholder:normal-case"
                 />
               </div>
               <div className="grid gap-2">
@@ -83,6 +84,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
+                  className="normal-case"
                 />
               </div>
                {error && <p className="text-sm font-medium text-destructive">{error}</p>}
