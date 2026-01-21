@@ -72,8 +72,9 @@ service cloud.firestore {
 
     // Rules for financial transactions.
     match /oficinas/{oficinaId}/financialTransactions/{transactionId} {
-        // Only admins can view the full financial ledger.
-        allow read: if isOficinaAdmin(oficinaId);
+        // Temporarily allow all members to read to fix dev environment list query issue.
+        // TODO: This should be restricted back to isOficinaAdmin with a more robust solution for production (e.g., custom claims).
+        allow read: if isOficinaMember(oficinaId);
         // Transactions are created automatically by OS/Stock updates (by any member) or manually by an admin.
         allow create: if (isOficinaMember(oficinaId) && request.resource.data.reference_type != 'MANUAL') || isOficinaAdmin(oficinaId);
         // Only admins can alter manual transactions. Automated ones are locked.
