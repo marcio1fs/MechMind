@@ -3,9 +3,8 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, Timestamp } from 'firebase/firestore';
-import { Auth, User, signInAnonymously } from 'firebase/auth';
+import { Auth, User } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { getSubscriptionDetails } from '@/lib/subscription';
 
 // Define the shape of the user profile based on the User entity.
 export type UserProfile = {
@@ -68,12 +67,13 @@ const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAu
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         // A user is signed in. For development, we'll always use a static admin profile.
+        // This avoids needing real user data in Firestore for the dev environment to work.
         const mockProfile: UserProfile = {
           id: user.uid,
           oficinaId: 'dev-oficina-id',
           firstName: 'Admin',
           lastName: 'OSMECH',
-          email: user.isAnonymous ? 'admin@osmech.com' : (user.email || 'admin@osmech.com'),
+          email: user.email || 'admin@osmech.com',
           role: 'ADMIN',
           specialty: 'Gestão',
           createdAt: Timestamp.fromDate(new Date()),
@@ -88,12 +88,8 @@ const useFirebaseAuth = (auth: Auth | null, firestore: Firestore | null): UserAu
         });
 
       } else {
-        // No user is signed in. For development, we initiate anonymous sign-in.
-        // The onAuthStateChanged listener will be called again once sign-in completes.
-        signInAnonymously(auth).catch((error) => {
-          console.error("Anonymous sign-in failed", error);
-          setUserState({ user: null, profile: null, isUserLoading: false, userError: error });
-        });
+        // No user is signed in. Set user state to null.
+        setUserState({ user: null, profile: null, isUserLoading: false, userError: null });
       }
     });
 

@@ -54,10 +54,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         );
     }
     
-    // If user is not logged in, only allow access to public routes
-    if (!user && !publicRoutes.includes(pathname)) {
-        // This can happen briefly on page load before redirection.
-        // Returning a loader prevents a flash of content.
+    // If user is not logged in and on a protected route, show loader while redirecting
+    if (!user && protectedRoutes.some(route => pathname.startsWith(route))) {
          return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -65,9 +63,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // If user is logged in, don't allow access to public routes (like login page)
+    // If user is logged in and on a public route, show loader while redirecting
     if (user && publicRoutes.includes(pathname)) {
-        // This can happen briefly on page load before redirection.
          return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
                 <Loader2 className="h-8 w-8 animate-spin" />

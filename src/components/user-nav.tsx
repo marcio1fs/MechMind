@@ -15,19 +15,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useUser } from "@/firebase"
+import { useUser, useAuth } from "@/firebase"
 import { useRouter } from "next/navigation"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { CreditCard, LifeBuoy, LogOut, Settings, User } from "lucide-react"
+import { signOut } from "firebase/auth"
 
 export function UserNav() {
     const { profile } = useUser();
+    const auth = useAuth();
     const router = useRouter();
     const avatarImage = PlaceHolderImages.find(p => p.id === 'avatar-user');
     
     const handleLogout = async () => {
-        // In the mocked environment, "logging out" means returning to the login page.
-        router.push('/');
+        await signOut(auth);
+        // The onAuthStateChanged listener in the FirebaseProvider will handle redirecting to the login page.
     }
 
     if (!profile) {
